@@ -86,7 +86,7 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
    apaleo-odoo export --month 2026-09 --dry-run
    ```
 
-5. **Export**: eine Abacus-Datei pro Hotel nach `exports/<Hotel>/<JJJJ-MM>/`. Gib sie deinem Treuhänder für den Import in Abacus ([abacus-import.md](docs/abacus-import.md), die Felder der Datei in [abacus-format.md](docs/abacus-format.md)).
+5. **Export**: eine Odoo-Importdatei (CSV, eine Journalbuchung als Entwurf pro Geschäftstag) pro Hotel nach `exports/<Hotel>/<JJJJ-MM>/`. Gib sie deinem Steuerberater oder deiner Buchhaltung für den Import in Odoo (Buchhaltung > Buchhaltung > Journalbuchungen > Zahnrad > Datensätze importieren; die Felder der Datei in [odoo-format.md](docs/odoo-format.md)).
 
    ```sh
    apaleo-odoo export --month 2026-09
@@ -117,7 +117,7 @@ Die Dateien erscheinen in `./data/<Hotel>/<JJJJ-MM>/`. Cron auf dem Host, einmal
 | `live-smoke` | Liest einen Geschäftstag aus apaleo mit echten Zugangsdaten und zeigt, was zurückkam. Schreibt nichts. |
 | `init-mapping` | Schreibt eine Kontenzuordnung aus dem apaleo-Kontenplan und einer Hotelvorlage für Odoo (`--template skr03-hotel` oder `skr04-hotel`); `--update` hängt neue Konten an. |
 | `mapping check` | Prüft eine Kontenzuordnung, und mit `--from`/`--to`, ob jedes im Zeitraum gebuchte Konto zugeordnet ist. |
-| `export` | Schreibt die Abacus-Dateien (AbaConnect XML Buchungen) eines Monats oder Zeitraums nach allen Prüfungen; `--dry-run` schreibt nichts, `--demo` nimmt die Demodaten. |
+| `export` | Schreibt die Odoo-Importdateien (CSV mit Journalbuchungen als Entwurf) eines Monats oder Zeitraums nach allen Prüfungen; `--dry-run` schreibt nichts, `--demo` nimmt die Demodaten. |
 | `schedule` | `schedule --once` exportiert jeden fälligen Zeitraum, der noch nicht im Ausgabeordner liegt, und endet. Für Cron und Docker. |
 
 `apaleo-odoo <Befehl> --help` zeigt die Optionen. Exit-Codes: 0 Erfolg, 1 eine Prüfung oder ein Lauf ist fehlgeschlagen, 2 falscher Aufruf. Jeder Befund-Code mit Lösung: [docs/troubleshooting.md](docs/troubleshooting.md).
