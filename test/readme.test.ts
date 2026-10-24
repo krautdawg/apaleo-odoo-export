@@ -291,7 +291,7 @@ describe('docs folder', () => {
     const troubleshooting = readRepoFile('docs/troubleshooting.md');
     expect(troubleshooting).toContain('`netAmount` oder `taxes[…].amount`: Du nutzt eine alte Version');
     expect(troubleshooting).toContain('`grossAmount`: Das ist auch in der aktuellen Version ein echter Fehler');
-    expect(readRepoFile('docs/export.md')).toContain('10 %: net 77.46, tax 7.74, gross 85.20, apaleo VAT 7.75, difference 0.01 (apaleo precise 7.74545454)');
+    expect(readRepoFile('docs/export.md')).toContain('10 %: net 77.46, apaleo per line 7.74, gross 85.20, apaleo precise 7.75 (7.74545454), difference (per line minus precise) -0.01');
   });
 
   it('documents every config key and every environment variable in docs/configuration.md', () => {

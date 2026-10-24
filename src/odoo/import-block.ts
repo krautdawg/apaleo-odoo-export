@@ -37,12 +37,15 @@ export function importBlock(
   }
   const vat = [...perRate]
     .sort(([a], [b]) => b - a)
-    .map(([percent, { odoo, apaleo }]) => `${formatRate(percent)} % Odoo ${formatSignedAmount(odoo)}, apaleo ${formatSignedAmount(apaleo)}, difference ${formatSignedAmount(odoo - apaleo)}`);
+    .map(
+      ([percent, { odoo, apaleo }]) =>
+        `${formatRate(percent)} % Odoo ${formatSignedAmount(odoo)}, apaleo per line ${formatSignedAmount(apaleo)}, difference (Odoo minus apaleo) ${formatSignedAmount(odoo - apaleo)}`,
+    );
   const perTax = rendered.taxTotals.map(
     (total) =>
       `${taxExternalId(total.taxRef, options.companyId)} ${formatRate(total.percent)} %${kennzahl(total.percent) ? ` (${kennzahl(total.percent)})` : ''}: ` +
-      `base ${formatSignedAmount(total.baseCents)}, Odoo VAT ${formatSignedAmount(total.odooTaxCents)}, apaleo VAT ${formatSignedAmount(total.apaleoTaxCents)}, ` +
-      `difference ${formatSignedAmount(total.odooTaxCents - total.apaleoTaxCents)}`,
+      `base in the file ${formatSignedAmount(total.baseCents)}, Odoo VAT ${formatSignedAmount(total.odooTaxCents)}, apaleo per line ${formatSignedAmount(total.apaleoTaxCents)}, ` +
+      `difference (Odoo minus apaleo) ${formatSignedAmount(total.odooTaxCents - total.apaleoTaxCents)}`,
   );
   const prefix = referencePrefix(options);
   const revision =
@@ -59,7 +62,7 @@ export function importBlock(
     `  Company: id ${options.companyId} (odoo.companyId, the company that owns the taxes), journal ${options.journal}, currency ${options.currency}`,
     `  Rounding method: ${rounding}; must equal Settings > Accounting > Taxes > Rounding Method ("${roundingMethodLabel(options.taxRounding, version)}")`,
     `  Taxes: ${taxList.join(', ') || 'none'}`,
-    `  Odoo VAT against apaleo VAT: ${vat.join('; ') || 'none'}`,
+    `  Odoo VAT against apaleo's tax per line: ${vat.join('; ') || 'none'}`,
     `  Base and VAT per tax: ${perTax.join('; ') || 'none'}`,
     `  Rounding lines: ${roundingLines}; lines netted to zero and left out: ${droppedKeys}`,
     '  Steps: activate only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import',

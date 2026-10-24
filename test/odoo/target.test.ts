@@ -140,8 +140,8 @@ describe('odooTarget', () => {
     expect(text).toContain('Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR');
     expect(text).toContain('Rounding method: per_line; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Line")');
     expect(text).toContain('Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)');
-    expect(text).toContain('Odoo VAT against apaleo VAT: 19 % Odoo 3.80, apaleo 3.80, difference 0.00; 7 % Odoo 7.85, apaleo 7.85, difference 0.00');
-    expect(text).toContain('Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base 20.00, Odoo VAT 3.80, apaleo VAT 3.80, difference 0.00; account.1_tax_ust_7_skr03 7 % (Kz 86): base 112.15, Odoo VAT 7.85, apaleo VAT 7.85, difference 0.00');
+    expect(text).toContain("Odoo VAT against apaleo's tax per line: 19 % Odoo 3.80, apaleo per line 3.80, difference (Odoo minus apaleo) 0.00; 7 % Odoo 7.85, apaleo per line 7.85, difference (Odoo minus apaleo) 0.00");
+    expect(text).toContain('Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 20.00, Odoo VAT 3.80, apaleo per line 3.80, difference (Odoo minus apaleo) 0.00; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 112.15, Odoo VAT 7.85, apaleo per line 7.85, difference (Odoo minus apaleo) 0.00');
     expect(text).toContain('Rounding lines: 0');
     expect(text).toContain('only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import');
     expect(text).toContain('every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post');

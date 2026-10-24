@@ -65,11 +65,11 @@ describe('export of the recorded BER day 2026-10-21 (full pipeline, Odoo target,
     expect(readdirSync(folder).sort()).toEqual([FILE, PROTOCOL, 'manifest.json'].sort());
     const text = protocol();
     expect(text).toContain('Property BER, 2026-10-21 to 2026-10-21: 35 apaleo lines, 29 Odoo bookings');
-    expect(text).toContain('tax_ust_7_skr03 7 % (Kz 86): net 533.84, tax 37.38, gross 571.22, apaleo VAT 37.37, difference -0.01 (apaleo precise 37.3695327)');
-    expect(text).toContain('tax_ust_19_skr03 19 % (Kz 81): net 39.81, tax 7.57, gross 47.38, apaleo VAT 7.56, difference -0.01 (apaleo precise 7.56487395)');
-    expect(text).toContain('no tax 0 %: net 45.00, tax 0.00, gross 45.00');
+    expect(text).toContain('tax_ust_7_skr03 7 % (Kz 86): net 533.84, apaleo per line 37.38, gross 571.22, apaleo precise 37.37 (37.3695327), difference (per line minus precise) 0.01');
+    expect(text).toContain('tax_ust_19_skr03 19 % (Kz 81): net 39.81, apaleo per line 7.57, gross 47.38, apaleo precise 7.56 (7.56487395), difference (per line minus precise) 0.01');
+    expect(text).toContain('no tax 0 %: net 45.00, apaleo per line 0.00, gross 45.00');
     expect(text).toContain('  Entries: 1 draft journal entries (one per business day)');
-    expect(text).toContain('Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base 56.61, Odoo VAT 10.75, apaleo VAT 10.76, difference -0.01; account.1_tax_ust_7_skr03 7 % (Kz 86): base 737.62, Odoo VAT 51.62, apaleo VAT 51.64, difference -0.02');
+    expect(text).toContain('Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 56.61, Odoo VAT 10.75, apaleo per line 10.76, difference (Odoo minus apaleo) -0.01; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 737.62, Odoo VAT 51.62, apaleo per line 51.64, difference (Odoo minus apaleo) -0.02');
     expect(text).toContain('Deposits (Anzahlungen) received, released and refunded:\n  received        590.00\n  released        352.00\n  of it refunded   10.00\n');
     expect(text).toMatch(/^ {2}1001 +111\.70$/m);
     expect(text).toMatch(/^ {2}1360 +675\.90$/m);
@@ -101,7 +101,7 @@ describe('export of the recorded VIE day 2026-10-21 through the hand-made Austri
     const taxes = new Set([...csv.matchAll(/,(account\.1_[a-z0-9_]+)$/gm)].map((match) => match[1]));
     expect([...taxes].sort()).toEqual(['account.1_account_tax_template_sales_10_code029', 'account.1_account_tax_template_sales_13_code006', 'account.1_account_tax_template_sales_20_code022']);
     // Line rounding is not an error: 7.74 at 10 % against apaleo's precise 7.74545454.
-    expect(protocol).toContain('account_tax_template_sales_10_code029 10 %: net 77.46, tax 7.74, gross 85.20, apaleo VAT 7.75, difference 0.01 (apaleo precise 7.74545454)');
+    expect(protocol).toContain('account_tax_template_sales_10_code029 10 %: net 77.46, apaleo per line 7.74, gross 85.20, apaleo precise 7.75 (7.74545454), difference (per line minus precise) -0.01');
     expect(protocol).not.toContain('E-VAT-TOTAL');
   });
 });

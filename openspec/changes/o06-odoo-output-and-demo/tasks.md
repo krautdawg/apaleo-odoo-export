@@ -1,6 +1,6 @@
 ## 1. Summary and protocol
 
-- [ ] 1.1 `src/export/summary.ts`: the order and content of the requirement "Dry run" with the Kennzahl from `taxReturnLine`, Odoo VAT, apaleo VAT and difference per rate and per day, entries, lines and rounding lines; the explaining sentence in English CLI output
+- [ ] 1.1 `src/export/summary.ts`: the order and content of the requirement "Dry run" with the Kennzahl from `taxReturnLine`, Odoo VAT, apaleo VAT and difference per rate and per day, entries, lines and rounding lines; the explaining sentence in English CLI output. Since the o03 review the revenue and deposit sections are labelled as apaleo's figures before the base fitting (`apaleo per line`, `apaleo precise`, difference per line minus precise) and Odoo's VAT per tax is only in the import block (difference Odoo minus apaleo); keep these labels and that sign convention when Odoo's VAT moves into the per-rate lines
 - [ ] 1.2 Protocol: same summary, the import block, and per entry line the netted source entry numbers and receipts (from o03), with the `DEMO` first line for the demo
 - [ ] 1.3 Tests in `test/export/` for "Review before the first file", "German rates with their Kennzahl" and "VAT difference per tax rounding"
 

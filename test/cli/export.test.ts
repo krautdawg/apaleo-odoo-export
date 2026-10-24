@@ -158,9 +158,9 @@ describe('apaleo-odoo export', () => {
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--dry-run'], setup.ctx)).toBe(0);
     const out = setup.ctx.out();
     for (const text of [
-      "Totals per Odoo account (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax):",
-      'Revenue and VAT per Odoo tax and rate, with the UStVA Kennzahl:',
-      'Deposits and their VAT per Odoo tax and rate',
+      "Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
+      "Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):",
+      "Deposits and apaleo's VAT per Odoo tax and rate",
       'Kurtaxe and other guest levies per account (apaleo city tax, total 6.40):\n  3600 without tax: 6.40\n',
       'Payments per clearing account:',
       'Deposits (Anzahlungen) received, released and refunded:\n  received        395.00\n  released        395.00\n  of it refunded   10.00\n',
@@ -172,9 +172,9 @@ describe('apaleo-odoo export', () => {
       expect(out).toContain(text);
     }
     // No Kennzahl for a non-German rate.
-    expect(out).toContain('  account_tax_template_sales_10_code029 10 %: net 584.82, tax 58.48, gross 643.30, apaleo VAT 58.48, difference 0.00 (apaleo precise 58.48181818)');
+    expect(out).toContain('  account_tax_template_sales_10_code029 10 %: net 584.82, apaleo per line 58.48, gross 643.30, apaleo precise 58.48 (58.48181818), difference (per line minus precise) 0.00');
     expect(out).not.toContain('(Kz');
-    expect(out).toContain("Each booking carries apaleo's tax of its line, rounded to the cent");
+    expect(out).toContain("The revenue, deposit and write-off sections show apaleo's figures before the base fitting");
     // The import block, before the totals.
     const importBlock = out.indexOf('Import into Odoo Accounting');
     expect(importBlock).toBeGreaterThan(0);

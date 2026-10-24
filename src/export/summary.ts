@@ -34,9 +34,10 @@ function taxAndRate(tax: string, ratePercent: number, taxReturnLine: TaxReturnLi
 
 /** Why the tax per line and apaleo's precise VAT differ by a few cents, and where Odoo's own VAT is, for the Steuerberater. */
 export const VAT_ROUNDING_NOTE =
-  "Each booking carries apaleo's tax of its line, rounded to the cent, while apaleo rounds only the precise total of its lines per day, " +
-  'so a difference (apaleo precise minus tax) of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; ' +
-  "the file fits each base to apaleo's gross, and the import block shows Odoo's VAT against apaleo's per tax.";
+  "The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line " +
+  "rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) " +
+  "of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, " +
+  "and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.";
 
 /**
  * The posting summary as aligned text, for the dry run and the protocol file:
@@ -63,13 +64,14 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
 
   const accounts = summary.accounts.map((a) => [a.account, formatCents(a.sollCents), formatCents(a.habenCents), formatCents(a.balanceCents)]);
   section(
-    'Totals per Odoo account (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo\'s tax):',
+    'Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount ' +
+      "minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
     formatTable([['account', 'Soll', 'Haben', 'balance'], ...accounts], [1, 2, 3], '  '),
   );
 
-  section('Revenue and VAT per Odoo tax and rate, with the UStVA Kennzahl:', vatLines(summary.revenueByRate));
-  section('Deposits and their VAT per Odoo tax and rate (received minus released):', vatLines(summary.depositVatByRate));
-  section('Written-off receivables (Forderungsverluste) and the VAT correction per Odoo tax and rate:', vatLines(summary.writeOffsByRate));
+  section("Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):", vatLines(summary.revenueByRate));
+  section("Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):", vatLines(summary.depositVatByRate));
+  section("Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate (before the base fitting):", vatLines(summary.writeOffsByRate));
   out.push(VAT_ROUNDING_NOTE, '');
   section(`Kurtaxe and other guest levies per account (apaleo city tax, total ${formatCents(summary.cityTaxCents)}):`, levyLines(summary.levies, taxReturnLine).join('\n'));
 
@@ -111,16 +113,17 @@ function levyLines(levies: readonly LevyTotal[], taxReturnLine: TaxReturnLine): 
 }
 
 /**
- * `tax_ust_7_skr03 7 % (Kz 86): net 112.15, tax 7.85, gross 120.00, apaleo VAT 7.85, difference 0.00 (apaleo precise 7.85046729)`,
- * one line per Odoo tax and rate; bookings without a tax as `no tax 0 %`. The tax is apaleo's per line, rounded to cents.
+ * `tax_ust_7_skr03 7 % (Kz 86): net 112.15, apaleo per line 7.85, gross 120.00, apaleo precise 7.85 (7.85046729), difference (per line minus precise) 0.00`,
+ * one line per Odoo tax and rate; bookings without a tax as `no tax 0 %`. Net and the tax per line are apaleo's, before the base fitting;
+ * Odoo's modelled VAT per tax is in the target's import block.
  */
 function vatTotalLines(totals: readonly VatTotal[], taxReturnLine: TaxReturnLine): string {
   return totals
     .map((t) => {
-      const apaleo = decimalToCents(t.apaleoVat);
+      const precise = decimalToCents(t.apaleoVat);
       return (
-        `  ${taxAndRate(t.tax, t.ratePercent, taxReturnLine)}: net ${formatCents(t.netCents)}, tax ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
-        `apaleo VAT ${formatCents(apaleo)}, difference ${formatCents(apaleo - t.vatCents)} (apaleo precise ${t.apaleoVat})`
+        `  ${taxAndRate(t.tax, t.ratePercent, taxReturnLine)}: net ${formatCents(t.netCents)}, apaleo per line ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
+        `apaleo precise ${formatCents(precise)} (${t.apaleoVat}), difference (per line minus precise) ${formatCents(t.vatCents - precise)}`
       );
     })
     .join('\n');
