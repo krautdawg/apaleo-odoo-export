@@ -5,14 +5,24 @@ import { parse } from 'yaml';
 import { COMMANDS } from '../src/cli/commands/index.js';
 import { ENV_OVERRIDES, SECRET_KEYS } from '../src/core/config.js';
 import { APALEO_PERMISSIONS } from '../src/sources/apaleo/index.js';
-import { ROOT, checkCompatibilityClaims, checkPracticeTerms, commandPhrases, configPaths, readRepoFile, recordedTestImports } from './helpers/docs.js';
+import {
+  PENDING_IMPORT,
+  ROOT,
+  checkCompatibilityClaims,
+  checkPendingImport,
+  checkPracticeTerms,
+  commandPhrases,
+  configPaths,
+  kanzleiTestImports,
+  readRepoFile,
+  recordedTestImports,
+} from './helpers/docs.js';
 
 const README = readRepoFile('README.md');
 const ENGLISH_README = readRepoFile('README.en.md');
 const MAINTAINERS = readRepoFile('docs/maintainers.md');
 const GERMAN_TAGLINE = 'Kostenloser apaleo Abacus Export: XML-Buchungsimport für die Abacus Finanzbuchhaltung aus apaleo, Open Source';
 const PRICE = '24-48 EUR pro Monat (je nach Variante und Anzahl der Betriebe), laut apaleo Store, Oktober 2026';
-const PENDING_IMPORT = 'Die Datei folgt der dokumentierten AbaConnect-Schnittstelle «XML Buchungen»; ein erster Testimport mit einem Treuhänder steht noch aus.';
 const ORIGIN_PROJECTS = ['](https://github.com/krautdawg/apaleo-bmd-export)', '](https://github.com/krautdawg/apaleo-datev-export)'];
 /** The install block of the German quick start (s09 design decision 3), which CI runs. */
 const INSTALL_BLOCK = [
@@ -69,16 +79,17 @@ describe('README first screen', () => {
     expect(firstLines).not.toMatch(/\bBMD\b|DATEV|Österreich|Kanzlei/);
   });
 
-  it('Pending test import: says on the first screen that the file follows the documented layout and the first test import is pending', () => {
-    expect(recordedTestImports(MAINTAINERS)).toEqual([]);
-    expect(firstScreen).toContain(PENDING_IMPORT);
+  it('Pending test import: says on the first screen that the file follows Odoo\'s documented import of journal entries and that a first test import with a Steuerberater is pending', () => {
+    expect(kanzleiTestImports(recordedTestImports(MAINTAINERS))).toEqual([]);
+    expect(firstScreen).toContain(`**Stand:** ${PENDING_IMPORT}`);
+    expect(firstScreen).toContain('](docs/odoo-import.md)');
+    expect(checkPendingImport('README.md', README, recordedTestImports(MAINTAINERS))).toEqual([]);
   });
 
-  it('Claim without a recorded import: makes no tested-with-Abacus claim while docs/maintainers.md records no import', () => {
-    expect(checkCompatibilityClaims('README.md', README, recordedTestImports(MAINTAINERS).length)).toEqual([]);
-    expect(checkCompatibilityClaims('README.md', `${README}\nDie Datei ist getestet mit Abacus FIBU.\n`, recordedTestImports(MAINTAINERS).length)).toEqual([
-      expect.stringMatching(/^README\.md: "getestet mit Abacus"/),
-    ]);
+  it('Claim without a recorded import: makes no claim beyond the recorded local Odoo runs', () => {
+    const recorded = recordedTestImports(MAINTAINERS);
+    expect(checkCompatibilityClaims('README.md', README, recorded)).toEqual([]);
+    expect(checkCompatibilityClaims('README.md', `${README}\nDie Datei ist getestet mit Odoo 16.\n`, recorded)).toEqual([expect.stringMatching(/^README\.md: "getestet mit Odoo"/)]);
   });
 
   it('is German only, with the sections in order', () => {
@@ -188,8 +199,8 @@ describe('README FAQ', () => {
     for (const topic of [
       'Was kostet es',
       'Wohin gehen meine Daten',
-      'Welche Abacus-Lizenz braucht mein Treuhänder?',
-      'direkt an Abacus',
+      'Welches Odoo brauche ich?',
+      'direkt an Odoo',
       'Testimport',
       'rückgängig',
       'Mehrere Hotels',
@@ -204,11 +215,12 @@ describe('README FAQ', () => {
     expect(answer('Rechnet mein Hotel mit dem Saldosteuersatz ab?')).toContain('Version 1');
   });
 
-  it('Treuhänder asks about the licence: one line naming the FIBU with Buchungsschnittstellen (F11/F5534), no partnership, no web service, pending confirmation, linking docs/abacus-import.md', () => {
-    const licence = answer('Welche Abacus-Lizenz braucht mein Treuhänder?');
-    for (const phrase of ['Abacus Finanzbuchhaltung mit Buchungsschnittstellen (F11/F5534)', 'keine Partnerschaft', 'keinen Webservice', 'erste Testimport', '](docs/abacus-import.md)']) {
-      expect(licence, phrase).toContain(phrase);
-    }
+  it('Odoo questions: which Odoo, no direct transfer, the pending test import with a Kanzlei and undo, each linking the Odoo guides', () => {
+    for (const phrase of ['Odoo 17, 18 oder 19', 'Community oder Enterprise', 'SKR03 oder SKR04', 'kein Modul', '](docs/odoo-import.md)']) expect(answer('Welches Odoo brauche ich?'), phrase).toContain(phrase);
+    expect(answer('Kann es direkt an Odoo übertragen, etwa über die externe API?')).toContain('](docs/odoo-import.md)');
+    for (const phrase of ['Noch nicht', '](docs/odoo-format.md)', '](docs/maintainers.md#testimporte)']) expect(answer('Hat ein Steuerberater die Datei schon importiert?'), phrase).toContain(phrase);
+    expect(answer('Kann ich einen Import rückgängig machen?')).toContain('](docs/odoo-import.md#einen-monat-ersetzen)');
+    expect(faq).not.toMatch(/abacus-(import|format)\.md|abacus\.mandant|geschaeftsbereich/);
   });
 
   it('FAQ answer on BMD and DATEV: links both origin projects in one line, which the docs test accepts', () => {
@@ -222,10 +234,10 @@ describe('README.en.md', () => {
   it('is a short English README that links the German one, the disclaimer and the licence', () => {
     expect(ENGLISH_README.split('\n').length).toBeLessThanOrEqual(80);
     expect(ENGLISH_README.startsWith('# apaleo-odoo-export\n')).toBe(true);
-    for (const phrase of ['Abacus Finanzbuchhaltung', 'AbaConnect "XML Buchungen"', 'Swiss hotels', 'a first test import with a Treuhänder is still pending', 'only Swiss MWST rules apply']) {
+    for (const phrase of ["The file follows Odoo's documented import of journal entries; a first test import with a Steuerberater is still pending.", '](docs/odoo-import.md)', '](docs/odoo-format.md)']) {
       expect(ENGLISH_README).toContain(phrase);
     }
-    expect(ENGLISH_README).not.toMatch(/\bKanzlei\b|Steuerberater|Austria|BMD NTCS/);
+    expect(ENGLISH_README).not.toMatch(/\bKanzlei\b|Austria|BMD NTCS|abacus-(import|format)\.md|AbaConnect "XML Buchungen"; a first/);
     expect(ENGLISH_README).toMatch(/docs are|documentation is written in Swiss Standard German/);
     for (const link of ['](README.md)', '](DISCLAIMER.md)', '](LICENSE)']) expect(ENGLISH_README).toContain(link);
     expect(ENGLISH_README).toContain('There is no npm package or container image release yet. You install from source.');
@@ -246,13 +258,13 @@ describe('docs folder', () => {
     for (const file of [
       'setup-apaleo.md',
       'mapping-guide.md',
-      'abacus-import.md',
+      'odoo-import.md',
       'configuration.md',
       'docker.md',
       'troubleshooting.md',
       'architecture.md',
       'maintainers.md',
-      'abacus-format.md',
+      'odoo-format.md',
       'posting-rules.md',
       'export.md',
       'apaleo-source.md',
@@ -260,7 +272,7 @@ describe('docs folder', () => {
     ]) {
       expect(existsSync(join(ROOT, 'docs', file)), file).toBe(true);
     }
-    for (const file of ['setup-apaleo.de.md', 'mapping-guide.de.md', 'bmd-import.md', 'bmd-format.md', 'datev-import.md', 'datev-format.md']) expect(existsSync(join(ROOT, 'docs', file)), file).toBe(false);
+    for (const file of ['setup-apaleo.de.md', 'mapping-guide.de.md', 'bmd-import.md', 'bmd-format.md', 'datev-import.md', 'datev-format.md', 'abacus-import.md', 'abacus-format.md']) expect(existsSync(join(ROOT, 'docs', file)), file).toBe(false);
   });
 
   it('docs/setup-apaleo.md lists the exact permissions, the optional one marked optional', () => {
@@ -339,105 +351,77 @@ describe('docs folder', () => {
     for (const code of ['`1001`', '`1360`', '`13601`', '`1601`', '`1460`', '`14601`']) expect(section(guide, '## Zahlungen: Kasse und Geldtransit'), code).toContain(code);
   });
 
-  it('Contributor adds a target: explains the SourceAdapter contract, the TargetWriter boundary with AbacusBooking and where golden files go, announcing no other target', () => {
+  it('Contributor adds a target: explains the SourceAdapter contract, the TargetWriter boundary with OdooBooking and where golden files go, announcing no other target', () => {
     const architecture = readRepoFile('docs/architecture.md');
-    for (const phrase of ['SourceAdapter', 'LedgerLine', 'Smoobu', 'test/fixtures/', 'FakeSource', '## Die Schnittstelle TargetWriter', 'AbacusBooking', 'renderXmlBuchungen', 'AbacusValidationError', 'test/golden/abacus/', 'test/golden/<ziel>/', 'Ein Beispiel ohne Zusage']) {
+    for (const phrase of ['SourceAdapter', 'LedgerLine', 'Smoobu', 'test/fixtures/', 'FakeSource', '## Die Schnittstelle TargetWriter', 'OdooBooking', 'renderOdooCsv', 'OdooValidationError', 'odooTarget', 'test/golden/odoo/', 'test/golden/<ziel>/', 'Ein Beispiel ohne Zusage']) {
       expect(architecture).toContain(phrase);
     }
     expect(architecture).not.toMatch(/lexoffice|geplant ist (ein|der)/i);
     expect(architecture).not.toMatch(/src\/bmd|BmdBooking|bmdTarget/);
+    expect(architecture).not.toMatch(/src\/abacus|AbacusBooking|renderXmlBuchungen|AbacusValidationError|abacusTarget|test\/golden\/abacus/);
   });
 
-  it('First import in Abacus: docs/abacus-import.md names the programs, the licence, MWST berechnen with F21, Mandant and Geschäftsbereich, the Nebenjournal and undo', () => {
-    const guide = readRepoFile('docs/abacus-import.md');
-    for (const phrase of [
-      '**F11 Buchen**',
-      '**F5534 «Import/Export Buchungen AbaConnect»**',
-      'Importart **«XML Buchungen»**',
-      '**Buchungsschnittstellen**',
-      '**«MWST berechnen»**',
-      'Standard-MWST-Code nehmen, der dem Konto im Kontenplan (F21) hinterlegt ist, statt des MWST-Codes aus der Datei',
-      '## Mandant und Geschäftsbereich',
-      '`properties[].geschaeftsbereich`',
-      '`W-MANDANT-SHARED`',
-      '## Nebenjournal',
-      '## Rückgängig machen',
-      '`E-FILE-EXISTS`',
-      'export --overwrite',
-    ]) {
-      expect(guide, phrase).toContain(phrase);
+  it('First import in Odoo: docs/odoo-import.md names the journal, the Kasse and Geldtransit lookup, the single active company, the menu path, Test, the balancing-line check, the tax per rate and undo', () => {
+    const guide = readRepoFile('docs/odoo-import.md');
+    const preparation = section(guide, '## Vorbereitung');
+    for (const phrase of ['„Sonstige“ (Miscellaneous)', '`odoo.journal`', 'SKR03 oder SKR04', 'External ID', 'Entwicklermodus', '„External ID“', '`odoo.companyId`', 'Hauptunternehmens', '`odoo.taxRounding`', 'Rundungsmethode', 'Kontenplan', 'Liquiditätstransferkonto', '„Show Full Accounting Features“']) {
+      expect(preparation, phrase).toContain(phrase);
     }
+    for (const code of ['`1001`', '`1360`', '`13601`', '`1601`', '`1460`', '`14601`']) expect(preparation, code).toContain(code);
+    const importing = section(guide, '## Datei importieren');
+    for (const phrase of ['Nur das Zielunternehmen aktiv', 'Unternehmensumschalter', 'Odoo 19', 'Buchhaltung > Buchhaltung > Journalbuchungen (Accounting > Accounting > Journal Entries)', 'Zahnrad > Datensätze importieren (gear > Import records)', 'erkannte Formatierung', '„Test“', '„Importieren“ (Import)', '„No matching record found', '„Found multiple matches']) {
+      expect(importing, phrase).toContain(phrase);
+    }
+    const checks = section(guide, '## Nach dem Import prüfen');
+    for (const phrase of ['**Entwürfe**', '`apaleo <Hotel> <Datum>`', '„Automatische Ausgleichszeile“ (Automatic Balancing Line)', 'Kz 81', 'Kz 86', 'Protokoll', 'Gästeforderungen', 'Geldtransitkontos', 'buche die Entwürfe']) {
+      expect(checks, phrase).toContain(phrase);
+    }
+    expect(section(guide, '## Dieselbe Datei noch einmal importieren')).toContain('ändert nichts');
+    const undo = section(guide, '## Eine Datei rückgängig machen');
+    for (const phrase of ['Lösche die Entwürfe', 'Storniere die gebuchten Buchungssätze']) expect(undo, phrase).toContain(phrase);
+    expect(section(guide, '## Fragen für die Kanzlei')).toMatch(/Ist-Versteuerung.*Zahlungsbasis/s);
   });
 
-  it('First import in Abacus: the checklist compares Saldenliste, MWST-Journal per Ziffer, every "account -> MWST-Code" pair with F21, Anzahlungen, Debitorenverlust, Kurtaxe and Belegnummern', () => {
-    const checklist = section(readRepoFile('docs/abacus-import.md'), '## Erster Import: bitte prüfen');
-    for (const item of [
-      'Saldenliste',
-      'MWST-Journal',
-      'Ziffer 303',
-      'Ziffer 313',
-      'Ziffer 343',
-      '`3400 -> 313`',
-      '`2030 -> 313`',
-      '`2031 -> 311`',
-      '`3805 -> 313`',
-      'MWST-pflichtig',
-      'Anzahlungen',
-      'Debitorenverlust erscheint als Entgeltsminderung',
-      'Kurtaxe',
-      'keinen Standard-MWST-Code',
-      'Belegnummern',
-    ]) {
+  it('Corrected month after a posted import: reverse the posted entries of the earlier revision by reference apaleo BSP, then import the _r2 file with „(Korrektur 2)“ as new drafts', () => {
+    const replace = section(readRepoFile('docs/odoo-import.md'), '## Einen Monat ersetzen');
+    for (const phrase of ['`export --overwrite`', '`_r2`', '„(Korrektur N)“', '`apaleo BSP 2026-09-14 (Korrektur 2)`', '`apaleo BSP`', '**Lösche** ihre Entwürfe', '**Storniere** ihre gebuchten Buchungssätze', 'Prüfprotokoll', 'behält die External IDs', 'neue Entwürfe']) {
+      expect(replace, phrase).toContain(phrase);
+    }
+    expect(replace.indexOf('**Storniere**')).toBeLessThan(replace.indexOf('4. Importiere die neue Datei'));
+  });
+
+  it('First import in Odoo: the open questions of research §10 are a checklist for the first test import, and the guide is German as used in Germany', () => {
+    const guide = readRepoFile('docs/odoo-import.md');
+    const checklist = section(guide, '## Erster Testimport: Checkliste');
+    expect(checklist.match(/^- \[ \]/gm)).toHaveLength(11);
+    for (const item of ['technischen Spaltennamen', 'Rundungszeilen', 'wenige Cent', 'leerer Steuerzelle', 'Revision 2', 'Unterkonten', 'Menü und Schaltflächen', 'Prüfprotokoll', 'Kasse und Geldtransit', 'Speisen zu 7 %', 'Niederlassung']) {
       expect(checklist, item).toContain(item);
     }
-    expect(checklist.match(/^- \[ \]/gm)?.length).toBeGreaterThanOrEqual(8);
+    for (const term of ['Treuhänder', 'MWST', 'Rappen', 'Mandant', 'grösser', 'ausserhalb', '«', '»', 'Abacus']) expect(guide, term).not.toContain(term);
+    expect(checkPracticeTerms('docs/odoo-import.md', guide)).toEqual([]);
   });
 
-  it('First import in Abacus: the open questions of research §9 are a checklist for the first test import', () => {
-    const questions = section(readRepoFile('docs/abacus-import.md'), '## Erster Testimport: offene Fragen');
-    for (const item of [
-      '**Lizenz und Programm**',
-      '**Schnittstellenversion**',
-      '**`TaxType`**',
-      '**Vorzeichen der MWST**',
-      '`KeyAmount`',
-      '**`TaxAccount`**',
-      '`TAX_ACCOUNT_AT_RATE_ZERO`',
-      '**`TaxIncluded` bei Satz 0**',
-      '**MWST berechnen**',
-      '**Rundung der MWST**',
-      '**Belegnummern**',
-      'pro Geschäftsjahr',
-      '**Nebenjournal**',
-      '**Anzahlungen**',
-      'MWST-Code für Vorauszahlungen',
-      '**Vereinnahmt**',
-      'Hilfskonto',
-      '**Journalsumme**',
-      'journalTotalCents',
-    ]) {
-      expect(questions, item).toContain(item);
-    }
-    expect(questions.match(/^- \[ \]/gm)).toHaveLength(14);
-  });
-
-  it('links docs/abacus-import.md from the README and docs/configuration.md', () => {
-    expect(README).toContain('](docs/abacus-import.md)');
-    expect(readRepoFile('docs/configuration.md')).toContain('](abacus-import.md)');
+  it('links docs/odoo-import.md from the README and docs/configuration.md', () => {
+    expect(README).toContain('](docs/odoo-import.md)');
+    expect(readRepoFile('docs/configuration.md')).toContain('](odoo-import.md)');
   });
 
   it('Going public later: docs/maintainers.md has the "Vor der Veröffentlichung" checklist, starting with the test import', () => {
-    expect(MAINTAINERS).toContain('**niemand ausserhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**');
+    expect(MAINTAINERS).toContain('**niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**');
     const checklist = section(MAINTAINERS, '## Vor der Veröffentlichung');
     const steps = checklist.split('\n').filter((line) => /^\d+\. \[ \] /.test(line));
-    expect(steps[0]).toMatch(/Testimport in Abacus FIBU.*abacus-import\.md.*\[Testimporte\]\(#testimporte\)/);
-    expect(steps[1]).toMatch(/Schweizer apaleo-Sandbox.*`test\/fixtures\/apaleo\/live\/`/);
+    expect(steps[0]).toMatch(/Kanzlei.*Testimport in Odoo.*odoo-import\.md#erster-testimport-checkliste.*\[Testimporte\]\(#testimporte\)/);
+    expect(steps[1]).toMatch(/deutschen apaleo-Sandbox.*`test\/fixtures\/apaleo\/live\/`/);
     for (const step of ['--visibility public', 'Vorschaubild (Social Preview)', 'Discussions', 'v0.1.0']) expect(checklist).toContain(step);
     expect(checklist).not.toContain('[x]');
   });
 
-  it('records test imports under "Testimporte" in a table with date, Abacus version, interface version, import program and result', () => {
-    expect(section(MAINTAINERS, '## Testimporte')).toContain('| Datum | Abacus-Version | Schnittstellenversion | Programm | Ergebnis |');
+  it('records test imports under "Testimporte" in one table with the seven fields, the local rows kept and no Abacus table', () => {
+    const imports = section(MAINTAINERS, '## Testimporte');
+    expect(imports).toContain('| Datum | Odoo-Version | Edition und Hosting | Kontenrahmen | Rundungsmethode | Ergebnis | Geprüft von |');
+    expect(imports).toContain('„Maintainer, lokal“ oder die Kanzlei');
+    expect(imports).not.toMatch(/Abacus|Schnittstellenversion|### Lokale Testimporte/);
+    expect(recordedTestImports(MAINTAINERS)).toHaveLength(6);
   });
 
   it('plans later only items inside this product, no other target formats and no BMD-only or Abacus-only items', () => {
@@ -458,18 +442,11 @@ describe('docs folder', () => {
     expect(item).not.toMatch(/Treuhänder|MWST|Rappen|«|»/);
   });
 
-  it('Metadata applied: records the a08 gh repo edit command for apaleo-abacus-export with the Swiss description and every topic, removes BMD and DATEV topics, leaves the visibility alone and defers this repo\'s metadata to o08', () => {
-    const topics = ['apaleo', 'abacus', 'abacus-export', 'abaconnect', 'abacus-fibu', 'mwst', 'kmu-kontenrahmen', 'hotel', 'hospitality', 'accounting', 'buchhaltung', 'treuhand', 'switzerland', 'schweiz'];
+  it('Metadata deferred: names no Abacus topic or gh repo edit command, leaves the visibility alone and defers this repo\'s metadata to o08', () => {
     const privateSection = section(MAINTAINERS, '## Das Repository ist vorerst privat');
-    expect(privateSection).toContain(`--add-topic ${topics.join(',')}`);
-    expect(privateSection).toMatch(/--description "Kostenloser apaleo Abacus Export .*Abacus Finanzbuchhaltung .*für Hotels in der Schweiz/);
-    expect(privateSection).toMatch(/--remove-topic [^\n]*\bbmd\b[^\n]*\bdatev\b/);
-    expect(privateSection).not.toMatch(/--description "[^"]*\b(BMD|DATEV)\b|--add-topic [^\n]*\b(bmd|datev|ekr|austria|oesterreich)\b/);
+    expect(privateSection).not.toMatch(/gh repo edit|--add-topic|abacus-export|abaconnect|kmu-kontenrahmen|treuhand/);
     expect(privateSection).not.toContain('--visibility');
-    expect(privateSection).toContain('gh repo edit krautdawg/apaleo-abacus-export \\\n');
-    expect(privateSection).toContain('gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility');
-    expect(privateSection).not.toMatch(/gh repo edit krautdawg\/apaleo-odoo-export\b/);
-    expect(privateSection).toMatch(/krautdawg\/apaleo-odoo-export\) hat bisher nur die Beschreibung "apaleo Odoo Export \(in Arbeit\)" und keine Themen\. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08\./);
+    expect(privateSection).toMatch(/krautdawg\/apaleo-odoo-export\) hat bisher nur die Beschreibung "apaleo Odoo Export \(in Arbeit\)" und keine Themen\. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08/);
   });
 });
 

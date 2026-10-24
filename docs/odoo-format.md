@@ -4,7 +4,7 @@ Diese Seite beschreibt Feld für Feld die Datei, die das Tool für Odoo Buchhalt
 
 Keine Gewähr, keine Steuerberatung: Lass deine Kontenzuordnung und die ersten Importe von deinem Steuerberater prüfen.
 
-Stand: Die Regeln folgen dem Quellcode von Odoo 17.0, 18.0 und 19.0 und der Odoo-Dokumentation, gelesen am 2026-10-24 (siehe [Quellen](#quellen)), und einem lokalen Testimport des Maintainers in Odoo 17, 18 und 19 Community. Ein erster Testimport mit einem Steuerberater steht noch aus; was der lokale Testimport ergeben hat, steht in [maintainers.md](maintainers.md#lokale-testimporte-in-odoo).
+Stand: Die Regeln folgen dem Quellcode von Odoo 17.0, 18.0 und 19.0 und der Odoo-Dokumentation, gelesen am 2026-10-24 (siehe [Quellen](#quellen)), und einem lokalen Testimport des Maintainers in Odoo 17, 18 und 19 Community. Ein erster Testimport mit einem Steuerberater steht noch aus; was der lokale Testimport ergeben hat, steht in [maintainers.md](maintainers.md#testimporte). Wie die Kanzlei die Datei importiert und prüft, steht in [odoo-import.md](odoo-import.md).
 
 ## Die Datei auf einen Blick
 
@@ -68,7 +68,7 @@ Jeder Buchungssatz und jede Buchungszeile hat eine External ID. Odoo merkt sich 
 - **Demo-Datei:** `apaleo_c1_BSP_DEMO_20260914` und die Referenz `DEMO apaleo BSP 2026-09-14`, damit importierte Demo-Buchungen sofort auffallen.
 - **Hotel-ID:** 1 bis 20 Zeichen aus `A-Z`, `a-z`, `0-9`, `-` und `_`, nicht auf `_DEMO` endend (sonst hätte die Demo-Datei des Hotels ohne diese Endung dieselben External IDs und denselben Dateinamen), sonst `E-ODOO-PROPERTY-ID`.
 
-Was ein zweiter Import derselben Datei bewirkt (so im lokalen Testimport beobachtet, siehe [maintainers.md](maintainers.md#lokale-testimporte-in-odoo)):
+Was ein zweiter Import derselben Datei bewirkt (so im lokalen Testimport beobachtet, siehe [maintainers.md](maintainers.md#testimporte)):
 
 - über **Entwürfe**: nichts Neues; Odoo findet jeden Buchungssatz und jede Zeile über ihre External ID und schreibt dieselben Werte noch einmal.
 - über **gebuchte** Buchungssätze: Odoo 18 und 19 lehnen die ganze Datei ab, auch wenn sie unverändert ist, weil Datum und Zeilen eines gebuchten Buchungssatzes schreibgeschützt sind. Odoo 17 nimmt sie an und ändert nichts, auch dann, wenn die Datei geänderte Beträge enthält, und zwar ohne Fehlermeldung. Importiere eine Datei deshalb nie über gebuchte Buchungssätze, um etwas zu korrigieren: Dafür gibt es die Revision (nächster Abschnitt).
@@ -162,7 +162,7 @@ Ursachen und Lösungen aller Codes: [troubleshooting.md](troubleshooting.md#odoo
 
 ## Import in Odoo und Prüfung danach
 
-Kurz, für den ersten Import:
+Kurz, für den ersten Import (ausführlich mit Vorbereitung, Meldungen und Rückgängigmachen in [odoo-import.md](odoo-import.md)):
 
 1. Lass im Unternehmensumschalter nur das Zielunternehmen aktiv. Odoo sucht Konten und Journale in allen aktiven Unternehmen; sind zwei Unternehmen mit demselben Kontenrahmen aktiv, warnt Odoo 17 beim Import „Mehrere Übereinstimmungen“ für jedes Konto.
 2. Buchhaltung > Buchhaltung > Journalbuchungen > Zahnrad > Datensätze importieren (Accounting > Accounting > Journal Entries > gear > Import records), Datei hochladen, „Test“, dann „Importieren“ (Import).
@@ -172,7 +172,7 @@ Das Protokoll neben jeder Datei fasst diese Schritte mit den Werten der Datei zu
 
 ## Offene Fragen
 
-Diese Fragen beantwortet erst ein Import in echtes Odoo. Die technischen Fragen 1, 2, 4, 5, 6, 8, 9 und 11 hat der [lokale Testimport](maintainers.md#lokaler-testimport) des Maintainers am 2026-10-24 in Odoo 17, 18 und 19 Community mit SKR03 und SKR04 beantwortet; die Antworten stehen in [maintainers.md](maintainers.md#lokale-testimporte-in-odoo). Kurz: Odoo rechnet genau die Steuer des Modells, ohne Ausgleichsbuchung, die leere Steuerzelle wirkt, und die Revision legt neue Buchungssätze an. Frage 7 beantworten die deutschen Übersetzungen, die Odoo mitbringt (siehe ebenda). Die Fragen 3 und 10 brauchen einen Steuerberater oder apaleo und bleiben offen; alle Fragen prüft der erste Testimport mit einer Kanzlei noch einmal.
+Diese Fragen beantwortet erst ein Import in echtes Odoo. Die technischen Fragen 1, 2, 4, 5, 6, 8, 9 und 11 hat der [lokale Testimport](maintainers.md#lokaler-testimport) des Maintainers am 2026-10-24 in Odoo 17, 18 und 19 Community mit SKR03 und SKR04 beantwortet; die Antworten stehen in [maintainers.md](maintainers.md#testimporte). Kurz: Odoo rechnet genau die Steuer des Modells, ohne Ausgleichsbuchung, die leere Steuerzelle wirkt, und die Revision legt neue Buchungssätze an. Frage 7 beantworten die deutschen Übersetzungen, die Odoo mitbringt (siehe ebenda). Die Fragen 3 und 10 brauchen einen Steuerberater oder apaleo und bleiben offen; alle Fragen prüft der erste Testimport mit einer Kanzlei noch einmal.
 
 1. Akzeptiert der Import die technischen Spaltennamen (`line_ids/tax_ids/id` und die anderen `line_ids/…`) auch in der deutschen Oberfläche, und besteht „Test“ auf einer frischen Datenbank mit SKR03 und mit SKR04?
 2. Rechnet Odoo genau die erwartete Steuer, ohne „Automatic Balancing Line“, bei Rundung pro Zeile und pro Steuer, auch mit der Cent-Zeile und der Zeile auf dem Rundungskonto?

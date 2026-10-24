@@ -8,6 +8,10 @@ Die Geschichte von apaleo-abacus-export beginnt hier. Das Projekt ist eine Kopie
 
 ## [Unveröffentlicht]
 
+### Entfernt
+
+- **Abacus-Writer** (o04): Der Writer für AbaConnect-Dateien mit seinen Tests und Golden Files, die Anleitungen `docs/abacus-format.md` und `docs/abacus-import.md` und die Befunde des Abacus-Writers sind entfernt. Eine Konfiguration mit einem Abschnitt `abacus` lehnt das Tool ab und nennt den Abschnitt `odoo`, ebenso die Schlüssel `mandant` und `geschaeftsbereich` unter `properties`. Neu ist [docs/odoo-import.md](docs/odoo-import.md): Vorbereitung, Import, Prüfung, Revisionen und Rückgängigmachen in Odoo.
+
 ## [0.1.0] - 2026-10-24
 
 ### Hinzugefügt

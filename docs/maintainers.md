@@ -2,21 +2,11 @@
 
 ## Das Repository ist vorerst privat
 
-Das Repository ist privat. Beschreibung und Themen sollen Hotels und Treuhänder in der Schweiz finden, die auf GitHub nach «apaleo Abacus Export», «AbaConnect Import», «Abacus FIBU MWST» oder «apaleo Buchhaltung Schweiz» suchen, aber **niemand ausserhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
+Das Repository ist privat. Beschreibung und Themen sollen später Hotels und Kanzleien in Deutschland finden, die auf GitHub nach „apaleo Odoo Export“ oder „apaleo Buchhaltung“ suchen, aber **niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
 
-Die OpenSpec-Änderung a08 hat Beschreibung und Themen des Vorgängerprojekts apaleo-abacus-export mit diesem Befehl gesetzt, ohne die Sichtbarkeit zu ändern; `--remove-topic` entfernt Themen aus den früheren Projekten, falls jemand sie gesetzt hat. Der Befehl ist nur noch ein Protokoll und gilt nicht für dieses Repository:
+Dieses Repository (krautdawg/apaleo-odoo-export) hat bisher nur die Beschreibung "apaleo Odoo Export (in Arbeit)" und keine Themen. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08, ohne die Sichtbarkeit zu ändern; die Themen des Vorgängerprojekts (Abacus, Schweiz) übernimmt dieses Repository nicht.
 
-```sh
-gh repo edit krautdawg/apaleo-abacus-export \
-  --description "Kostenloser apaleo Abacus Export (Open Source): XML-Buchungsimport für die Abacus Finanzbuchhaltung aus apaleo, für Hotels in der Schweiz und ihre Treuhänder. Selbst gehostet, MIT, kein Abo." \
-  --add-topic apaleo,abacus,abacus-export,abaconnect,abacus-fibu,mwst,kmu-kontenrahmen,hotel,hospitality,accounting,buchhaltung,treuhand,switzerland,schweiz \
-  --remove-topic bmd,bmd-ntcs,datev,ekr,austria,oesterreich
-gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility
-```
-
-Dieses Repository (krautdawg/apaleo-odoo-export) hat bisher nur die Beschreibung "apaleo Odoo Export (in Arbeit)" und keine Themen. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08.
-
-Keiner der Schritte unter «Vor der Veröffentlichung» ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
+Keiner der Schritte unter „Vor der Veröffentlichung“ ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
 
 ## Zusammenführen
 
@@ -28,12 +18,12 @@ gh pr checks <number> --watch --fail-fast && gh pr merge <number> --squash
 
 ## Vor der Veröffentlichung
 
-README und Anleitungen beschreiben das Abacus-Produkt in Schweizer Hochdeutsch (OpenSpec-Änderung a08). Das Repository bleibt trotzdem privat, bis der erste Testimport bestätigt ist.
+README und einige Anleitungen beschreiben noch das Vorgängerprodukt; die OpenSpec-Änderungen o05 bis o08 schreiben sie für Odoo und Deutschland neu. Das Repository bleibt privat, bis der erste Testimport mit einer Kanzlei bestätigt ist.
 
 In dieser Reihenfolge:
 
-1. [ ] Mach mit einem Treuhänder einen ersten echten Testimport in Abacus FIBU (Testmandant, Checkliste in [abacus-import.md](abacus-import.md#erster-testimport-offene-fragen)) und trag ihn unten unter [Testimporte](#testimporte) ein: Datum, Version, Programm und Ergebnis. Erst wenn der Import ohne Nacharbeit ging, darf das README mehr sagen als «folgt der dokumentierten Schnittstelle XML Buchungen».
-2. [ ] Zeichne einen Geschäftstag einer Schweizer apaleo-Sandbox (CHF, `Europe/Zurich`) mit `live-smoke` auf, anonymisiere ihn und leg ihn als Testdaten in `test/fixtures/apaleo/live/` ab, neben den Tagen BER und VIE, damit der Export auch über echte Schweizer Antworten getestet ist.
+1. [ ] Mach mit einer Kanzlei einen ersten echten Testimport in Odoo (Testdatenbank oder Testunternehmen, Checkliste in [odoo-import.md](odoo-import.md#erster-testimport-checkliste)) und trag ihn unten unter [Testimporte](#testimporte) ein, mit der Kanzlei unter „Geprüft von“. Erst dann darf das README den Satz streichen, dass der erste Testimport mit einem Steuerberater noch aussteht.
+2. [ ] Zeichne einen Geschäftstag 2026 einer deutschen apaleo-Sandbox (EUR, `Europe/Berlin`) mit `live-smoke` auf, anonymisiere ihn und leg ihn als Testdaten in `test/fixtures/apaleo/live/` ab, neben den Tagen BER und VIE, damit der Export auch über die Konten für Speisen zu 7 % getestet ist.
 3. [ ] Lies das README in einem frischen Klon und führe den Schnellstart und `export --month 2026-09 --demo --dry-run` noch einmal aus.
 4. [ ] Starte `pnpm test` (mit dem Docs-Test) und prüfe, dass die CI auf `main` grün ist.
 5. [ ] Durchsuche die Historie nach allem, was nicht öffentlich werden darf: `git log -p | grep -iE 'secret|password|token'` darf nur Code und Dokumentation zeigen, nie einen Wert. Keine echten Gästedaten in den Testdaten.
@@ -47,16 +37,9 @@ In dieser Reihenfolge:
 
 ## Testimporte
 
-Jeder echte Import einer Datei des Tools in die Abacus FIBU, den ein Treuhänder gemacht hat. Solange die Tabelle leer ist, sagen README und Dokumentation nur, dass die Datei der dokumentierten AbaConnect-Schnittstelle «XML Buchungen» folgt und der erste Testimport noch aussteht; der Docs-Test schlägt fehl, wenn sie mehr behaupten. Ein Eintrag zählt erst, wenn alle fünf Spalten gefüllt sind.
+Jeder echte Import einer Datei des Tools in Odoo: die Läufe des [lokalen Testimports](#lokaler-testimport) des Maintainers und jeder Testimport mit einer Kanzlei. Eine Zeile zählt erst, wenn alle sieben Spalten gefüllt sind; unter „Geprüft von“ steht „Maintainer, lokal“ oder die Kanzlei. Eine Zeile erlaubt README und Dokumentation die technische Aussage für ihre Odoo-Version (zum Beispiel „getestet mit Odoo 18“); ohne Zeile für eine Version schlägt der Docs-Test bei so einer Aussage fehl. Die lokalen Läufe ersetzen nicht den Testimport mit einer Kanzlei: Solange keine Zeile unter „Geprüft von“ eine Kanzlei nennt, sagen README und Dokumentation, dass der erste Testimport mit einem Steuerberater noch aussteht.
 
-| Datum | Abacus-Version | Schnittstellenversion | Programm | Ergebnis |
-|---|---|---|---|---|
-
-Trag unter «Ergebnis» ein, was ohne Nacharbeit ging und was nicht (zum Beispiel Zeichensatz, MWST-Codes im MWST-Journal, Belegnummern), ohne Namen des Treuhänders oder des Hotels, wenn sie das nicht möchten. Jede offene Frage aus [abacus-format.md](abacus-format.md#offene-fragen), die der Import beantwortet, kommt als Einstellung oder Korrektur in eine eigene OpenSpec-Änderung.
-
-### Lokale Testimporte in Odoo
-
-Jeder Lauf des [lokalen Testimports](#lokaler-testimport). Die Läufe ersetzen nicht den Testimport mit einer Kanzlei: Solange keine Zeile unter „Geprüft von“ eine Kanzlei nennt, sagen README und Dokumentation, dass der erste Testimport mit einem Steuerberater noch aussteht.
+Trag unter „Ergebnis“ ein, was ohne Nacharbeit ging und was nicht, ohne Namen der Kanzlei oder des Hotels, wenn sie das nicht möchten. Jede Antwort auf eine offene Frage aus [odoo-format.md](odoo-format.md#offene-fragen), die eine Einstellung oder Korrektur braucht, kommt in eine eigene OpenSpec-Änderung.
 
 | Datum | Odoo-Version | Edition und Hosting | Kontenrahmen | Rundungsmethode | Ergebnis | Geprüft von |
 |---|---|---|---|---|---|---|

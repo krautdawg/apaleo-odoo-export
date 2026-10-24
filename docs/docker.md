@@ -38,7 +38,7 @@ Hat ein früheres Tool (zum Beispiel ein bezahlter Connector aus dem apaleo Stor
 - Ein Hotel und Zeitraum, dessen Abacus-Datei im Ausgabeordner liegt oder in der `manifest.json` dieses Monats als aktuell vermerkt ist (auch nachdem du die Datei verschoben hast), meldet das Tool als `already exported`, ohne apaleo zu fragen.
 - Ein fehlgeschlagener Zeitraum (zum Beispiel `E-UNMAPPED`) wird bei jedem Lauf erneut versucht, bis er klappt oder das Nachholfenster verlässt.
 - Ein Zeitraum ohne Buchungen schreibt keine Datei und wird deshalb bei jedem Lauf im Fenster erneut abgefragt.
-- Nachbuchungen, nachdem eine Datei geschrieben wurde, holt das Tool nicht automatisch ab. Dafür gibt es den Ablauf mit `export --overwrite` in [export.md](export.md#noch-einmal-exportieren), den du von Hand startest, nachdem dein Treuhänder die importierten Buchungen in Abacus gelöscht oder storniert hat ([abacus-import.md](abacus-import.md#rückgängig-machen)).
+- Nachbuchungen, nachdem eine Datei geschrieben wurde, holt das Tool nicht automatisch ab. Dafür gibt es den Ablauf mit `export --overwrite` in [export.md](export.md#noch-einmal-exportieren), den du von Hand startest, nachdem dein Steuerberater die importierten Buchungssätze in Odoo gelöscht oder storniert hat ([odoo-import.md](odoo-import.md#einen-monat-ersetzen)).
 
 ### Ausgabe und Exit-Codes
 
@@ -119,7 +119,7 @@ data/
 
 Für den Oktober des Hotels `BSP` sind das also `/data/BSP/2026-10/ABACUS_Buchungen_20261001-20261031_BSP.xml` und daneben das Protokoll `/data/BSP/2026-10/ABACUS_Buchungen_20261001-20261031_BSP.protokoll.txt`.
 
-Das Tool verschickt nichts per E-Mail und lädt nichts in eine Cloud: Es schreibt nur in den Ausgabeordner. Wie die Dateien zu deinem Treuhänder kommen, entscheidet ihr im Hotel, zum Beispiel über einen freigegebenen Ordner, auf den `./data` zeigt, oder über den Datenaustausch, den dein Treuhänder ohnehin anbietet. Gib ihm die `.xml` zusammen mit dem Protokoll: Den Block «Import into Abacus FIBU» vergleicht er vor dem Import mit dem Mandanten. Ändere die Datei dabei nicht, und öffne und speichere sie nicht in einem anderen Programm; Abacus liest sie so, wie das Tool sie geschrieben hat. Wie dein Treuhänder sie in Abacus importiert, steht in [abacus-import.md](abacus-import.md#buchungen-importieren).
+Das Tool verschickt nichts per E-Mail und lädt nichts in eine Cloud: Es schreibt nur in den Ausgabeordner. Wie die Dateien zu deinem Treuhänder kommen, entscheidet ihr im Hotel, zum Beispiel über einen freigegebenen Ordner, auf den `./data` zeigt, oder über den Datenaustausch, den dein Treuhänder ohnehin anbietet. Gib ihm die `.xml` zusammen mit dem Protokoll: Den Block «Import into Abacus FIBU» vergleicht er vor dem Import mit dem Mandanten. Ändere die Datei dabei nicht, und öffne und speichere sie nicht in einem anderen Programm; Abacus liest sie so, wie das Tool sie geschrieben hat. Wie dein Steuerberater sie in Odoo importiert, steht in [odoo-import.md](odoo-import.md#datei-importieren).
 
 Lösch oder verschieb nach der Übergabe nicht den ganzen Monatsordner, und nie die `manifest.json`: Solange der Zeitraum im Nachholfenster liegt, würde der nächste Lauf ihn sonst noch einmal exportieren, und Abacus würde ihn doppelt buchen. Die `.xml` allein darfst du verschieben; der Eintrag in `manifest.json` genügt.
 

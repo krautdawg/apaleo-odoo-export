@@ -47,7 +47,7 @@ Wie der Code aufgebaut ist und wie du eine Quelle oder ein Zielformat hinzufügs
 ## Regeln für den Code
 
 - Befehle bekommen Uhr, Netz, Dateisystem und Umgebung nur aus dem `CommandContext` (`ctx.now()`, `ctx.fetchFn`, `ctx.fs`, `ctx.env`); Lint setzt das durch. Tests nutzen `createTestContext()`.
-- `core`, `abacus`, `mapping` und `posting` importieren nie aus `src/sources/`.
+- `core`, `odoo`, `mapping` und `posting` importieren nie aus `src/sources/`.
 - Geld sind ganze Rappen (im Code `…Cents`). Nie Gleitkommazahlen.
 - Jede Prüfung meldet einen `Finding` mit Code. Ein neuer Code braucht eine Zeile in `docs/troubleshooting.md`.
 - Ein neuer Befehl, eine neue Option oder ein neuer Konfigurationsschlüssel wird im README oder in `docs/` beschrieben, auf Deutsch. Der Docs-Test schlägt fehl, wenn ein beschriebener Befehl, eine Option, ein Konfigurationsschlüssel oder ein Befund-Code im Code nicht existiert, wenn ein Link ins Leere zeigt, wenn ein Text nicht deutsch ist oder wenn er Begriffe aus der deutschen oder der österreichischen Buchhaltungspraxis verwendet.
@@ -70,4 +70,4 @@ Wie der Code aufgebaut ist und wie du eine Quelle oder ein Zielformat hinzufügs
 
 Änderungen an den Hotelvorlagen (`templates/skr03-hotel.rules.csv` und `templates/skr04-hotel.rules.csv`) brauchen eine Quelle: den Kontenrahmen l10n_de von Odoo (Datei und Branch), die SKR03- oder SKR04-Hotelvorlage von apaleo-datev-export oder den Kontenplan eines Steuerberaters, der die Zeile bestätigt, im Kommentar der Zeile genannt, mit dem Prüfdatum. Jede Zeile bleibt mit `Vorschlag (ungeprüft)` markiert, bis ein Steuerberater sie bestätigt, und der [Leitfaden zur Kontenzuordnung](docs/mapping-guide.md) führt sie auf. Steuerliche Regeln (Steuersätze, Kurtaxe, Anzahlungen) belegst du mit dem UStG oder einer Fundstelle in der Dokumentation von Odoo.
 
-Hat dein Treuhänder eine Datei des Tools in Abacus importiert, hilft ein kurzer Bericht am meisten: Abacus-Version, Version der Schnittstelle, Importprogramm (F11 oder F5534), was ohne Nacharbeit ging und was nicht, ohne Namen und Beträge. Er kommt als Testimport in [docs/maintainers.md](docs/maintainers.md#testimporte).
+Hat dein Steuerberater eine Datei des Tools in Odoo importiert, hilft ein kurzer Bericht am meisten: Datum, Odoo-Version, Edition und Hosting, Kontenrahmen (SKR03 oder SKR04), Rundungsmethode, was ohne Nacharbeit ging und was nicht, ohne Namen und Beträge. Er kommt als Testimport in [docs/maintainers.md](docs/maintainers.md#testimporte); die Checkliste steht in [docs/odoo-import.md](docs/odoo-import.md#erster-testimport-checkliste).

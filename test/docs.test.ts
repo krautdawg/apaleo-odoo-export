@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Command } from '../src/cli/command.js';
 import { COMMANDS } from '../src/cli/commands/index.js';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -12,15 +12,20 @@ import {
   checkGerman,
   checkInformalAddress,
   checkLinks,
+  checkPendingImport,
   checkPracticeTerms,
   configPaths,
   documentationFiles,
   findingCodes,
   functionWords,
   headingSlugs,
+  kanzleiTestImports,
   linkTargets,
+  PENDING_IMPORT,
   readRepoFile,
+  recordedOdooVersions,
   recordedTestImports,
+  ROOT,
   shellLines,
   sourceFiles,
   splitLanguageFiles,
@@ -61,8 +66,8 @@ describe('README and docs match the code', () => {
         'DISCLAIMER.md',
         'CHANGELOG.md',
         'docs/examples/README.md',
-        'docs/abacus-import.md',
-        'docs/abacus-format.md',
+        'docs/odoo-import.md',
+        'docs/odoo-format.md',
         'examples/demo/README.md',
       ]),
     );
@@ -78,7 +83,8 @@ describe('README and docs match the code', () => {
     expect(checkCommandLines(file, readRepoFile(file), COMMANDS)).toEqual([]);
   });
 
-  it.each(FILES)('%s: every backticked config key exists in the schema', (file) => {
+  // The changelog records keys of earlier versions, such as the removed abacus section.
+  it.each(FILES.filter((file) => file !== 'CHANGELOG.md'))('%s: every backticked config key exists in the schema', (file) => {
     expect(checkConfigKeys(file, readRepoFile(file))).toEqual([]);
   });
 
@@ -103,13 +109,22 @@ describe('README and docs match the code', () => {
     expect(GERMAN_FILES).toHaveLength(FILES.length - 1);
   });
 
-  it.each(FILES)('%s: claims no tested Abacus import while docs/maintainers.md records none', (file) => {
-    expect(checkCompatibilityClaims(file, readRepoFile(file), recordedTestImports(readRepoFile('docs/maintainers.md')).length)).toEqual([]);
+  it.each(FILES)('%s: claims no tested Odoo import that docs/maintainers.md does not record', (file) => {
+    expect(checkCompatibilityClaims(file, readRepoFile(file), recordedTestImports(readRepoFile('docs/maintainers.md')))).toEqual([]);
   });
 
-  it('has no docs/bmd-*.md or docs/datev-*.md guide, and the Abacus guides instead', () => {
-    expect(FILES.filter((file) => /^docs\/(bmd|datev)-/.test(file))).toEqual([]);
-    expect(FILES).toEqual(expect.arrayContaining(['docs/abacus-import.md', 'docs/abacus-format.md']));
+  it('has no docs/bmd-*.md, docs/datev-*.md or docs/abacus-*.md guide, and the Odoo guides instead', () => {
+    expect(FILES.filter((file) => /^docs\/(bmd|datev|abacus)-/.test(file))).toEqual([]);
+    expect(FILES).toEqual(expect.arrayContaining(['docs/odoo-import.md', 'docs/odoo-format.md']));
+  });
+
+  it('Abacus guides are gone: neither file exists, no doc links one, and README and docs link the Odoo guides', () => {
+    for (const gone of ['docs/abacus-import.md', 'docs/abacus-format.md']) expect(existsSync(join(ROOT, gone)), gone).toBe(false);
+    for (const file of FILES) expect(linkTargets(readRepoFile(file)).filter((target) => /(?:^|\/)abacus-[a-z]+\.md/.test(target)), file).toEqual([]);
+    expect(readRepoFile('README.md')).toContain('](docs/odoo-import.md)');
+    expect(readRepoFile('README.md')).toContain('](docs/odoo-format.md)');
+    expect(readRepoFile('README.en.md')).toContain('](docs/odoo-import.md)');
+    for (const doc of ['docs/configuration.md', 'docs/architecture.md', 'docs/docker.md', 'docs/export.md']) expect(readRepoFile(doc), doc).toContain('](odoo-import.md');
   });
 
   it('Former file names: no doc links a docs/bmd-*.md guide', () => {
@@ -137,8 +152,8 @@ describe('the docs checks', () => {
   const sh = (...lines: string[]) => ['Some text.', '', '```sh', ...lines, '```', ''].join('\n');
 
   it('names a stale flag, its command and the file', () => {
-    const problems = checkCommandLines('docs/abacus-import.md', sh('apaleo-odoo export --month 2026-10 --email'), COMMANDS);
-    expect(problems).toEqual(['docs/abacus-import.md: "apaleo-odoo export --month 2026-10 --email": --email is not an option of "export"']);
+    const problems = checkCommandLines('docs/odoo-import.md', sh('apaleo-odoo export --month 2026-10 --email'), COMMANDS);
+    expect(problems).toEqual(['docs/odoo-import.md: "apaleo-odoo export --month 2026-10 --email": --email is not an option of "export"']);
   });
 
   it('Old binary in a doc: names apaleo-abacus and the file, and passes once the line reads apaleo-odoo', () => {
@@ -204,18 +219,20 @@ describe('the docs checks', () => {
 
   it('knows nested, defaulted and array keys of the schema', () => {
     const paths = configPaths();
-    for (const key of ['apaleo.clientId', 'abacus.mandant', 'posting.text2', 'schedule.monthly.dayOfMonth', 'checks.aggregates', 'properties[].mapping']) {
+    for (const key of ['apaleo.clientId', 'odoo.journal', 'odoo.taxRounding', 'posting.text2', 'schedule.monthly.dayOfMonth', 'checks.aggregates', 'properties[].mapping', 'properties[].journal']) {
       expect(paths.has(key), key).toBe(true);
     }
-    for (const key of ['bmd.buchsymbol', 'properties[].buchsymbol', 'posting.extbelegnr']) expect(paths.has(key), key).toBe(false);
-    expect(checkConfigKeys('docs/x.md', '`properties[].geschaeftsbereich` and `properties[].kanzlei`')).toEqual([
+    for (const key of ['bmd.buchsymbol', 'properties[].buchsymbol', 'posting.extbelegnr', 'abacus', 'abacus.mandant', 'properties[].mandant', 'properties[].geschaeftsbereich']) {
+      expect(paths.has(key), key).toBe(false);
+    }
+    expect(checkConfigKeys('docs/x.md', '`properties[].journal` and `properties[].kanzlei`')).toEqual([
       'docs/x.md: `properties[].kanzlei` is not a config key',
     ]);
-    expect(checkConfigKeys('docs/configuration.md', 'Trag `abacus.beraternummer` ein.')).toEqual(['docs/configuration.md: `abacus.beraternummer` is not a config key']);
     expect(checkConfigKeys('docs/configuration.md', 'Der alte Abschnitt `bmd.buchsymbol` ist kein Schlüssel mehr.')).toEqual([]);
-    expect(checkConfigKeys('docs/x.md', 'Setz `abacus.leitwaehrung` auf CHF.')).toEqual([]);
-    expect(checkConfigKeys('docs/x.md', 'Setz `abacus.beraternummer` ein.')).toEqual(['docs/x.md: `abacus.beraternummer` is not a config key']);
-    for (const key of ['abacus.mandant', 'abacus.mwstCodes.beherbergung', 'properties[].geschaeftsbereich']) expect(paths.has(key), key).toBe(true);
+    expect(checkConfigKeys('docs/x.md', 'Setz `abacus.mandant` und `properties[].geschaeftsbereich`.')).toEqual([
+      'docs/x.md: `abacus.mandant` is not a config key',
+      'docs/x.md: `properties[].geschaeftsbereich` is not a config key',
+    ]);
   });
 
   it('ignores other backticked text and keys inside code fences', () => {
@@ -341,10 +358,10 @@ describe('the practice terms check', () => {
   });
 
   it('Bare target mention: names the file and the token BMD or DATEV', () => {
-    expect(problemsOf('docs/abacus-import.md', 'Das läuft wie beim BMD-Import.')).toEqual([
-      'docs/abacus-import.md: "Das läuft wie beim BMD-Import.": "BMD" is named outside a link to an origin project, the other target formats and the findings for a copied setup',
+    expect(problemsOf('docs/odoo-import.md', 'Das läuft wie beim BMD-Import.')).toEqual([
+      'docs/odoo-import.md: "Das läuft wie beim BMD-Import.": "BMD" is named outside a link to an origin project, the other target formats and the findings for a copied setup',
     ]);
-    expect(problemsOf('docs/abacus-import.md', 'Das läuft wie beim DATEV-Import.')).toEqual([expect.stringContaining('"DATEV" is named outside')]);
+    expect(problemsOf('docs/odoo-import.md', 'Das läuft wie beim DATEV-Import.')).toEqual([expect.stringContaining('"DATEV" is named outside')]);
   });
 
   it('Allowed origin mention: the README origin sentence and the other target formats, the changelog and the copied-setup findings', () => {
@@ -385,7 +402,7 @@ describe('spelling during the transition (o01)', () => {
     ...checkGerman(file, text),
     ...checkInformalAddress(file, text),
     ...checkPracticeTerms(file, text),
-    ...checkCompatibilityClaims(file, text, 0),
+    ...checkCompatibilityClaims(file, text, []),
   ];
 
   it('Sharp s in any doc: "gemäß" and "Buchungssätze" pass in docs/configuration.md and every other file', () => {
@@ -416,63 +433,88 @@ describe('spelling during the transition (o01)', () => {
 });
 
 describe('the compatibility claim check', () => {
-  const maintainers = (rows: string[]) =>
-    ['## Testimporte', '', '| Datum | Abacus-Version | Schnittstellenversion | Programm | Ergebnis |', '|---|---|---|---|---|', ...rows, '', '## Später geplant', '| x | y |'].join('\n');
+  const HEADER = ['| Datum | Odoo-Version | Edition und Hosting | Kontenrahmen | Rundungsmethode | Ergebnis | Geprüft von |', '|---|---|---|---|---|---|---|'];
+  const maintainers = (rows: string[]) => ['## Testimporte', '', ...HEADER, ...rows, '', '## Später geplant', '| x | y |'].join('\n');
+  const LOCAL_18 = '| 2026-10-24 | 18.0 (`odoo:18.0-20261015`) | Community, lokal (Docker) | SKR03 | Round per Line | ohne Nacharbeit | Maintainer, lokal |';
+  const KANZLEI_19 = '| 2026-11-10 | 19.0 | Enterprise, Odoo Online | SKR04 | Round per Tax | ohne Nacharbeit | Kanzlei Beispiel |';
+  const recorded = (...rows: string[]) => recordedTestImports(maintainers(rows));
 
-  it('counts the recorded test imports, not the header, an empty row or a partial row', () => {
-    expect(recordedTestImports(maintainers([]))).toEqual([]);
-    expect(recordedTestImports(maintainers(['|  |  |  |  |  |']))).toEqual([]);
-    expect(recordedTestImports(maintainers(['| 2026-11-10 |  |  |  |  |']))).toEqual([]);
-    expect(recordedTestImports(maintainers(['| 2026-11-10 | Abacus 2025 | 2015.00 | F5534 |  |', '| TBD |']))).toEqual([]);
-    expect(checkCompatibilityClaims('README.md', 'Getestet mit Abacus FIBU.', recordedTestImports(maintainers(['| 2026-11-10 |  |  |  |  |'])).length)).toHaveLength(1);
-    expect(recordedTestImports(maintainers(['| 2026-11-10 | Abacus 2025 | 2015.00 | F5534 | ohne Fehler |']))).toEqual([['2026-11-10', 'Abacus 2025', '2015.00', 'F5534', 'ohne Fehler']]);
-    expect(recordedTestImports(readRepoFile('docs/maintainers.md'))).toEqual([]);
+  it('counts the recorded test imports with all seven fields, not the header, an empty row or a partial row', () => {
+    expect(recorded()).toEqual([]);
+    expect(recorded('|  |  |  |  |  |  |  |')).toEqual([]);
+    expect(recorded('| 2026-11-10 | 18.0 | Community, lokal | SKR03 | Round per Line | ok |  |', '| TBD |')).toEqual([]);
+    expect(recorded('| 2026-11-10 | Abacus 2025 | 2015.00 | F5534 | ohne Fehler |')).toEqual([]);
+    expect(recorded(LOCAL_18)).toEqual([['2026-10-24', '18.0 (`odoo:18.0-20261015`)', 'Community, lokal (Docker)', 'SKR03', 'Round per Line', 'ohne Nacharbeit', 'Maintainer, lokal']]);
+    expect(recordedOdooVersions(recorded(LOCAL_18, KANZLEI_19))).toEqual(new Set([18, 19]));
   });
 
-  it('does not count the local Odoo test imports, which follow in their own table', () => {
-    const odoo = ['', '### Lokale Testimporte in Odoo', '', '| Datum | Odoo-Version | Edition und Hosting | Kontenrahmen | Rundungsmethode | Ergebnis | Geprüft von |', '|---|---|---|---|---|---|---|', '| 2026-10-24 | 17.0 | Community, lokal (Docker) | SKR03 | beide | ok | Maintainer, lokal |'];
-    expect(recordedTestImports(maintainers(odoo))).toEqual([]);
-    expect(recordedTestImports(maintainers(['| 2026-11-10 | Abacus 2025 | 2015.00 | F5534 | ohne Fehler |', ...odoo]))).toHaveLength(1);
-    expect(readRepoFile('docs/maintainers.md')).toContain('| 2026-10-24 | 19.0 (`odoo:19.0-20261015`) | Community, lokal (Docker) | SKR04 |');
+  it('reads the local Odoo runs of docs/maintainers.md as recorded imports for 17, 18 and 19, none checked by a Kanzlei', () => {
+    const rows = recordedTestImports(readRepoFile('docs/maintainers.md'));
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+    expect(recordedOdooVersions(rows)).toEqual(new Set([17, 18, 19]));
+    expect(kanzleiTestImports(rows)).toEqual([]);
+    expect(readRepoFile('docs/maintainers.md')).not.toMatch(/Abacus-Version|Schnittstellenversion/);
   });
 
   it('Claim without a recorded import: names the README and the phrase', () => {
-    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Abacus FIBU.', 0)).toEqual([
-      'README.md: "getestet mit Abacus" claims a tested import, but docs/maintainers.md records no import under ## Testimporte',
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Odoo 18.', recorded())).toEqual([
+      'README.md: "getestet mit Odoo" claims a tested import, but docs/maintainers.md records no import with Odoo 18 under ## Testimporte',
     ]);
-    expect(checkCompatibilityClaims('docs/x.md', 'Kompatibel mit Abacus FIBU und Abacus-zertifiziert.', 0)).toHaveLength(2);
-    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Abacus FIBU.', 1)).toEqual([]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist kompatibel mit Odoo.', recorded())).toEqual([
+      'README.md: "kompatibel mit Odoo" claims a tested import, but docs/maintainers.md records no import under ## Testimporte',
+    ]);
+    expect(checkCompatibilityClaims('docs/x.md', 'Kompatibel mit Odoo 17 und Odoo-zertifiziert.', recorded())).toHaveLength(2);
+  });
+
+  it('Recorded import allows the claim: a row with all seven fields for Odoo 18 allows "getestet mit Odoo 18", not 17', () => {
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Odoo 18.', recorded(LOCAL_18))).toEqual([]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Odoo.', recorded(LOCAL_18))).toEqual([]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Odoo 17 und 18.', recorded(LOCAL_18))).toEqual([
+      'README.md: "getestet mit Odoo" claims a tested import, but docs/maintainers.md records no import with Odoo 17 under ## Testimporte',
+    ]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist mit Odoo 19 getestet.', recorded(LOCAL_18, KANZLEI_19))).toEqual([]);
   });
 
   it.each([
-    'Die Datei ist mit Abacus FIBU getestet.',
-    'Die Datei wurde in\nAbacus erfolgreich getestet.',
-    'Der Export ist Abacus-kompatibel.',
-    'Die Datei wird von Abacus akzeptiert.',
-    'The file is tested with Abacus FIBU.',
-    'An Abacus-certified import file.',
-    'Die Datei wurde mit\nAbacus 2024 erfolgreich getestet.',
-    'Die Datei ist kompatibel zu Abacus.',
-    'Die Datei ist mit Abacus FIBU kompatibel.',
-    'Die Datei wird von Abacus FIBU akzeptiert.',
-    'Zertifiziert durch Abacus.',
-    'A Abacus-compatible import file.',
-    'The file is compatible with Abacus FIBU.',
-    'Abacus certified.',
-    'The file is accepted by Abacus FIBU.',
+    'Die Datei ist mit Odoo 18 getestet.',
+    'Die Datei wurde in\nOdoo erfolgreich getestet.',
+    'Der Export ist Odoo-kompatibel.',
+    'Die Datei wird von Odoo akzeptiert.',
+    'The file is tested with Odoo 18.',
+    'An Odoo-certified import file.',
+    'Die Datei wurde mit\nOdoo 17 erfolgreich getestet.',
+    'Die Datei ist kompatibel zu Odoo.',
+    'Die Datei ist mit Odoo Online kompatibel.',
+    'Die Datei wird von Odoo Enterprise akzeptiert.',
+    'Zertifiziert durch Odoo.',
+    'An Odoo-compatible import file.',
+    'The file is compatible with Odoo 19.',
+    'Odoo certified.',
+    'The file is accepted by Odoo.',
+    'Die Datei ist Odoo-zertifiziert.',
   ])('Claim in other words or in English: finds "%s"', (text) => {
-    expect(checkCompatibilityClaims('README.en.md', text, 0)).toHaveLength(1);
+    expect(checkCompatibilityClaims('README.en.md', text, recorded())).toHaveLength(1);
   });
 
   it('passes the pending-import wording and other uses of the words', () => {
     for (const text of [
-      'Die Datei folgt der dokumentierten AbaConnect-Schnittstelle «XML Buchungen»; ein erster Testimport mit einem Treuhänder steht noch aus.',
-      'The file follows the documented AbaConnect interface "XML Buchungen"; a first test import with a Treuhänder is still pending.',
+      PENDING_IMPORT,
+      "The file follows Odoo's documented import of journal entries; a first test import with a Steuerberater is still pending.",
       'Zwei Lint-Regeln (getestet in `test/lint/`) sorgen dafür, dass das so bleibt.',
-      'Kein zertifiziertes Archiv. Abacus nimmt `3.8` in `TaxRate` an.',
+      'Kein zertifiziertes Archiv. Odoo legt die Steuerzeilen selbst an.',
+      'Der Maintainer hat die Datei lokal in Odoo 17, 18 und 19 Community importiert.',
     ]) {
-      expect(checkCompatibilityClaims('README.md', text, 0), text).toEqual([]);
+      expect(checkCompatibilityClaims('README.md', text, recorded()), text).toEqual([]);
     }
+  });
+
+  it('Pending test import: the sentence must stay until a row names a Kanzlei under "Geprüft von"', () => {
+    const readme = `# Titel\n\n**Stand:** ${PENDING_IMPORT}\n`;
+    expect(checkPendingImport('README.md', readme, recorded(LOCAL_18))).toEqual([]);
+    expect(checkPendingImport('README.md', '# Titel\n\nGetestet mit Odoo 18.\n', recorded(LOCAL_18))).toEqual([
+      `README.md: must say "${PENDING_IMPORT}" until docs/maintainers.md records a test import checked by a Kanzlei under ## Testimporte`,
+    ]);
+    expect(checkPendingImport('README.md', '# Titel\n\nGetestet mit Odoo 19.\n', recorded(LOCAL_18, KANZLEI_19))).toEqual([]);
   });
 });
 
