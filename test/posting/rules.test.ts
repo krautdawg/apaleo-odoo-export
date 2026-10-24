@@ -5,6 +5,12 @@ import { taxFromGross } from '../../src/posting/index.js';
 import { ledgerLine, tax as taxEntry } from '../helpers/ledger.js';
 import { mappingRow } from '../helpers/mapping.js';
 import { ACCOUNTS, charge, germanTax as tax, mappingWith, post } from '../helpers/posting.js';
+import { odooOptions } from '../helpers/odoo.js';
+import { entryLineSources, kennzahl, renderOdooCsv } from '../../src/odoo/index.js';
+import { renderSummary } from '../../src/export/summary.js';
+import type { PeriodPart } from '../../src/export/period.js';
+
+const PART: PeriodPart = { from: '2026-09-01', to: '2026-09-30', month: '2026-09', wjBeginn: '2026-01-01' };
 
 /**
  * Hand-computed examples at the German rates (UStG § 12: 7 % for Beherbergung and,
@@ -227,46 +233,60 @@ describe('Tax guard for Odoo bookings', () => {
 });
 
 describe('Kurtaxe and guest levies', () => {
-  it('Guest-owed Kurtaxe: 4.20 from the folio to 1590 without tax, counted as a levy without tax, not as revenue', () => {
-    const { booking, findings, summary } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 420, netCents: 420, taxes: [taxEntry('Without', 0, 0)] }));
+  it('Guest-owed Kurtaxe: 5.00 from 1410 to 1590 labelled Kurtaxe without VAT side, an empty tax cell, and 5.00 Kurtaxe on 1590 without tax in the summary', () => {
+    const { booking, bookings, findings, summary } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 500, netCents: 500, taxes: [taxEntry('Without', 0, 0)] }));
     expect(findings).toEqual([]);
-    expect(booking).toMatchObject({ debit: { account: '1410' }, credit: { account: '1590', label: 'Kurtaxe' }, grossCents: 420 });
+    expect(booking).toMatchObject({ debit: { account: '1410' }, credit: { account: '1590', label: 'Kurtaxe' }, grossCents: 500 });
     expect(booking?.vat).toBeUndefined();
-    expect(summary.cityTaxCents).toBe(420);
-    expect(summary.levies).toEqual([{ account: '1590', tax: '', ratePercent: 0, grossCents: 420, vatCents: 0 }]);
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',1590,Kurtaxe,0.00,5.00,\n');
+    expect(summary.cityTaxCents).toBe(500);
+    expect(summary.levies).toEqual([{ account: '1590', tax: '', ratePercent: 0, grossCents: 500, vatCents: 0 }]);
     expect(summary.revenueByRate).toEqual([]);
   });
 
-  it('Taxed Beherbergungsteuer: a levy taxed at 7 % on 8300 with tax_ust_7_skr03 carries the tax and counts as a levy with tax', () => {
+  it('Hotel-owed Übernachtungsteuer: 10.70 at 7 % on a CityTaxes row mapped to 8300 with tax_ust_7_skr03 is the VAT side credit with apaleo tax 0.70, a credit base line 10.00, and a levy with tax', () => {
     const mapping = mappingWith(mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoVatPercent: '0', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' }));
-    const { booking, findings, summary } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 214, netCents: 200, taxes: tax(7, 14) }), mapping);
+    const { booking, bookings, findings, summary } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 1_070, netCents: 1_000, taxes: tax(7, 70) }), mapping);
     expect(findings).toEqual([]);
-    expect(booking).toMatchObject({ credit: { account: '8300', label: 'Kurtaxe 7 %' }, grossCents: 214, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 14 } });
-    expect(summary.levies).toEqual([{ account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 214, vatCents: 14 }]);
+    expect(booking).toMatchObject({ credit: { account: '8300', label: 'Kurtaxe 7 %' }, grossCents: 1_070, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 70 } });
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03\n');
+    expect(summary.levies).toEqual([{ account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70 }]);
   });
 
-  it('Taxed levy on an untaxed row: E-VAT-MISSING names the mapping row', () => {
-    const { bookings, findings } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 214, netCents: 200, taxes: tax(7, 14) }));
+  it('Taxed levy on an untaxed row: 0.70 at 7 % on the city-tax row without tax is E-VAT-MISSING naming the mapping row', () => {
+    const { bookings, findings } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 1_070, netCents: 1_000, taxes: tax(7, 70) }));
     expect(bookings).toEqual([]);
     expect(codes(findings)).toEqual(['E-VAT-MISSING']);
-    expect(findings[0]?.message).toContain('(Odoo 1590)');
+    expect(findings[0]?.message).toMatch(/Change the row for 3501 \(CityTaxes\) on mapping line \d+ \(Odoo 1590\)/);
   });
 });
 
-describe('deposits, accounts receivable and bad debt', () => {
-  it('Prepayment at 7 %: debit 1360, credit 1711 with tax_ust_7_skr03, counted as received with its deposit tax', () => {
-    const { booking, findings, summary } = single(charge({ debit: ACCOUNTS.visa, credit: ACCOUNTS.liabilities, command: 'PostPrepayment', grossCents: 32_100, netCents: 30_000, taxes: tax(7, 2_100) }));
+describe('Deposits and accounts receivable in Odoo', () => {
+  it('Prepayment at 7 %: 214.00 debits 1360 and credits 1711 with tax_ust_7_skr03 (credit base line 200.00), counted as received with 14.00 deposit tax at 7 % Kz 86', () => {
+    const { booking, bookings, findings, summary } = single(charge({ debit: ACCOUNTS.visa, credit: ACCOUNTS.liabilities, command: 'PostPrepayment', grossCents: 21_400, netCents: 20_000, taxes: tax(7, 1_400) }));
     expect(findings).toEqual([]);
-    expect(booking).toMatchObject({ debit: { account: '1360' }, credit: { account: '1711', label: 'Anzahlungen 7 %' }, grossCents: 32_100, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 2_100 } });
-    expect(summary.deposits).toEqual({ receivedCents: 32_100, releasedCents: 0, refundedCents: 0 });
-    expect(summary.depositVatByRate).toEqual([{ tax: 'tax_ust_7_skr03', ratePercent: 7, netCents: 30_000, vatCents: 2_100, grossCents: 32_100, apaleoVat: '21' }]);
+    expect(booking).toMatchObject({ debit: { account: '1360' }, credit: { account: '1711', label: 'Anzahlungen 7 %' }, grossCents: 21_400, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 1_400 } });
+    const rendered = renderOdooCsv(bookings, odooOptions());
+    expect(rendered.text).toContain(',1711,Anzahlungen 7 %,0.00,200.00,account.1_tax_ust_7_skr03\n');
+    expect(rendered.taxTotals).toEqual([{ taxRef: 'tax_ust_7_skr03', percent: 7, baseCents: 20_000, odooTaxCents: 1_400, apaleoTaxCents: 1_400 }]);
+    expect(summary.deposits).toEqual({ receivedCents: 21_400, releasedCents: 0, refundedCents: 0 });
+    expect(summary.depositVatByRate).toEqual([{ tax: 'tax_ust_7_skr03', ratePercent: 7, netCents: 20_000, vatCents: 1_400, grossCents: 21_400, apaleoVat: '14' }]);
+    expect(summary.depositsByRate).toEqual([
+      { tax: 'tax_ust_7_skr03', ratePercent: 7, received: { grossCents: 21_400, vatCents: 1_400 }, released: { grossCents: 0, vatCents: 0 }, refunded: { grossCents: 0, vatCents: 0 } },
+    ]);
+    expect(renderSummary({ propertyId: 'BSP', part: PART, ledgerLines: 1, bookings: 1, summary, taxReturnLine: kennzahl, findings: [] })).toContain(
+      '  tax_ust_7_skr03 7 % (Kz 86): received 214.00 (tax 14.00), released 0.00 (tax 0.00), of it refunded 0.00 (tax 0.00)',
+    );
   });
 
-  it('Release as a negative charge: -214.00 with tax -14.00 debits 1711 on the refund side and credits 1410, counted as released', () => {
-    const { booking, findings, summary } = single(charge({ credit: ACCOUNTS.liabilities, grossCents: -21_400, netCents: -20_000, taxes: tax(7, -1_400) }));
+  it('Release as a negative charge: -214.00 with tax -14.00 on BSP-ALPHA-1_Liabilities/Reduced:7.00 debits 1711 on the refund side and credits 1410, counted as released, not received', () => {
+    const alpha = { ...ACCOUNTS.liabilities, number: 'BSP-ALPHA-1_Liabilities/Reduced:7.00', name: 'Liabilities for Reservation BSP-ALPHA-1 (7%)' };
+    const { booking, bookings, findings, summary } = single(charge({ debit: { ...ACCOUNTS.receivables, number: 'BSP-ALPHA-1_Receivables' }, credit: alpha, grossCents: -21_400, netCents: -20_000, taxes: tax(7, -1_400) }));
     expect(findings).toEqual([]);
     expect(booking).toMatchObject({ debit: { account: '1711' }, credit: { account: '1410' }, grossCents: 21_400, vat: { side: 'debit', apaleoTaxCents: 1_400 } });
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',1711,Anzahlungen 7 %,200.00,0.00,account.1_tax_ust_7_skr03\n');
     expect(summary.deposits).toEqual({ receivedCents: 0, releasedCents: 21_400, refundedCents: 0 });
+    expect(summary.depositsByRate[0]).toMatchObject({ received: { grossCents: 0 }, released: { grossCents: 21_400, vatCents: 1_400 } });
   });
 
   it('Refund of a deposit: a negative prepayment of 107.00 debits 1711 and credits 1360, counted as released and refunded', () => {
@@ -274,7 +294,19 @@ describe('deposits, accounts receivable and bad debt', () => {
     expect(findings).toEqual([]);
     expect(booking).toMatchObject({ debit: { account: '1711' }, credit: { account: '1360' }, grossCents: 10_700, vat: { side: 'debit', apaleoTaxCents: 700 } });
     expect(summary.deposits).toEqual({ receivedCents: 0, releasedCents: 10_700, refundedCents: 10_700 });
+    expect(summary.depositsByRate[0]).toMatchObject({ released: { grossCents: 10_700, vatCents: 700 }, refunded: { grossCents: 10_700, vatCents: 700 } });
     expect(summary.payments).toEqual([{ account: '1360', cents: -10_700 }]);
+  });
+
+  it('Overpayment parked on the 0 % deposit: 10.00 from BSP-ABCDEF-1_Receivables to BSP-ABCDEF-1_Liabilities/Null:0.00 debits 1410, credits 1719 without VAT side, counted as received', () => {
+    const { booking, findings, summary } = single(ledgerLine({ debit: ACCOUNTS.receivables, credit: ACCOUNTS.liabilitiesNull, command: 'PostCharge', grossCents: 1_000, netCents: 1_000, taxes: [] }));
+    expect(findings).toEqual([]);
+    expect(booking).toMatchObject({ debit: { account: '1410' }, credit: { account: '1719', label: 'Anzahlungen ohne USt' }, grossCents: 1_000 });
+    expect(booking?.vat).toBeUndefined();
+    expect(summary.deposits).toEqual({ receivedCents: 1_000, releasedCents: 0, refundedCents: 0 });
+    expect(summary.depositsByRate).toEqual([
+      { tax: '', ratePercent: 0, received: { grossCents: 1_000, vatCents: 0 }, released: { grossCents: 0, vatCents: 0 }, refunded: { grossCents: 0, vatCents: 0 } },
+    ]);
   });
 
   it('books a refund of the parked 0 % deposit 1719 to the card without tax, counted as released and refunded', () => {
@@ -286,12 +318,14 @@ describe('deposits, accounts receivable and bad debt', () => {
     expect(summary.deposits).toEqual({ receivedCents: 0, releasedCents: 1_000, refundedCents: 1_000 });
   });
 
-  it('Check-out on accounts receivable: 300.00 debits 1401 "Forderungen Firmenrechnungen" and keeps the invoice number for the protocol', () => {
-    const { booking, findings } = single(
-      ledgerLine({ debit: ACCOUNTS.accountsReceivable, credit: ACCOUNTS.receivables, command: 'PostToAccountsReceivables', grossCents: 30_000, taxes: [], receipt: { type: 'Invoice', number: 'BSP-2026-0042' } }),
+  it('Check-out on accounts receivable: 321.00 debits 1401 "Forderungen Firmenrechnungen", credits 1410, and the protocol lists BSP-2026-0815 for the 1401 line of that day', () => {
+    const { booking, bookings, findings } = single(
+      ledgerLine({ debit: ACCOUNTS.accountsReceivable, credit: ACCOUNTS.receivables, command: 'PostToAccountsReceivables', grossCents: 32_100, taxes: [], receipt: { type: 'Invoice', number: 'BSP-2026-0815' }, sourceEntryNumber: 'BSPE0017' }),
     );
     expect(findings).toEqual([]);
-    expect(booking).toMatchObject({ debit: { account: '1401', label: 'Forderungen Firmenrechnungen' }, credit: { account: '1410' }, grossCents: 30_000, receipt: 'BSP-2026-0042' });
+    expect(booking).toMatchObject({ debit: { account: '1401', label: 'Forderungen Firmenrechnungen' }, credit: { account: '1410' }, grossCents: 32_100, receipt: 'BSP-2026-0815' });
+    const protocol = entryLineSources(renderOdooCsv(bookings, odooOptions()), bookings);
+    expect(protocol).toContain(`  ${booking?.businessDate} 1401 Forderungen Firmenrechnungen debit 321.00: BSPE0017 (BSP-2026-0815)`);
   });
 
   it('sums the accounts-receivable movement and lists the /Offset lines as skipped, unsigned', () => {
@@ -311,10 +345,29 @@ describe('deposits, accounts receivable and bad debt', () => {
     expect(skipped).toHaveLength(2);
     expect(summary.skipped).toEqual([{ reason: 'SAME_ACCOUNT', lines: 2, grossCents: 9_590 }]);
   });
+});
 
-  it('books a write-off at 7 % under 6900 on 2401 with tax_ust_7_skr03 on the debit (refund) side, and its reversal on the credit side', () => {
-    const loss = { number: 'BSP-ABCDEF-1_LossOfAccountsReceivable', name: 'LossOfAccountsReceivable for Reservation BSP-ABCDEF-1', type: 'LossOfAccountsReceivable', parentNumber: '6900' };
-    const line = charge({ debit: loss, credit: ACCOUNTS.receivables, command: 'PostToLossOfAccountsReceivables' });
+describe('Bad debt with tax correction', () => {
+  const writeOff = (debit: LedgerLine['debit'], overrides: Partial<LedgerLine> = {}) => charge({ debit, credit: ACCOUNTS.receivables, command: 'PostToLossOfAccountsReceivables', ...overrides });
+
+  it('Write-off at 19 %: 119.00 resolves through the wildcard to 2406, a debit base line 100.00 with tax_ust_19_skr03 on the refund side, counter credit 119.00, and 119.00 written off with Odoo VAT -19.00 at Kz 81', () => {
+    const { booking, bookings, findings, summary } = single(writeOff(ACCOUNTS.loss19, { grossCents: 11_900, netCents: 10_000, netPrecise: '100', taxes: tax(19, 1_900) }));
+    expect(findings).toEqual([]);
+    expect(booking).toMatchObject({ debit: { account: '2406', label: 'Forderungsverluste 19 %' }, credit: { account: '1410' }, grossCents: 11_900, vat: { side: 'debit', taxRef: 'tax_ust_19_skr03', apaleoTaxCents: 1_900 } });
+    const rendered = renderOdooCsv(bookings, odooOptions());
+    expect(rendered.entries[0]?.lines.map((line) => [line.account, line.amountCents, line.taxRef])).toEqual([
+      ['1410', -11_900, undefined],
+      ['2406', 10_000, 'tax_ust_19_skr03'],
+    ]);
+    expect(rendered.taxTotals).toEqual([{ taxRef: 'tax_ust_19_skr03', percent: 19, baseCents: -10_000, odooTaxCents: -1_900, apaleoTaxCents: -1_900 }]);
+    expect(summary.writeOffsByRate).toEqual([{ tax: 'tax_ust_19_skr03', ratePercent: 19, netCents: 10_000, vatCents: 1_900, grossCents: 11_900, apaleoVat: '19' }]);
+    expect(renderSummary({ propertyId: 'BSP', part: PART, ledgerLines: 1, bookings: 1, summary, taxReturnLine: kennzahl, findings: [] })).toContain(
+      '  tax_ust_19_skr03 19 % (lowers Kz 81): net 100.00, apaleo per line 19.00, gross 119.00, apaleo precise 19.00 (19), difference (per line minus precise) 0.00, VAT in the return -19.00',
+    );
+  });
+
+  it('books a write-off at 7 % on 2401 with tax_ust_7_skr03 on the debit (refund) side, and its reversal on the credit side', () => {
+    const line = writeOff(ACCOUNTS.loss7);
     const { bookings, findings, summary } = post([line, { ...line, debit: line.credit, credit: line.debit }]);
     expect(findings).toEqual([]);
     expect(bookings[0]).toMatchObject({ debit: { account: '2401', label: 'Forderungsverluste 7 %' }, credit: { account: '1410' }, grossCents: 12_000, vat: { side: 'debit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 785 } });
@@ -323,12 +376,37 @@ describe('deposits, accounts receivable and bad debt', () => {
     expect(summary.accounts.find((a) => a.account === '2401')?.balanceCents).toBe(0);
   });
 
-  it('books an untaxed cancellation fee on 8200 without tax, and a taxed no-show on an untaxed row is E-VAT-MISSING', () => {
-    const cancel = { number: 'RevenueNoShow_Without:0.00', name: 'Revenues No-show (no VAT)', type: 'Revenues', parentNumber: 'RevenueNoShow' };
-    const { booking, findings } = single(charge({ credit: cancel, grossCents: 8_000, netCents: 8_000, taxes: [] }));
+  it('Write-off without tax: 30.00 without tax entries debits 2400 with an empty tax cell', () => {
+    const { booking, bookings, findings, summary } = single(writeOff(ACCOUNTS.loss0, { grossCents: 3_000, netCents: 3_000, netPrecise: '30', taxes: [] }));
+    expect(findings).toEqual([]);
+    expect(booking).toMatchObject({ debit: { account: '2400', label: 'Forderungsverluste ohne USt' }, grossCents: 3_000 });
+    expect(booking?.vat).toBeUndefined();
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',2400,Forderungsverluste ohne USt,30.00,0.00,\n');
+    expect(summary.writeOffsByRate).toEqual([{ tax: '', ratePercent: 0, netCents: 3_000, vatCents: 0, grossCents: 3_000, apaleoVat: '0' }]);
+  });
+});
+
+describe('Cancellation and no-show fees', () => {
+  it('No-show fee at 7 %: 107.00 on RevenueNoShow_Reduced:7.00 (8300, tax_ust_7_skr03) is the VAT side credit with apaleo tax 7.00 and raises no finding', () => {
+    const { booking, findings } = single(charge({ credit: ACCOUNTS.noShow7, grossCents: 10_700, netCents: 10_000, netPrecise: '100', taxes: tax(7, 700) }));
+    expect(findings).toEqual([]);
+    expect(booking).toMatchObject({ credit: { account: '8300', label: 'Erlöse No-Show 7 %' }, grossCents: 10_700, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', percent: 7, apaleoTaxCents: 700 } });
+  });
+
+  it('Untaxed cancellation fee: 80.00 on RevenueCancellationFees_Without:0.00 (8200 without tax) is a credit line of 80.00 with an empty tax cell', () => {
+    const { booking, bookings, findings } = single(charge({ credit: ACCOUNTS.cancellation0, grossCents: 8_000, netCents: 8_000, netPrecise: '80', taxes: [] }));
     expect(findings).toEqual([]);
     expect(booking).toMatchObject({ credit: { account: '8200', label: 'Erlöse ohne USt' }, grossCents: 8_000 });
-    expect(codes(single(charge({ credit: cancel })).findings)).toEqual(['E-VAT-MISSING']);
+    expect(booking?.vat).toBeUndefined();
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',8200,Erlöse ohne USt,0.00,80.00,\n');
+  });
+
+  it('Taxed no-show on an untaxed row: 7.00 at 7 % on RevenueNoShow_Without:0.00 (8200 without tax) is E-VAT-MISSING naming the mapping row', () => {
+    const noShow0 = { number: 'RevenueNoShow_Without:0.00', name: 'Revenues No-show (no VAT)', type: 'Revenues', parentNumber: 'RevenueNoShow' };
+    const { bookings, findings } = single(charge({ credit: noShow0, grossCents: 10_700, netCents: 10_000, netPrecise: '100', taxes: tax(7, 700) }));
+    expect(bookings).toEqual([]);
+    expect(codes(findings)).toEqual(['E-VAT-MISSING']);
+    expect(findings[0]?.message).toMatch(/Change the row for RevenueNoShow_Without:0\.00 \(Revenues\) on mapping line \d+ \(Odoo 8200\)/);
   });
 });
 

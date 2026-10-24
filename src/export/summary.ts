@@ -1,6 +1,6 @@
 import { formatFinding, type Finding } from '../core/findings.js';
 import { decimalToCents, formatCents } from '../core/money.js';
-import type { LevyTotal, PostingSummary, SkipReason, VatTotal } from '../posting/index.js';
+import type { DepositRateTotal, LevyTotal, PostingSummary, SkipReason, VatTotal } from '../posting/index.js';
 import { formatTable } from '../cli/table.js';
 import type { PeriodPart } from './period.js';
 
@@ -71,7 +71,10 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
 
   section("Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):", vatLines(summary.revenueByRate));
   section("Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):", vatLines(summary.depositVatByRate));
-  section("Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate (before the base fitting):", vatLines(summary.writeOffsByRate));
+  section(
+    "Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):",
+    vatTotalLines(summary.writeOffsByRate, taxReturnLine, 'lowers'),
+  );
   out.push(VAT_ROUNDING_NOTE, '');
   section(`Kurtaxe and other guest levies per account (apaleo city tax, total ${formatCents(summary.cityTaxCents)}):`, levyLines(summary.levies, taxReturnLine).join('\n'));
 
@@ -90,6 +93,10 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
       '  ',
     ),
   );
+  section(
+    'Deposits per Odoo tax and rate (received: credit on the deposit account, raises the Kennzahl; released and refunded: debit, lowers it; gross and apaleo\'s tax per line):',
+    depositRateLines(summary.depositsByRate, taxReturnLine),
+  );
   out.push(
     `Accounts receivable (Forderungen Firmenrechnungen, Soll positive): ${formatCents(summary.accountsReceivableCents)}`,
     '',
@@ -101,13 +108,13 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
 }
 
 /**
- * `  1590 without tax: 12.60` or
+ * `  1590 without tax (no UStVA Kennzahl, ...): 12.60` or
  * `  8300 with tax_ust_7_skr03 7 % (Kz 86): gross 2.14, tax 0.14`, one line per account, tax and rate.
  */
 function levyLines(levies: readonly LevyTotal[], taxReturnLine: TaxReturnLine): string[] {
   return levies.map((levy) =>
     levy.tax === ''
-      ? `  ${levy.account} without tax: ${formatCents(levy.grossCents)}`
+      ? `  ${levy.account} without tax (no UStVA Kennzahl, for example a durchlaufender Posten): ${formatCents(levy.grossCents)}`
       : `  ${levy.account} with ${taxAndRate(levy.tax, levy.ratePercent, taxReturnLine)}: gross ${formatCents(levy.grossCents)}, tax ${formatCents(levy.vatCents)}`,
   );
 }
@@ -117,13 +124,36 @@ function levyLines(levies: readonly LevyTotal[], taxReturnLine: TaxReturnLine): 
  * one line per Odoo tax and rate; bookings without a tax as `no tax 0 %`. Net and the tax per line are apaleo's, before the base fitting;
  * Odoo's modelled VAT per tax is in the target's import block.
  */
-function vatTotalLines(totals: readonly VatTotal[], taxReturnLine: TaxReturnLine): string {
+function vatTotalLines(totals: readonly VatTotal[], taxReturnLine: TaxReturnLine, effect?: 'lowers'): string {
+  // Write-offs are signed as written off; their effect on the tax return is the negated tax.
+  const lineOf: TaxReturnLine = (rate) => {
+    const line = taxReturnLine(rate);
+    return line && effect === 'lowers' ? `lowers ${line}` : line;
+  };
   return totals
     .map((t) => {
       const precise = decimalToCents(t.apaleoVat);
       return (
-        `  ${taxAndRate(t.tax, t.ratePercent, taxReturnLine)}: net ${formatCents(t.netCents)}, apaleo per line ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
-        `apaleo precise ${formatCents(precise)} (${t.apaleoVat}), difference (per line minus precise) ${formatCents(t.vatCents - precise)}`
+        `  ${taxAndRate(t.tax, t.ratePercent, lineOf)}: net ${formatCents(t.netCents)}, apaleo per line ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
+        `apaleo precise ${formatCents(precise)} (${t.apaleoVat}), difference (per line minus precise) ${formatCents(t.vatCents - precise)}` +
+        (effect === 'lowers' && t.tax !== '' ? `, VAT in the return ${formatCents(-t.vatCents)}` : '')
+      );
+    })
+    .join('\n');
+}
+
+/**
+ * `  tax_ust_7_skr03 7 % (Kz 86): received 321.00 (tax 21.00), released 321.00 (tax 21.00), of it refunded 107.00 (tax 7.00)`,
+ * one line per Odoo tax and rate; deposits without tax as `no tax 0 %`.
+ */
+function depositRateLines(totals: readonly DepositRateTotal[], taxReturnLine: TaxReturnLine): string {
+  const amount = ({ grossCents, vatCents }: DepositRateTotal['received'], taxed: boolean) => `${formatCents(grossCents)}${taxed ? ` (tax ${formatCents(vatCents)})` : ''}`;
+  return totals
+    .map((t) => {
+      const taxed = t.tax !== '';
+      return (
+        `  ${taxAndRate(t.tax, t.ratePercent, taxReturnLine)}: received ${amount(t.received, taxed)}, released ${amount(t.released, taxed)}, ` +
+        `of it refunded ${amount(t.refunded, taxed)}`
       );
     })
     .join('\n');

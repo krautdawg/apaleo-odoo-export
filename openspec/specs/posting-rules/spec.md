@@ -87,74 +87,6 @@ Every booking side SHALL carry a label in German as used in Germany built from t
 - **WHEN** a payment line debits the cash account and credits a guest folio
 - **THEN** the booking has no Kostenstelle and its Odoo lines carry no analytic distribution
 
-### Requirement: Kurtaxe and guest levies
-Lines on CityTaxes, SecondCityTax and GuestLevies accounts SHALL be booked through their mapping rows like any other line, so that a guest-owed Kurtaxe or Gästetaxe mapped to a liability (durchlaufender Posten) without MWST-Code is booked without `TaxData`, one mapped with an MWST-Code at rate 0 (for example a code for Ziffer 910) is booked with tax 0.00, and a levy that apaleo taxes (a hotel-owed Beherbergungsabgabe, or a Kurtaxe that is not invoiced separately) is booked on its row with the matching MWST-Code and rate; the VAT guard SHALL apply to all of them, and the posting module SHALL NOT change the tax apaleo charged. The summary SHALL show the levy total per Abacus account and whether it was booked with or without MWST.
-
-#### Scenario: Guest-owed Kurtaxe
-- **WHEN** a line debits guest receivables (`1101`) and credits the city-tax account mapped to `2210` without MWST-Code with gross 4.20 and a `Without` tax entry of 0 % and 0.00
-- **THEN** the booking has Collective account `1101`, Single account `2210`, `DebitCredit` `D`, gross 4.20 and no `TaxData`, and the summary shows 4.20 Kurtaxe on `2210` without MWST
-
-#### Scenario: Kurtaxe with a Ziffer-910 code
-- **WHEN** the city-tax row maps to `2210` with MWST-Code `491` at rate 0 and a line credits it with gross 4.20 and no taxes
-- **THEN** the booking has `TaxData` with `TaxCode` `491`, rate 0 and tax 0.00, and no `E-VAT-UNEXPECTED` is raised
-
-#### Scenario: Taxed Beherbergungsabgabe
-- **WHEN** a line credits a GuestLevies account mapped to `3400` with MWST-Code `313` at 3.8 %, with gross 2.08, net 2.00 and taxes 0.08 at 3.8 %
-- **THEN** the booking has Single account `3400`, gross 2.08, tax −0.08 and MWST-Code `313`, and the summary counts it as a levy booked with MWST
-
-#### Scenario: Taxed levy on an untaxed row
-- **WHEN** a line with taxes 0.08 at 3.8 % credits a city-tax account mapped without MWST-Code
-- **THEN** `E-VAT-MISSING` is raised and names the mapping row
-
-### Requirement: Deposits and accounts receivable in Abacus
-Prepayment lines (`PostPrepayment`) SHALL be booked to the mapped deposit account with the MWST of their rate, because an Anzahlung is taxed when it is received under both Abrechnungsarten (MWSTG Art. 40 Abs. 1 Bst. c and Abs. 2), and accounts-receivable lines (`PostToAccountsReceivables`) to the mapped Sachkonto, both under the VAT guard. A Liabilities side SHALL count as a deposit increase when it is credited with a positive amount or debited with a negative amount, and as a decrease otherwise; a decrease whose other side is a Payments account is a refund. This covers apaleo's real shapes: a release as `PostCharge` debit guest receivables, credit `<reservation>_Liabilities/<rate>` with negative gross and negative taxes, a refund as `PostPrepayment` with negative gross, and an overpayment parked on the 0 % deposit as `PostCharge` credit `<reservation>_Liabilities/Null:0.00` with positive gross. In the written file `abacus.abrechnungsart` SHALL change only `UseCode` and the Collective `TaxAccount`, never which lines are booked, their accounts, amounts or tax; what Abacus then does with the tax of a `vereinnahmt` booking is covered by "Vereinnahmte Entgelte".
-
-#### Scenario: Prepayment at 3.8 %
-- **WHEN** a line debits the Twint payment account (`1090`) and credits the guest liabilities 3.8 % account mapped to `2030` with MWST-Code `313` and rate 3.8, with gross 311.40, net 300.00 and taxes 11.40 at 3.8 %
-- **THEN** the booking has Collective account `1090`, Single account `2030`, `DebitCredit` `D`, gross 311.40, tax −11.40 and MWST-Code `313`, and the summary shows 311.40 deposits received and 11.40 deposit tax at 3.8 %
-
-#### Scenario: Same deposit with vereinnahmte Entgelte
-- **WHEN** the same line is exported with `abacus.abrechnungsart: vereinnahmt`
-- **THEN** the booking's accounts, gross and tax are unchanged, the file has `UseCode` `1` and the Collective `TaxAccount` `abacus.mwstHilfskonto`, and the export reports `W-ABRECHNUNGSART-VEREINNAHMT`
-
-#### Scenario: Release as a negative charge
-- **WHEN** a `PostCharge` line debits `ENG-ALPHA-1_Receivables` and credits `ENG-ALPHA-1_Liabilities/Special:3.80` (3.8 % wildcard, `2030`, MWST-Code `313`) with gross −207.60 and tax −7.60 at 3.8 %
-- **THEN** the booking has Collective account `1101`, Single account `2030`, `DebitCredit` `C`, gross 207.60 and tax 7.60, and the summary counts 207.60 as released, not as received
-
-#### Scenario: Refund of a deposit
-- **WHEN** a `PostPrepayment` line debits the Twint payment account and credits `ENG-ALPHA-1_Liabilities/Special:3.80` with gross −103.80 and tax −3.80
-- **THEN** the booking has Collective account `1090`, Single account `2030`, `DebitCredit` `C`, gross 103.80 and tax 3.80, and the summary counts 103.80 as released and, of the released, as refunded
-
-#### Scenario: Overpayment parked on the 0 % deposit
-- **WHEN** a `PostCharge` line debits `ENG-ALPHA-1_Receivables` and credits `ENG-ALPHA-1_Liabilities/Null:0.00` (0 % wildcard, `2039`) with gross 10.00 and no taxes
-- **THEN** the booking has Collective account `1101`, Single account `2039`, `DebitCredit` `D`, gross 10.00, no `TaxData`, and the summary counts 10.00 as received
-
-#### Scenario: Check-out on accounts receivable
-- **WHEN** a line debits the AccountsReceivable account (mapped to `1102`) and credits guest receivables (`1101`) with gross 208.46 and receipt type Invoice number `ENG-2026-0815`
-- **THEN** the booking has Collective account `1102`, Single account `1101`, `DebitCredit` `D`, gross 208.46 and `Text2` `ENG-2026-0815`
-
-### Requirement: Bad debt with MWST correction
-Lines that debit a LossOfAccountsReceivable account SHALL be booked through its mapping row: with tax entries, the write-off row SHALL carry the MWST-Code of the line's rate, so that the booking has the write-off account as Single account (debited, `DebitCredit` `C`), the gross amount and a positive tax that reduces the Umsatzsteuer (Entgeltsminderung, MWSTG Art. 41); without tax entries the row SHALL have no MWST-Code and the line is booked without `TaxData`. The posting summary SHALL show the total of written-off receivables per rate.
-
-#### Scenario: Write-off with MWST correction
-- **WHEN** a line debits a per-reservation LossOfAccountsReceivable account at 3.8 % (resolved through the wildcard to `3805`, MWST-Code `313`, rate 3.8) and credits guest receivables (`1101`) with gross 103.80, net 100.00 and taxes 3.80 at 3.8 %
-- **THEN** the booking has Collective account `1101`, Single account `3805`, `DebitCredit` `C`, gross 103.80, tax 3.80 and MWST-Code `313`, and the summary shows 103.80 written off at 3.8 %
-
-#### Scenario: Write-off without MWST
-- **WHEN** a write-off line of 30.00 has no tax entries and debits an account mapped to `3808` without MWST-Code
-- **THEN** the booking has Collective account `1101`, Single account `3808`, `DebitCredit` `C`, gross 30.00 and no `TaxData`
-
-### Requirement: Annullationen and no-show payments
-Annullation and no-show payments SHALL be booked through their revenue mapping rows like other revenue, with the rate apaleo charged and under the VAT guard; the posting module SHALL NOT change their tax. Without tax they SHALL be booked without `TaxData`, as Schadenersatz (ESTV MBI 08 Ziff. 8.7).
-
-#### Scenario: Untaxed Annullation
-- **WHEN** a line credits `RevenueCancellationFees_Without:0.00` mapped to `3680` without MWST-Code with gross 80.00 and no taxes
-- **THEN** the booking has Collective account `1101`, Single account `3680`, `DebitCredit` `D`, gross 80.00 and no `TaxData`
-
-#### Scenario: Taxed no-show on an untaxed row
-- **WHEN** a no-show line with taxes 3.80 at 3.8 % credits an account mapped without MWST-Code
-- **THEN** `E-VAT-MISSING` is raised and names the mapping row
-
 ### Requirement: VAT side of an Odoo booking
 The posting module SHALL treat the side whose mapping row has an `odoo_tax` as the VAT side and SHALL give the booking that tax, the row's `tax_percent`, the absolute gross amount and apaleo's precise tax rounded half away from zero to cents (absolute); the VAT side's account moves by the gross minus that tax, the other side by the gross. The debit and credit accounts SHALL be the line's debit and credit accounts, swapped for a negative gross. A line without a VAT side SHALL be booked with both sides at the gross. A side whose row is of type Payments, Receivables or AccountsReceivable and has a tax SHALL NOT be booked; the line SHALL fail with `E-TAX-NOT-ALLOWED` naming the account and the mapping line. Two VAT sides SHALL fail with `E-TWO-VAT-SIDES`.
 
@@ -222,4 +154,79 @@ The test suite SHALL post a fabricated German fixture month in EUR (property `BS
 #### Scenario: Golden files of the German month
 - **WHEN** the month is rendered with `odooTarget` once with `per_line` and once with `per_tax`
 - **THEN** the bytes equal `test/golden/odoo/de-month.per-line.csv` and `test/golden/odoo/de-month.per-tax.csv`, and every entry of both balances with the modelled tax
+
+### Requirement: Kurtaxe and guest levies in Odoo
+Lines on CityTaxes, SecondCityTax and GuestLevies accounts SHALL be booked through their mapping rows like any other line, so that a guest-owed Kurtaxe or Kurbeitrag mapped to a durchlaufender Posten (`1590` / `1370`) without tax is booked without tax, and a levy that apaleo taxes (a hotel-owed Übernachtung- or Beherbergungsteuer passed on to the guest) is booked on its row with the matching Odoo tax and rate; the VAT guard SHALL apply to all of them, and the posting module SHALL NOT change the tax apaleo charged. The summary SHALL show the levy total per Odoo account and whether it was booked with or without tax.
+
+#### Scenario: Guest-owed Kurtaxe
+- **WHEN** a line debits guest receivables (`1410`) and credits the city-tax account mapped to `1590` without tax with gross 5.00 and a `Without` tax entry of 0 % and 0.00
+- **THEN** the booking has debit `1410`, credit `1590` labelled `Kurtaxe`, gross 5.00 and no VAT side, the entry line on `1590` has an empty tax cell, and the summary shows 5.00 Kurtaxe on `1590` without tax
+
+#### Scenario: Hotel-owed Übernachtungsteuer
+- **WHEN** a line credits a CityTaxes account mapped to `8300` with `tax_ust_7_skr03` at 7, with gross 10.70, net 10.00 and taxes 0.70 at 7 %
+- **THEN** the booking has the VAT side credit on `8300` with apaleo tax 0.70, the entry line is credit 10.00 with `account.1_tax_ust_7_skr03`, and the summary counts it as a levy booked with tax
+
+#### Scenario: Taxed levy on an untaxed row
+- **WHEN** a line with taxes 0.70 at 7 % credits a city-tax account mapped without tax
+- **THEN** `E-VAT-MISSING` is raised and names the mapping row
+
+### Requirement: Deposits and accounts receivable in Odoo
+Prepayment lines (`PostPrepayment`) SHALL be booked to the mapped deposit account with the Odoo tax of their rate, because a deposit is taxed when it is received (§ 13 Abs. 1 Nr. 1 Buchst. a Satz 4 UStG), and accounts-receivable lines (`PostToAccountsReceivables`) to the mapped receivables account, both under the VAT guard. A Liabilities side SHALL count as a deposit increase when it is credited with a positive amount or debited with a negative amount, and as a decrease otherwise; a decrease whose other side is a Payments account is a refund. In the Odoo entry an increase is a credit (invoice side, raises the Kennzahl) and a decrease a debit (refund side, lowers it). This covers apaleo's real shapes: a release as `PostCharge` debit guest receivables, credit `<reservation>_Liabilities/<rate>` with negative gross and negative taxes, a refund as `PostPrepayment` with negative gross, and an overpayment parked on the 0 % deposit as `PostCharge` credit `<reservation>_Liabilities/Null:0.00` with positive gross.
+
+#### Scenario: Prepayment at 7 %
+- **WHEN** a line debits the Visa payment account (`1360`) and credits the guest liabilities 7 % account mapped to `1711` with `tax_ust_7_skr03` and 7, with gross 214.00, net 200.00 and taxes 14.00 at 7 %
+- **THEN** the booking has debit `1360`, credit `1711` with the VAT side credit and apaleo tax 14.00, the entry has `1711` credit 200.00 with `account.1_tax_ust_7_skr03` (Odoo adds 14.00 on `1771`), and the summary shows 214.00 deposits received and 14.00 deposit tax at 7 % Kz 86
+
+#### Scenario: Release as a negative charge
+- **WHEN** a `PostCharge` line debits `BSP-ALPHA-1_Receivables` and credits `BSP-ALPHA-1_Liabilities/Reduced:7.00` (7 % wildcard, `1711`) with gross −214.00 and tax −14.00 at 7 %
+- **THEN** the booking has debit `1711`, credit `1410`, gross 214.00 and apaleo tax 14.00 on the debit side, the entry line is `1711` debit 200.00 on the refund side, and the summary counts 214.00 as released, not as received
+
+#### Scenario: Refund of a deposit
+- **WHEN** a `PostPrepayment` line debits the Visa account and credits `BSP-ALPHA-1_Liabilities/Reduced:7.00` with gross −107.00 and tax −7.00
+- **THEN** the booking has debit `1711`, credit `1360`, gross 107.00 and apaleo tax 7.00, and the summary counts 107.00 as released and, of the released, as refunded
+
+#### Scenario: Overpayment parked on the 0 % deposit
+- **WHEN** a `PostCharge` line debits `BSP-ALPHA-1_Receivables` and credits `BSP-ALPHA-1_Liabilities/Null:0.00` (0 % wildcard, `1719`) with gross 10.00 and no taxes
+- **THEN** the booking has debit `1410`, credit `1719`, gross 10.00, no VAT side, and the summary counts 10.00 as received
+
+#### Scenario: Check-out on accounts receivable
+- **WHEN** a line debits the AccountsReceivable account (mapped to `1401`) and credits guest receivables (`1410`) with gross 321.00 and receipt type Invoice number `BSP-2026-0815`
+- **THEN** the booking has debit `1401` labelled `Forderungen Firmenrechnungen`, credit `1410`, gross 321.00, and the protocol lists `BSP-2026-0815` for the `1401` line of that day
+
+### Requirement: Bad debt with tax correction
+Lines that debit a LossOfAccountsReceivable account SHALL be booked through its mapping row: with tax entries, the write-off row SHALL carry the Odoo tax of the line's rate, so that the write-off is a debit base line on the refund side and Odoo lowers the Kennzahl and the VAT by apaleo's tax (§ 17 Abs. 2 Nr. 1 UStG); without tax entries the row SHALL have no tax and the line is booked without tax. The posting summary SHALL show the total of written-off receivables per rate.
+
+#### Scenario: Write-off at 19 %
+- **WHEN** a line debits a per-reservation LossOfAccountsReceivable account at 19 % (resolved through the wildcard to `2406`, `tax_ust_19_skr03`, 19) and credits guest receivables (`1410`) with gross 119.00, net 100.00 and taxes 19.00 at 19 %
+- **THEN** the entry has `2406` debit 100.00 with `account.1_tax_ust_19_skr03` on the refund side and the counter line credit 119.00, and the summary shows 119.00 written off at 19 % with Odoo VAT −19.00 at Kz 81
+
+#### Scenario: Write-off without tax
+- **WHEN** a write-off line of 30.00 has no tax entries and debits an account mapped to `2400` without tax
+- **THEN** the entry line on `2400` is debit 30.00 with an empty tax cell
+
+### Requirement: Cancellation and no-show fees
+Cancellation and no-show fees SHALL be booked through their revenue mapping rows like other revenue, with the rate apaleo charged and under the VAT guard; the posting module SHALL NOT change their tax. Without tax they SHALL be booked without tax on the untaxed revenue row.
+
+#### Scenario: No-show fee at 7 %
+- **WHEN** a line credits `RevenueNoShow_Reduced:7.00` mapped to `8300` with `tax_ust_7_skr03` and 7, with gross 107.00 and taxes 7.00 at 7 %
+- **THEN** the booking has the VAT side credit on `8300` with apaleo tax 7.00 and no finding is raised
+
+#### Scenario: Untaxed cancellation fee
+- **WHEN** a line credits `RevenueCancellationFees_Without:0.00` mapped to `8200` without tax with gross 80.00 and no taxes
+- **THEN** the entry line on `8200` is credit 80.00 with an empty tax cell
+
+#### Scenario: Taxed no-show on an untaxed row
+- **WHEN** a no-show line with taxes 7.00 at 7 % credits an account mapped without tax
+- **THEN** `E-VAT-MISSING` is raised and names the mapping row
+
+### Requirement: German fixture month with special cases
+The German fixture month of o03 (`test/fixtures/apaleo/de-month/`) SHALL additionally contain a guest-owed Kurtaxe, a hotel-owed Übernachtungsteuer taxed at 7 %, write-offs at 7 % and 19 % and one without tax, a no-show fee at 7 %, an untaxed cancellation fee and an overpayment parked on the 0 % deposit and refunded, with its README updated; its mapping (`test/fixtures/mapping/skr03-de-month.csv`) SHALL be the SKR03 template with the Kurtaxe row filled in as a Kanzlei would (`1590` without tax) and the Übernachtungsteuer row on `8300` with `tax_ust_7_skr03`. A separate fixture day `test/fixtures/apaleo/de-2025-12-31/` SHALL hold a breakfast line at 19 % dated 2025-12-31 and one at 7 % dated 2026-01-01. The tests SHALL compare every summary value and entry line with hand-computed constants and the rendered files with the golden files of o03, updated.
+
+#### Scenario: Totals with special cases
+- **WHEN** `test/posting/fixture-month-de.test.ts` runs after this slice
+- **THEN** Kurtaxe on `1590` without tax, the Übernachtungsteuer at 7 %, deposits received, released and refunded at 7 %, write-offs per rate with the lowered Kennzahl, the no-show and cancellation fees and the balance per Odoo account equal the recorded constants, and no `E-` finding is raised
+
+#### Scenario: Food rate around the change
+- **WHEN** the fixture day around 2026-01-01 is exported with the SKR03 template mapping
+- **THEN** neither line raises `W-FOOD-RATE` (19 % on 2025-12-31, 7 % from 2026-01-01), and the same lines with swapped rates raise it once per day
 

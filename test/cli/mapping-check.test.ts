@@ -105,6 +105,13 @@ describe('apaleo-odoo mapping check (offline)', () => {
     expect(ctx.out()).toContain('Result: mapping OK (3 warnings).');
   });
 
+  it('Kurtaxe mapped with tax: warns W-CITY-TAX-TAXED naming the row, its line and § 10 Abs. 1 UStG, and exits 0', async () => {
+    const { ctx } = context({ 'mapping-BSP.csv': csv('3501;CityTaxes;Kurtaxe;7;8300;tax_ust_7_skr03;7;') });
+    expect(await runCli(['mapping', 'check', '--property', BSP], ctx)).toBe(0);
+    expect(ctx.out()).toMatch(/W-CITY-TAX-TAXED \(odoo_tax\): line 2: the CityTaxes row for apaleo account 3501 books the Odoo tax tax_ust_7_skr03 at 7 %\..*§ 10 Abs\. 1 UStG/);
+    expect(ctx.out()).toContain('Result: mapping OK (1 warning).');
+  });
+
   it('Duplicate key: fails with exit 1, naming both lines', async () => {
     const { ctx } = context({ 'mapping-BSP.csv': csv('R7;Revenues;A;7;8300;tax_ust_7_skr03;7;', 'R7;Revenues;A;7;8301;tax_ust_7_skr03;7;') });
     expect(await runCli(['mapping', 'check', '--property', BSP], ctx)).toBe(1);

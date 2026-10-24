@@ -1,8 +1,9 @@
 import { encodeCp1252 } from '../core/cp1252.js';
+import type { Finding } from '../core/findings.js';
 import { concatBytes, decodeCsv, detectSeparator, encodeCsvFile, formatCsvLine, parseCsv } from './csv.js';
 import { generatedAccounts } from './l10n-de.js';
 import type { Template, TemplateSettings } from './template.js';
-import { MAPPING_COLUMNS, ROW_FIELDS, rowKey, type MappingColumn, type MappingRowValues } from './types.js';
+import { MAPPING_COLUMNS, ROW_FIELDS, rowKey, type MappingColumn, type MappingRow, type MappingRowValues } from './types.js';
 
 /** The comment line on top of a written mapping file: the template and the Odoo version it was written for, with the generated accounts. */
 export function mappingHeaderComment(template: Template, settings: TemplateSettings): string {
@@ -28,6 +29,32 @@ type KeyFields = Pick<MappingRowValues, 'apaleoAccount' | 'apaleoType' | 'apaleo
 export function newRows(existing: readonly KeyFields[], suggested: readonly MappingRowValues[]): MappingRowValues[] {
   const keys = new Set(existing.map(rowKey));
   return suggested.filter((row) => !keys.has(rowKey(row)));
+}
+
+/**
+ * `N-TEMPLATE-SUGGESTION` for each existing row without an Odoo account for
+ * which the current template now suggests one (for example a no-show row that
+ * an older template version left empty). `init-mapping --update` never changes
+ * an existing row, so it names the suggestion and leaves the decision to the user.
+ */
+export function templateSuggestions(existing: readonly MappingRow[], suggested: readonly MappingRowValues[], templateId: string): Finding[] {
+  const byKey = new Map(suggested.map((row) => [rowKey(row), row]));
+  return existing.flatMap((row) => {
+    const suggestion = row.odooAccount === '' ? byKey.get(rowKey(row)) : undefined;
+    if (!suggestion || suggestion.odooAccount === '') return [];
+    const tax = suggestion.odooTax === '' ? 'without tax' : `${suggestion.odooTax} (${suggestion.taxPercent} %)`;
+    return [
+      {
+        code: 'N-TEMPLATE-SUGGESTION',
+        message:
+          `line ${row.line} (${row.apaleoAccount} ${row.apaleoType}${row.apaleoVatPercent === '' ? '' : ` ${row.apaleoVatPercent} %`}) has no Odoo account, ` +
+          `and the template ${templateId} now suggests ${suggestion.odooAccount} / ${tax}. The row was not changed: ` +
+          'check the suggestion with your Steuerberater and fill it in by hand, then run "apaleo-odoo mapping check"',
+        field: 'odoo_account',
+        value: row.apaleoAccount,
+      },
+    ];
+  });
 }
 
 /**

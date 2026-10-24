@@ -2,15 +2,14 @@ import { depositMovement } from '../core/deposits.js';
 import type { Finding } from '../core/findings.js';
 import { negateDecimal, sumDecimals } from '../core/money.js';
 import type { LedgerLine } from '../core/source.js';
+import { LEVY_TYPES } from '../mapping/index.js';
 import { odooMovements } from '../odoo/target.js';
 import type { ApaleoVat } from './apaleo-vat.js';
 import type { PostedSide } from './guard.js';
-import { SKIP_REASONS, type LevyTotal, type PostedBooking, type PostingSummary, type SkipReason, type VatTotal } from './types.js';
+import { SKIP_REASONS, type DepositRateTotal, type LevyTotal, type PostedBooking, type PostingSummary, type SkipReason, type VatTotal } from './types.js';
 
 /** Odoo account codes in numeric order: shorter before longer codes. */
 const byNumber = (a: string, b: string) => a.length - b.length || a.localeCompare(b);
-
-const CITY_TAX_TYPES: ReadonlySet<string> = new Set(['CityTaxes', 'SecondCityTax', 'GuestLevies']);
 
 /** Signed amount for a type: positive when an account of the type is credited, negative when debited, 0 when absent. */
 function creditedAmount(line: LedgerLine, types: ReadonlySet<string> | string): number {
@@ -49,6 +48,7 @@ export class SummaryBuilder {
   private cityTax = 0;
   private readonly levies = new Map<string, LevyTotal>();
   private readonly deposits = { receivedCents: 0, releasedCents: 0, refundedCents: 0 };
+  private readonly depositsByRate = new Map<string, DepositRateTotal>();
   private accountsReceivable = 0;
 
   /** `apaleoVat` is what `apaleoVatOf` gives for the line. */
@@ -72,8 +72,8 @@ export class SummaryBuilder {
       const owed = owedOn(line, loss, booking);
       addVat(this.writeOffs, { ...owed, net: -owed.net, vat: -owed.vat }, apaleoVat.map((vat) => negateDecimal(vat.precise)));
     }
-    this.cityTax += creditedAmount(line, CITY_TAX_TYPES);
-    const levy = [credit, debit].find((posted) => CITY_TAX_TYPES.has(posted.ref.type));
+    this.cityTax += creditedAmount(line, LEVY_TYPES);
+    const levy = [credit, debit].find((posted) => LEVY_TYPES.has(posted.ref.type));
     if (levy) this.addLevy(levy, owedOn(line, levy, booking));
     for (const payment of [debit, credit]) {
       if (payment.ref.type !== 'Payments') continue;
@@ -84,7 +84,36 @@ export class SummaryBuilder {
     if (movement?.direction === 'increase') this.deposits.receivedCents += movement.cents;
     if (movement?.direction === 'decrease') this.deposits.releasedCents += movement.cents;
     if (movement?.direction === 'decrease' && movement.viaPayment) this.deposits.refundedCents += movement.cents;
+    if (movement) this.addDepositByRate(movement, deposit, booking);
     this.accountsReceivable -= creditedAmount(line, 'AccountsReceivable');
+  }
+
+  /**
+   * A deposit movement under the Odoo tax and rate of its line: received
+   * (credited to the deposit account, invoice side, raises the Kennzahl), or
+   * released and, of the released, refunded (debited, refund side, lowers it).
+   */
+  private addDepositByRate(movement: NonNullable<ReturnType<typeof depositMovement>>, deposit: PostedSide | undefined, booking: PostedBooking): void {
+    const taxed = deposit?.vat === true && booking.vat !== undefined;
+    const tax = taxed ? (booking.vat?.taxRef ?? '') : '';
+    const rate = taxed ? (booking.vat?.percent ?? 0) : 0;
+    const vat = taxed ? (booking.vat?.apaleoTaxCents ?? 0) : 0;
+    const key = `${tax}\u0000${rate}`;
+    const entry = this.depositsByRate.get(key) ?? {
+      tax,
+      ratePercent: rate,
+      received: { grossCents: 0, vatCents: 0 },
+      released: { grossCents: 0, vatCents: 0 },
+      refunded: { grossCents: 0, vatCents: 0 },
+    };
+    const add = (total: DepositRateTotal['received']) => {
+      total.grossCents += movement.cents;
+      total.vatCents += vat;
+    };
+    if (movement.direction === 'increase') add(entry.received);
+    else add(entry.released);
+    if (movement.direction === 'decrease' && movement.viaPayment) add(entry.refunded);
+    this.depositsByRate.set(key, entry);
   }
 
   /** A levy line on its Odoo account, with apaleo's tax when the levy side carries the Odoo tax. */
@@ -117,6 +146,7 @@ export class SummaryBuilder {
       levies: [...this.levies.values()].sort((a, b) => byNumber(a.account, b.account) || a.ratePercent - b.ratePercent || a.tax.localeCompare(b.tax)),
       payments: [...this.payments].sort(([a], [b]) => byNumber(a, b)).map(([account, cents]) => ({ account, cents })),
       deposits: { ...this.deposits },
+      depositsByRate: [...this.depositsByRate.values()].sort((a, b) => a.ratePercent - b.ratePercent || a.tax.localeCompare(b.tax)),
       accountsReceivableCents: this.accountsReceivable,
       skipped: SKIP_REASONS.flatMap((reason) => {
         const entry = this.skipped.get(reason);

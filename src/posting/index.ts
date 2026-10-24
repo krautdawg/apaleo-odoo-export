@@ -15,7 +15,9 @@ export { normaliseTaxes, taxFromGross } from './taxes.js';
 export {
   SKIP_REASONS,
   type AccountTotal,
+  type DepositRateTotal,
   type FindingCount,
+  type GrossAndVat,
   type LevyTotal,
   type PaymentTotal,
   type PostedBooking,

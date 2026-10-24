@@ -34,7 +34,7 @@ Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before 
 Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):
   tax_ust_7_skr03 7 % (Kz 86): net 0.00, apaleo per line 0.00, gross 0.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
 
-Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate (before the base fitting):
+Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):
   none
 
 The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.
@@ -51,6 +51,9 @@ Deposits (Anzahlungen) received, released and refunded:
   received        321.00
   released        321.00
   of it refunded  107.00
+
+Deposits per Odoo tax and rate (received: credit on the deposit account, raises the Kennzahl; released and refunded: debit, lowers it; gross and apaleo's tax per line):
+  tax_ust_7_skr03 7 % (Kz 86): received 321.00 (tax 21.00), released 321.00 (tax 21.00), of it refunded 107.00 (tax 7.00)
 
 Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 185.50
 
@@ -91,6 +94,6 @@ apaleo entries per line of the file (entry number and receipt or reference):
 
 File: ODOO_Buchungen_20260901-20260930_BSP.csv
 SHA-256: f587b8aa9c35ff2baafb7770ddeaedad1eafe5b76982cc22a719acd734fc1c67
-Mapping SHA-256: 1074386dc0f37ce4f0830f675ba0da1489f09203d58c5d8fbc44bbdeef2de017
+Mapping SHA-256: af4756e552c40bbea9dd0042a0c144f2006b50e1ad6d85464f51e7a3a091904a
 Tool: apaleo-odoo 0.0.0
 Created: 2026-10-05T08:00:00.000Z

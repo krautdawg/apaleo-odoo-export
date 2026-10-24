@@ -5,7 +5,7 @@ import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import { formatCents, negateDecimal, sumDecimals } from '../core/money.js';
 import type { LedgerLine, SourceAdapter } from '../core/source.js';
-import { resolve, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
+import { FOOD_RATE_CANDIDATES, foodRatePeriod, foodRatePeriodText, isFoodName, lineRate, resolve, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
 import {
   apaleoVatOf,
   inferReleaseRates,
@@ -229,6 +229,42 @@ function rowsWithTax(lines: readonly LedgerLine[], result: PostingResult, mappin
     }
   }
   return new Map([...rows].map(([tax, set]) => [tax, [...set].sort((a, b) => a - b)]));
+}
+
+/**
+ * `W-FOOD-RATE` once per business day on which a revenue line on a food account
+ * (its apaleo name matches the templates' food pattern and not the beverage
+ * pattern) carries a German rate other than the Speisen rate of its day
+ * (`FOOD_RATE_PERIODS`: 7 % from 2026-01-01, 19 % from 2024-01-01 to 2025-12-31,
+ * 7 % from 2021 to 2023, 5 % in the second half of 2020, 19 % before). The most
+ * likely error after the change of 2026-01-01 is a food account still at 19 % in
+ * apaleo. A warning only: a food account can hold drinks, and the tool never
+ * changes the rate apaleo charged. A line at a rate that never applied to food or
+ * drinks (0 % for example) is left alone.
+ */
+export function checkFoodRate(lines: readonly LedgerLine[]): Finding[] {
+  const days = new Map<LocalDate, Map<string, string>>();
+  for (const line of lines) {
+    const revenue = line.credit.type === 'Revenues' ? line.credit : line.debit.type === 'Revenues' ? line.debit : undefined;
+    if (!revenue || !isFoodName(revenue.name)) continue;
+    const rate = lineRate(line);
+    if (rate === undefined || rate === foodRatePeriod(line.businessDate).percent || !FOOD_RATE_CANDIDATES.has(rate)) continue;
+    const accounts = days.get(line.businessDate) ?? new Map<string, string>();
+    accounts.set(revenue.number, `${revenue.number} ("${revenue.name}") at ${rate} %`);
+    days.set(line.businessDate, accounts);
+  }
+  return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([day, accounts]) => {
+    const period = foodRatePeriod(day);
+    return {
+      code: 'W-FOOD-RATE',
+      message:
+        `on ${day} apaleo booked food revenue on ${[...accounts.keys()].sort().map((number) => accounts.get(number)).join(', ')}, ` +
+        `but Speisen are taxed at ${period.percent} % for services ${foodRatePeriodText(period)}, so ${period.percent} % is expected on ${day}; ` +
+        'drinks stay at the standard rate. Check the VAT setting of the service and the account in apaleo ' +
+        'with your Steuerberater (if the account also holds drinks, the rate can be right). The file is written with the rate apaleo charged',
+      value: day,
+    };
+  });
 }
 
 /** The three blocking checks, in order. */

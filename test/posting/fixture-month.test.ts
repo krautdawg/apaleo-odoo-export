@@ -23,6 +23,7 @@ import { BEISPIEL_CHART, BEISPIEL_MAPPING, LEDGER, OPTIONS } from '../helpers/po
  * Deposits: 3510 received 220 + 165 = 385 and released 220 + 165 (negative
  *   charges); 3500 parked 10 and refunded 10 to the Maestro card: received
  *   395.00, released 395.00, of it refunded 10.00; deposit tax 20 + 15 − 20 − 15 = 0.
+ *   Per rate: 10 % received 385.00 (tax 35.00) and released 385.00 (tax 35.00), 0 % 10.00 / 10.00 / 10.00.
  * Forderungen 2010: 115.00.
  * 2000 Soll (the guest ledger): charges 142.00
  *   (09-14) + 179.70 (09-15) + 220 + 165 + the parked 10 = 716.70; Haben:
@@ -72,6 +73,16 @@ describe('posting the fixture month', () => {
         { account: '2890', cents: 55_670 },
       ],
       deposits: { receivedCents: 39_500, releasedCents: 39_500, refundedCents: 1_000 },
+      depositsByRate: [
+        { tax: '', ratePercent: 0, received: { grossCents: 1_000, vatCents: 0 }, released: { grossCents: 1_000, vatCents: 0 }, refunded: { grossCents: 1_000, vatCents: 0 } },
+        {
+          tax: 'account_tax_template_sales_10_code029',
+          ratePercent: 10,
+          received: { grossCents: 38_500, vatCents: 3_500 },
+          released: { grossCents: 38_500, vatCents: 3_500 },
+          refunded: { grossCents: 0, vatCents: 0 },
+        },
+      ],
       accountsReceivableCents: 11_500,
       skipped: [{ reason: 'SAME_ACCOUNT', lines: 5, grossCents: 32_570 }],
       findings: [],

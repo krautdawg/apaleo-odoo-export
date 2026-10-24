@@ -71,6 +71,26 @@ export interface LevyTotal {
   vatCents: number;
 }
 
+/** Gross amount and apaleo's tax rounded per line, unsigned. */
+export interface GrossAndVat {
+  grossCents: number;
+  vatCents: number;
+}
+
+/**
+ * Deposits (Anzahlungen) booked with one Odoo tax at one rate, unsigned: received
+ * (the deposit line is credited, on the invoice side, and raises the Kennzahl),
+ * released and, of the released, refunded (debited, on the refund side, lowering
+ * it). Empty `tax` and rate 0 for deposits without tax.
+ */
+export interface DepositRateTotal {
+  tax: string;
+  ratePercent: number;
+  received: GrossAndVat;
+  released: GrossAndVat;
+  refunded: GrossAndVat;
+}
+
 /** Payments received on one Odoo clearing account (Kasse, Geldtransit), signed (refunds reduce it). */
 export interface PaymentTotal {
   account: string;
@@ -108,6 +128,8 @@ export interface PostingSummary {
   payments: PaymentTotal[];
   /** Classified by side and sign (`depositMovement`), unsigned; refunds (paid back via a payment) are part of the released amount. */
   deposits: { receivedCents: number; releasedCents: number; refundedCents: number };
+  /** The same deposits per Odoo tax and rate, with apaleo's tax of each direction. */
+  depositsByRate: DepositRateTotal[];
   /** Net movement on accounts receivable (company invoices): debits positive. */
   accountsReceivableCents: number;
   skipped: SkippedTotal[];

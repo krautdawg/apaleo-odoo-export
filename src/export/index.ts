@@ -1,4 +1,4 @@
-export { checkAccountMovements, checkAggregates, checkConservation, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from './checks.js';
+export { checkAccountMovements, checkAggregates, checkConservation, checkFoodRate, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from './checks.js';
 export { MANIFEST_FILE, exportedFile, monthFolder, protocolPath, sha256, type Manifest, type ManifestEntry } from './output.js';
 export {
   PERIOD_HINT,

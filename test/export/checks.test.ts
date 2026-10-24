@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { AccountTotals } from '../../src/core/source.js';
-import { checkAccountMovements, checkAggregates, checkConservation, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from '../../src/export/index.js';
+import type { LocalDate } from '../../src/core/date.js';
+import type { AccountTotals, LedgerLine } from '../../src/core/source.js';
+import { checkAccountMovements, checkAggregates, checkConservation, checkFoodRate, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from '../../src/export/index.js';
 import { buildBookings, type PostingResult } from '../../src/posting/index.js';
 import { ChartIndex } from '../../src/core/chart.js';
 import { BSP, LIVE_DAY, LIVE_PROPERTIES, loadLiveData } from '../helpers/apaleo.js';
 import { vieMapping } from '../helpers/live-mapping.js';
+import { DE_TURN_OF_YEAR } from '../helpers/de-month.js';
 import { FakeSource } from '../helpers/fake-source.js';
 import { odooMovements } from '../../src/odoo/index.js';
 import {
@@ -220,5 +222,76 @@ describe('aggregate check (W-AGGREGATE-DIFF)', () => {
       const period = { from: '2026-10-21', to: '2026-10-22' } as const;
       expect(await checkAggregates(new FakeSource(live), property, period, live.ledger[property] ?? [], chart), property).toEqual([]);
     }
+  });
+});
+
+describe('German special-case warnings for a month', () => {
+  const breakfast = (name: string, date: LocalDate, percent: 5 | 7 | 16 | 19, number = 'RevenueBreakfast_Normal:19.00') =>
+    charge({
+      businessDate: date,
+      credit: { number, name, type: 'Revenues', parentNumber: 'RevenueBreakfast' },
+      grossCents: 2_000 + percent * 20,
+      netCents: 2_000,
+      netPrecise: '20',
+      taxes: germanTax(percent, percent * 20),
+    });
+
+  it('Food at 19 % in 2026: a breakfast line on 2026-09-14 on "Frühstück" at 19 % gives W-FOOD-RATE naming the day, the account, 19 % and 7 % for Speisen from 2026-01-01', () => {
+    const findings = checkFoodRate([breakfast('Frühstück', '2026-09-14', 19)]);
+    expect(findings.map((f) => [f.code, f.value])).toEqual([['W-FOOD-RATE', '2026-09-14']]);
+    expect(findings[0]?.message).toContain('on 2026-09-14 apaleo booked food revenue on RevenueBreakfast_Normal:19.00 ("Frühstück") at 19 %');
+    expect(findings[0]?.message).toContain('Speisen are taxed at 7 % for services from 2026-01-01 (Steueränderungsgesetz 2025), so 7 % is expected on 2026-09-14');
+    expect(findings[0]?.message).toContain('The file is written with the rate apaleo charged');
+  });
+
+  it('Drinks are not food: "Getränke Restaurant" at 19 % on 2026-09-14 raises no W-FOOD-RATE, nor does apaleo\'s "Revenues Food and beverages (19%)"', () => {
+    expect(checkFoodRate([breakfast('Getränke Restaurant', '2026-09-14', 19)])).toEqual([]);
+    expect(checkFoodRate([charge({ businessDate: '2026-09-14', credit: ACCOUNTS.food19, grossCents: 2_380, netCents: 2_000, netPrecise: '20', taxes: germanTax(19, 380) })])).toEqual([]);
+  });
+
+  it('warns for food at 7 % before 2026-01-01, never for food at the rate of its day or without tax, and once per day for several lines and accounts', () => {
+    expect(checkFoodRate([breakfast('Frühstück (7%)', '2025-12-31', 7, 'RevenueBreakfast_Reduced:7.00')]).map((f) => f.value)).toEqual(['2025-12-31']);
+    expect(checkFoodRate([breakfast('Frühstück', '2025-12-31', 19), breakfast('Frühstück', '2026-01-01', 7)])).toEqual([]);
+    expect(checkFoodRate([breakfast('Frühstück', '2026-09-14', 7), charge({ businessDate: '2026-09-14', credit: { number: 'F0', name: 'Frühstück', type: 'Revenues' }, taxes: [] })])).toEqual([]);
+    const day = checkFoodRate([
+      breakfast('Frühstück', '2026-09-14', 19),
+      breakfast('Frühstück', '2026-09-14', 19),
+      breakfast('Halbpension', '2026-09-14', 19, 'HP_Normal:19.00'),
+      { ...breakfast('Frühstück', '2026-09-15', 19), debit: { number: 'RevenueBreakfast_Normal:19.00', name: 'Frühstück', type: 'Revenues' }, credit: ACCOUNTS.receivables },
+    ]);
+    expect(day.map((f) => f.value)).toEqual(['2026-09-14', '2026-09-15']);
+    expect(day[0]?.message).toContain('on HP_Normal:19.00 ("Halbpension") at 19 %, RevenueBreakfast_Normal:19.00 ("Frühstück") at 19 %');
+  });
+
+  it('Food rate by the day of the service: 7 % on 2023-06-15 and 5 % on 2020-09-01 raise nothing, 19 % on those days and 7 % on 2025-06-15 warn with the rate of the day', () => {
+    expect(checkFoodRate([breakfast('Frühstück (7%)', '2023-06-15', 7, 'RevenueBreakfast_Reduced:7.00')])).toEqual([]);
+    expect(checkFoodRate([breakfast('Frühstück (5%)', '2020-09-01', 5, 'RevenueBreakfast_Reduced:5.00')])).toEqual([]);
+    expect(checkFoodRate([breakfast('Frühstück', '2020-06-30', 19), breakfast('Frühstück', '2024-01-01', 19), breakfast('Frühstück', '2025-06-15', 19)])).toEqual([]);
+    const wrong = checkFoodRate([
+      breakfast('Frühstück', '2023-06-15', 19),
+      breakfast('Frühstück', '2020-09-01', 16),
+      breakfast('Frühstück (7%)', '2025-06-15', 7, 'RevenueBreakfast_Reduced:7.00'),
+      breakfast('Frühstück (7%)', '2020-06-30', 7, 'RevenueBreakfast_Reduced:7.00'),
+    ]);
+    expect(wrong.map((f) => f.value)).toEqual(['2020-06-30', '2020-09-01', '2023-06-15', '2025-06-15']);
+    expect(wrong[0]?.message).toContain('Speisen are taxed at 19 % for services until 2020-06-30, so 19 % is expected on 2020-06-30');
+    expect(wrong[1]?.message).toContain('Speisen are taxed at 5 % for services from 2020-07-01 to 2020-12-31 (Corona-Steuerhilfegesetz)');
+    expect(wrong[2]?.message).toContain('Speisen are taxed at 7 % for services from 2021-01-01 to 2023-12-31 (Corona-Steuerhilfegesetz), so 7 % is expected on 2023-06-15');
+    expect(wrong[3]?.message).toContain('Speisen are taxed at 19 % for services from 2024-01-01 to 2025-12-31, so 19 % is expected on 2025-06-15');
+  });
+
+  it('Food rate around the change: the turn-of-year fixture raises no W-FOOD-RATE, the same lines with swapped rates raise it once per day', () => {
+    const lines = DE_TURN_OF_YEAR.ledger[BSP] ?? [];
+    expect(lines.map((line) => [line.businessDate, line.credit.name, line.taxes[0]?.percent])).toEqual([
+      ['2025-12-31', 'Frühstück (19%)', 19],
+      ['2026-01-01', 'Frühstück (7%)', 7],
+    ]);
+    expect(checkFoodRate(lines)).toEqual([]);
+    const [before, after] = lines as [LedgerLine, LedgerLine];
+    const swapped = [{ ...after, businessDate: before.businessDate }, { ...before, businessDate: after.businessDate }];
+    expect(checkFoodRate(swapped).map((f) => [f.code, f.value])).toEqual([
+      ['W-FOOD-RATE', '2025-12-31'],
+      ['W-FOOD-RATE', '2026-01-01'],
+    ]);
   });
 });

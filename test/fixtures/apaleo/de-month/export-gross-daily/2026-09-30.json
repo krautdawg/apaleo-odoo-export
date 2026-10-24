@@ -1,0 +1,99 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-30T16:00:00Z",
+      "date": "2026-09-30",
+      "debitedAccount": {
+        "name": "LossOfAccountsReceivable for Reservation BSP-GOLF-1 (7%)",
+        "number": "BSP-GOLF-1_LossOfAccountsReceivable/Reduced:7.00",
+        "parentNumber": "6900",
+        "type": "LossOfAccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-GOLF-1",
+        "number": "BSP-GOLF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostToLossOfAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": 107,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-GOLF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0029",
+      "reference": "BSP-GOLF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-30T16:00:00Z",
+      "date": "2026-09-30",
+      "debitedAccount": {
+        "name": "LossOfAccountsReceivable for Reservation BSP-HOTEL-1 (19%)",
+        "number": "BSP-HOTEL-1_LossOfAccountsReceivable/Normal:19.00",
+        "parentNumber": "6900",
+        "type": "LossOfAccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-HOTEL-1",
+        "number": "BSP-HOTEL-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostToLossOfAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": 119,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 19
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-HOTEL-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0030",
+      "reference": "BSP-HOTEL-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-30T16:00:00Z",
+      "date": "2026-09-30",
+      "debitedAccount": {
+        "name": "LossOfAccountsReceivable for Reservation BSP-INDIA-1 (0%)",
+        "number": "BSP-INDIA-1_LossOfAccountsReceivable/Null:0.00",
+        "parentNumber": "6900",
+        "type": "LossOfAccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-INDIA-1",
+        "number": "BSP-INDIA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostToLossOfAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": 30,
+      "netAmount": 30,
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-INDIA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0031",
+      "reference": "BSP-INDIA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

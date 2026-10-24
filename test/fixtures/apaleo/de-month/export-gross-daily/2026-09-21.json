@@ -1,0 +1,153 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-21T03:00:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-GOLF-1",
+        "number": "BSP-GOLF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues No-show (7%)",
+        "number": "RevenueNoShow_Reduced:7.00",
+        "parentNumber": "RevenueNoShow",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 107,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-GOLF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0024",
+      "reference": "BSP-GOLF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-21T09:40:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-HOTEL-1",
+        "number": "BSP-HOTEL-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Other (19%)",
+        "number": "RevenueOther_Normal:19.00",
+        "parentNumber": "RevenueOther",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 119,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 19
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-HOTEL-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0025",
+      "reference": "BSP-HOTEL-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-21T10:05:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-INDIA-1",
+        "number": "BSP-INDIA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Cancellation fees (no VAT)",
+        "number": "RevenueCancellationFees_Without:0.00",
+        "parentNumber": "RevenueCancellationFees",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 80,
+      "netAmount": 80,
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-INDIA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0026",
+      "reference": "BSP-INDIA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-21T10:20:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Cash Payment",
+        "number": "1600",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-INDIA-1 (Offset)",
+        "number": "BSP-INDIA-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 50,
+      "netAmount": 50,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSE-BSP-2"
+      },
+      "sourceEntryNumber": "BSPE0027",
+      "reference": "BSP-INDIA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-21T10:20:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-INDIA-1",
+        "number": "BSP-INDIA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-INDIA-1 (Offset)",
+        "number": "BSP-INDIA-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -50,
+      "netAmount": -50,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSE-BSP-2"
+      },
+      "sourceEntryNumber": "BSPE0027",
+      "reference": "BSP-INDIA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

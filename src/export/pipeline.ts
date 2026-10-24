@@ -10,7 +10,7 @@ import type { LedgerLine, SourceAdapter, SourceProperty } from '../core/source.j
 import { checkCoverage, checkUsedTaxes, loadMapping, type Mapping } from '../mapping/index.js';
 import { odooTarget } from '../odoo/target.js';
 import { buildBookings, releaseRateOf, type PostedBooking, type PostingOptions, type PostingResult } from '../posting/index.js';
-import { checkAggregates, checkTaxRates, plausibilityFindings } from './checks.js';
+import { checkAggregates, checkFoodRate, checkTaxRates, plausibilityFindings } from './checks.js';
 import { monthFolder, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
 import { dayRuleFindings, finalFrom, lastFinalDay, splitPeriod, type DateRange, type PeriodPart } from './period.js';
 import { renderSummary } from './summary.js';
@@ -208,7 +208,7 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
     const usedTaxes = checkUsedTaxes(mapping, lines, chart, coverageOptions);
     result = (deps.post ?? buildBookings)(lines, mapping, chart, options);
     // The posting rules repeat the coverage check's E-UNMAPPED findings.
-    findings.push(...coverage, ...usedTaxes, ...result.findings.filter((finding) => finding.code !== 'E-UNMAPPED'));
+    findings.push(...coverage, ...usedTaxes, ...result.findings.filter((finding) => finding.code !== 'E-UNMAPPED'), ...checkFoodRate(lines));
     findings.push(...checkTaxRates(lines, result, { mapping, chart }));
     // The plausibility checks assume a clean posting run; with errors the part fails anyway.
     if (!hasError(findings)) findings.push(...plausibilityFindings(lines, result, { mapping, chart, movements: (booking) => target.movements(booking) }));

@@ -100,3 +100,60 @@ export const GENERATED_ACCOUNT_CODES: Readonly<Record<GermanChart, readonly stri
 export function generatedChartOf(account: string): GermanChart | undefined {
   return GERMAN_CHARTS.find((chart) => GENERATED_ACCOUNT_CODES[chart].includes(account));
 }
+
+/**
+ * apaleo account names of food revenue (Speisen), as the hotel templates' 7 %
+ * food rule matches them, and of beverages (Getränke), which are never food. The
+ * export's `W-FOOD-RATE` uses both: an account name matching the food pattern
+ * and not the beverage pattern is food.
+ */
+export const FOOD_NAME_PATTERN = /speise|food|frühstück|fruehstueck|breakfast|restaurant|essen|küche|kueche|kitchen|halbpension|vollpension|catering|bankett|banquet/iu;
+export const BEVERAGE_NAME_PATTERN = /getränk|getraenk|beverage|drink|minibar|\bbar\b/iu;
+
+/** A period in which Speisen in restaurants and catering carry one German VAT rate: from `from` (inclusive) to `to` (inclusive, open when absent). */
+export interface FoodRatePeriod {
+  readonly from?: string;
+  readonly to?: string;
+  readonly percent: number;
+  /** The law that set the rate, for messages. */
+  readonly law?: string;
+}
+
+/**
+ * The German VAT rate of Speisen in restaurants and catering by the day of the
+ * service: 19 % until 2020-06-30, 5 % from 2020-07-01 to 2020-12-31 and 7 % from
+ * 2021-01-01 to 2023-12-31 (Corona-Steuerhilfegesetz, extended twice), 19 % from
+ * 2024-01-01 to 2025-12-31, and 7 % for services from 2026-01-01
+ * (Steueränderungsgesetz 2025). Drinks always carry the standard rate.
+ */
+export const FOOD_RATE_PERIODS: readonly FoodRatePeriod[] = [
+  { to: '2020-06-30', percent: 19 },
+  { from: '2020-07-01', to: '2020-12-31', percent: 5, law: 'Corona-Steuerhilfegesetz' },
+  { from: '2021-01-01', to: '2023-12-31', percent: 7, law: 'Corona-Steuerhilfegesetz' },
+  { from: '2024-01-01', to: '2025-12-31', percent: 19 },
+  { from: '2026-01-01', percent: 7, law: 'Steueränderungsgesetz 2025' },
+];
+
+/** The rates Speisen or drinks carried in Germany since 2020; a food line at another rate (0 % for example) is not a rate mix-up. */
+export const FOOD_RATE_CANDIDATES: ReadonlySet<number> = new Set([5, 7, 16, 19]);
+
+/** The period of Speisen whose days include `date` (`YYYY-MM-DD`). */
+export function foodRatePeriod(date: string): FoodRatePeriod {
+  const period = FOOD_RATE_PERIODS.find((p) => (p.from === undefined || date >= p.from) && (p.to === undefined || date <= p.to));
+  if (!period) throw new Error(`no Speisen rate period for ${date}`);
+  return period;
+}
+
+/** "from 2024-01-01 to 2025-12-31", "until 2020-06-30" or "from 2026-01-01 (Steueränderungsgesetz 2025)", for messages. */
+export function foodRatePeriodText(period: FoodRatePeriod): string {
+  const days = period.from === undefined ? `until ${period.to ?? ''}` : period.to === undefined ? `from ${period.from}` : `from ${period.from} to ${period.to}`;
+  return period.law === undefined ? days : `${days} (${period.law})`;
+}
+
+/** An apaleo account name that is food revenue: it matches the food pattern and not the beverage pattern. */
+export function isFoodName(name: string): boolean {
+  return FOOD_NAME_PATTERN.test(name) && !BEVERAGE_NAME_PATTERN.test(name);
+}
+
+/** apaleo's levy types: a guest-owed Kurtaxe is a durchlaufender Posten, a hotel-owed Übernachtungsteuer part of the consideration. */
+export const LEVY_TYPES: ReadonlySet<string> = new Set(['CityTaxes', 'SecondCityTax', 'GuestLevies']);

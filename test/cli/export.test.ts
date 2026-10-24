@@ -170,7 +170,7 @@ describe('apaleo-odoo export', () => {
       "Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
       "Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):",
       "Deposits and apaleo's VAT per Odoo tax and rate",
-      'Kurtaxe and other guest levies per account (apaleo city tax, total 6.40):\n  3600 without tax: 6.40\n',
+      'Kurtaxe and other guest levies per account (apaleo city tax, total 6.40):\n  3600 without tax (no UStVA Kennzahl, for example a durchlaufender Posten): 6.40\n',
       'Payments per clearing account:',
       'Deposits (Anzahlungen) received, released and refunded:\n  received        395.00\n  released        395.00\n  of it refunded   10.00\n',
       'Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 115.00',

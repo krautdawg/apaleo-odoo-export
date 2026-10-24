@@ -15,7 +15,7 @@ import type { MappingRow } from '../mapping/index.js';
 /** apaleo's standard revenue groups (the parent of `RevenueAccommodation_Reduced:7.00`), at a reduced rate and at the standard rate (19 % and above). */
 const REVENUE_GROUPS: Readonly<Record<string, { reduced: string; standard: string }>> = {
   RevenueAccommodation: { reduced: 'Beherbergung', standard: 'Beherbergung' },
-  // Speisen are taxed at 7 % from 2026-01-01, drinks always at 19 %.
+  // Speisen are taxed at 7 % from 2026-01-01 (19 % in 2024 and 2025), drinks at the standard rate.
   RevenueFoodAndBeverages: { reduced: 'Speisen', standard: 'Getränke' },
   RevenueNoShow: { reduced: 'No-Show', standard: 'No-Show' },
   RevenueCancellationFees: { reduced: 'Stornogebühren', standard: 'Stornogebühren' },
