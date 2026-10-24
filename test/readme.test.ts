@@ -11,6 +11,7 @@ import {
   checkCompatibilityClaims,
   checkPendingImport,
   checkPracticeTerms,
+  checkQuotationMarks,
   commandPhrases,
   configPaths,
   kanzleiTestImports,
@@ -333,7 +334,8 @@ describe('docs folder', () => {
   it('Export doc for Odoo: docs/export.md and docs/examples/README.md are German as used in Germany, without Swiss or Austrian practice terms and without « »', () => {
     for (const file of ['docs/export.md', 'docs/examples/README.md']) {
       const text = readRepoFile(file);
-      for (const term of ['Treuhänder', 'MWST', 'Rappen', 'Mandant', 'grösser', 'ausserhalb', 'standardmässig', 'Massnahme', '«', '»', 'Abacus', 'Ziffer', 'Debitorenverlust', 'Annullation', 'Leitwährung', 'KMU', 'CHF', 'Personenkonto', 'Nebenjournal', 'Europe/Zurich', 'österreichisch']) {
+      // The Swiss and Austrian terms are checkPracticeTerms' shared rules; these are the Swiss spellings and words beyond them.
+      for (const term of ['Mandant', 'grösser', 'ausserhalb', 'standardmässig', 'Massnahme', 'Ziffer', 'Debitorenverlust', 'Annullation', 'KMU', 'CHF', 'Nebenjournal', 'Europe/Zurich', 'österreichisch']) {
         expect(text, `${file}: ${term}`).not.toContain(term);
       }
       expect(checkPracticeTerms(file, text)).toEqual([]);
@@ -383,7 +385,8 @@ describe('docs folder', () => {
     for (const phrase of ['ß', 'SKR03', 'SKR04', '19 %', '7 %', '16 %', '5 %', '2026-01-01', 'Kennzahl 45', 'Vorschlag (ungeprüft)', '`odoo_account`', '`odoo_tax`', '`tax_percent`']) {
       expect(guide, phrase).toContain(phrase);
     }
-    for (const term of ['MWST-Code', 'Treuhänder', '«', '»', 'Personenkonto', '10 %', '13 %', '20 %', 'Rappen']) expect(guide, term).not.toContain(term);
+    expect(checkPracticeTerms('docs/mapping-guide.md', guide)).toEqual([]);
+    expect(checkQuotationMarks('docs/mapping-guide.md', guide)).toEqual([]);
     expect(guide).not.toMatch(/(?<!apaleo-)\b(DATEV|BMD)\b/);
     for (const code of ['E-TAX-FORMAT', 'E-TAX-MISSING', 'E-TAX-NOT-ALLOWED', 'W-TAX-UNCHECKED', 'W-TAX-RATE', 'W-TAX-KZ45', 'N-DEFAULT-TAX-ACCOUNT', 'N-GENERATED-ACCOUNT', 'W-VAT-RATE-UNUSUAL', 'E-UNMAPPED']) {
       expect(section(guide, '## Befunde und was du tust'), code).toContain(`\`${code}\``);

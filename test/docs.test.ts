@@ -373,19 +373,25 @@ describe('the practice terms check', () => {
     expect(problemsOf('docs/mapping-guide.md', text)).toEqual([
       'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an. Danach prüft die Buchhaltung die Datei und gibt sie frei, bevor du den nächsten Monat exportierst.": "Buchungssymbol" is a term of Austrian BMD practice',
     ]);
-    for (const term of ['Steuercode', 'Einheitskontenrahmen', 'EKR', 'UVA', 'Ortstaxe', 'Nächtigungsabgabe', 'Personenkonto']) {
+    for (const term of ['Steuercode', 'Einheitskontenrahmen', 'EKR', 'UVA', 'Ortstaxe', 'Nächtigungsabgabe']) {
       expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([expect.stringContaining(`"${term}"`)]);
     }
     expect(problemsOf('docs/x.md', 'Die Hauskanzlei, das BMDX-Feld, 2,0 % und 110 % sind keine Treffer. `BMD` und `Kanzlei` im Code auch nicht.')).toEqual([]);
   });
 
-  it('German rates and terms pass: 19 %, 7 %, SKR03 and the German accounting terms, while the Austrian rates are still reported', () => {
-    for (const term of ['SKR03', 'SKR04', 'UStVA', 'Kennzahl', 'Kanzlei', 'Steuerberater', 'Beherbergungsteuer', 'Übernachtungsteuer', 'Geldtransit', 'Forderungsverlust', '7 %', '19 %']) {
+  it('German rates and terms pass: 19 %, 7 %, SKR03 and the German accounting terms, while the Austrian rates are still reported next to a VAT word', () => {
+    for (const term of ['SKR03', 'SKR04', 'UStVA', 'Kennzahl', 'Kanzlei', 'Steuerberater', 'Beherbergungsteuer', 'Übernachtungsteuer', 'Geldtransit', 'Forderungsverlust', 'Personenkonto', '7 %', '19 %']) {
       expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([]);
     }
-    expect(problemsOf('docs/posting-rules.md', 'Beherbergung mit 10 %.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"10 %"/)]);
-    for (const rate of ['13 %', '20 %']) expect(problemsOf('docs/x.md', `Logis mit ${rate}.`), rate).toHaveLength(1);
-    expect(problemsOf('docs/x.md', 'Nie 110 %, 120 % oder 2,0 %. `10 %` im Code.\n\n```text\nKurtaxe 10 %\n```\n')).toEqual([]);
+    expect(problemsOf('docs/posting-rules.md', 'Beherbergung mit 10 % USt.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"10 %"/)]);
+    for (const line of ['Logis mit 13 % Umsatzsteuer.', 'Der Steuersatz von 20 % gilt.', 'USt-Satz 10 % für Logis.', 'Umsatzsteuer (13 %)']) {
+      expect(problemsOf('docs/x.md', line), line).toHaveLength(1);
+    }
+    expect(problemsOf('docs/x.md', 'Nie 110 % USt, 120 % oder 2,0 % USt. `10 % USt` im Code.\n\n```text\nKurtaxe 10 % USt\n```\n')).toEqual([]);
+  });
+
+  it('Personenkonto and a bare rate are German: "Personenkonto für Debitoren, 20 % Anzahlung" passes in docs/mapping-guide.md', () => {
+    expect(problemsOf('docs/mapping-guide.md', 'Personenkonto für Debitoren, 20 % Anzahlung, 10 % Rabatt und 13 % Auslastung.')).toEqual([]);
   });
 
   it('DATEV is a German term: "Der DATEV-Export aus Odoo Enterprise bleibt davon unberührt" passes', () => {

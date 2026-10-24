@@ -109,7 +109,7 @@ Nur für `schedule --once`. Was jede Einstellung bewirkt, mit Beispielen: [docke
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `schedule.timezone` | `Europe/Berlin` | „Heute“ ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in Deutschland passt der Standard; setz den Schlüssel nur, wenn dein Rechner und deine Hotels in einer anderen Zeitzone stehen; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
+| `schedule.timezone` | `Europe/Berlin` | „Heute“ ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in Deutschland passt der Standard; setz den Schlüssel nur, wenn deine Hotels in einer anderen Zeitzone stehen; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
 | `schedule.cadence` | `monthly` | `monthly` (eine Datei pro Monat) oder `daily` (eine Datei pro Tag). Ein Rhythmus pro Installation. |
 | `schedule.monthly` | | Einstellungen für `cadence: monthly`. |
 | `schedule.monthly.dayOfMonth` | `3` | Ein Monat ist ab diesem Tag des Folgemonats fällig, 1 bis 5. |

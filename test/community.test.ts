@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
-import { readRepoFile } from './helpers/docs.js';
+import { checkPracticeTermLines, checkQuotationMarks, readRepoFile } from './helpers/docs.js';
 
 interface IssueForm {
   name: string;
@@ -127,7 +127,10 @@ describe('issue and pull-request templates', () => {
     const files = ['ISSUE_TEMPLATE/bug_report.yml', 'ISSUE_TEMPLATE/feature_request.yml', 'ISSUE_TEMPLATE/new_source_or_target.yml', 'pull_request_template.md'];
     for (const file of files) {
       const text = readRepoFile(`.github/${file}`);
-      expect(text, file).not.toMatch(/Treuhänder|MWST|Mandant|Rappen|KMU|Schweizer Hochdeutsch|Steuercode|Buchungssymbol|\bEKR\b|«|»/);
+      // The shared Swiss and Austrian term rules of the docs (o08 design decision 3), plus words of Swiss practice that are not terms of their own.
+      expect(checkPracticeTermLines(file, text)).toEqual([]);
+      expect(checkQuotationMarks(file, text)).toEqual([]);
+      expect(text, file).not.toMatch(/Mandant|KMU|Schweizer Hochdeutsch/);
       expect(text, file).toContain('Odoo');
     }
     for (const file of files.filter((file) => !file.includes('new_source_or_target'))) expect(readRepoFile(`.github/${file}`), file).not.toMatch(/Abacus|\bBMD\b/);

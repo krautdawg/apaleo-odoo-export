@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { checkPracticeTermLines, checkQuotationMarks } from './helpers/docs.js';
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const exists = (file: string) => existsSync(new URL(`../${file}`, import.meta.url));
@@ -187,9 +188,12 @@ describe('compose and env examples', () => {
   });
 
   it('comments the compose, env and config examples and the templates in German as used in Germany, without Abacus, BMD, Swiss or Austrian terms', () => {
-    for (const file of ['docker-compose.example.yml', '.env.example', 'apaleo-odoo.config.example.yaml', 'templates/skr03-hotel.rules.csv', 'templates/skr04-hotel.rules.csv']) {
+    for (const file of ['docker-compose.example.yml', '.env.example', 'apaleo-odoo.config.example.yaml', 'Dockerfile', 'templates/skr03-hotel.rules.csv', 'templates/skr04-hotel.rules.csv']) {
       const text = read(file);
-      expect(text, file).not.toMatch(/\bBMD\b|Abacus|Treuhänder|MWST|Rappen|Mandant|Leitwährung|«|»|standardmässig|schliesst|ausserhalb|grösser/i);
+      // Every line, comments and values: the shared Swiss and Austrian term rules of the docs (o08 design decision 3) and German quotation marks.
+      expect(checkPracticeTermLines(file, text)).toEqual([]);
+      expect(checkQuotationMarks(file, text)).toEqual([]);
+      expect(text, file).not.toMatch(/\bBMD\b|Abacus|Mandant|standardmässig|schliesst|ausserhalb|grösser/i);
     }
   });
 
@@ -203,7 +207,9 @@ describe('compose and env examples', () => {
         .split('\n')
         .filter((line) => line.trimStart().startsWith('#'))
         .join('\n');
-      for (const term of ['Treuhänder', 'Abacus', 'MWST', 'Mandant', '«', '»', 'Europe/Zurich']) expect(comments, `${file}: ${term}`).not.toContain(term);
+      for (const term of ['Abacus', 'Mandant', 'Europe/Zurich']) expect(comments, `${file}: ${term}`).not.toContain(term);
+      // A rough guard against comments left in English from the origin projects: these words are common in English
+      // and do not occur in German. checkGerman needs prose paragraphs, which a few comment lines are not.
       expect(comments, file).not.toMatch(/\b(the|and|only|there is)\b/);
     }
   });
