@@ -11,6 +11,34 @@ The CLI SHALL load configuration from the file given by `--config`, else from `A
 - **WHEN** the config file contains `abacus.mandant`
 - **THEN** loading fails with an error saying that `abacus` is not a section of apaleo-odoo and naming `odoo`
 
+#### Scenario: Abacus section no longer needed
+- **WHEN** the config file has an `odoo` section and no `abacus` section
+- **THEN** loading succeeds
+
+#### Scenario: Abacus section missing
+- **WHEN** the config file has an `odoo` section and no `abacus` section
+- **THEN** `doctor` reports the config as valid and prints no Abacus line
+
+#### Scenario: Mandant missing
+- **WHEN** the config file has an `abacus` section without `mandant`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`, and does not report `abacus.mandant` as required
+
+#### Scenario: Invalid Leitwährung
+- **WHEN** the config file sets `abacus.leitwaehrung: USD`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`; the currency of the file is `odoo.currency`
+
+#### Scenario: Abacus defaults
+- **WHEN** an `abacus` section sets only `mandant: 1234`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, and no Abacus default is applied
+
+#### Scenario: MWST-Code with a leading zero without quotes
+- **WHEN** the config has `abacus.mwstCodes.normal: 011`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`, before any check of the value
+
+#### Scenario: Two properties share a Mandant
+- **WHEN** properties `BSP` and `BS2` set `mandant` or `geschaeftsbereich`
+- **THEN** loading fails naming `properties.0.mandant` or `properties.0.geschaeftsbereich` as an unknown key, and no command reports `W-MANDANT-SHARED`
+
 #### Scenario: Odoo section missing
 - **WHEN** the config file has no `odoo` section
 - **THEN** loading fails with an error that names `odoo.journal` and `odoo.version` as required and points to `docs/configuration.md`
