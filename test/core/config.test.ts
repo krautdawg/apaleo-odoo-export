@@ -67,7 +67,9 @@ describe('loading', () => {
 
   it.each([
     ['abacus:\n  mandant: 1234\n', 'abacus'],
-    ['abacus:\n  mandant: 1234\n  leitwaehrung: CHF\n  mwstCodes:\n    normal: 311\n', 'abacus'],
+    ['abacus:\n  leitwaehrung: CHF\n', 'abacus'],
+    ['abacus:\n  mandant: 1234\n  leitwaehrung: USD\n', 'abacus'],
+    ['abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: 011\n', 'abacus'],
     ['bmd:\n  buchsymbol: HO\n', 'bmd'],
     ['datev:\n  beraternummer: 1234567\n  mandantennummer: 42\n', 'datev'],
   ])('Old Abacus, BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming odoo', async (text, section) => {
@@ -76,7 +78,7 @@ describe('loading', () => {
       expect(error.message).toContain(`${section} is not a section of apaleo-odoo`);
       expect(error.message).toContain('odoo section');
       expect(error.message).toContain('odoo.journal');
-      expect(error.message).not.toContain('unknown key');
+      expect(error.message).not.toMatch(/unknown key|is required|is read as the number|must be/);
     }
   });
 

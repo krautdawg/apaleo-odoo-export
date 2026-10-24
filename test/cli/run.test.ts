@@ -216,7 +216,16 @@ describe('injected context', () => {
     expect(await runCli(['doctor'], ctx)).toBe(0);
     expect(ctx.out()).toContain('Config:        valid');
     expect(ctx.out()).toContain('Odoo:          version 18, company 1, journal APA, currency EUR');
-    expect(ctx.out()).not.toMatch(/BMD|Abacus/);
+    expect(ctx.out()).not.toMatch(/BMD|Abacus|W-MANDANT-SHARED/);
+  });
+
+  it('Two properties share a Mandant: doctor refuses properties[].mandant and geschaeftsbereich as unknown keys and reports no W-MANDANT-SHARED', async () => {
+    const config = 'odoo:\n  journal: APA\n  version: 18\nproperties:\n  - id: BSP\n    mandant: "1234"\n  - id: BS2\n    geschaeftsbereich: 2\n';
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
+    expect(await runCli(['doctor'], ctx)).toBe(1);
+    expect(ctx.err()).toContain('properties.0.mandant: unknown key');
+    expect(ctx.err()).toContain('properties.1.geschaeftsbereich: unknown key');
+    expect(`${ctx.out()}${ctx.err()}`).not.toContain('W-MANDANT-SHARED');
   });
 
   it('doctor exits 1 for an invalid config, and for an old Abacus, BMD or DATEV config naming the odoo section', async () => {
