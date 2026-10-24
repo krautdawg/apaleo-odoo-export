@@ -1,0 +1,39 @@
+# Lokaler Testimport für Maintainer (nicht in der CI): Wegwerf-Datenbanken mit
+# Odoo 17, 18 und 19 Community, l10n_de SKR03 und SKR04. Kein Passwort (die
+# Datenbank vertraut nur den Containern dieses Projekts), kein Port nach außen
+# außer Odoo auf 127.0.0.1, keine API, keine Zugangsdaten. Start: ./run.sh
+name: apaleo-odoo-check
+
+x-odoo: &odoo
+  depends_on: [db]
+  environment:
+    HOST: db
+    USER: odoo
+  volumes:
+    - ../../test/golden/odoo:/golden:ro
+    - ./check.py:/check/check.py:ro
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  odoo17:
+    <<: *odoo
+    image: odoo:17.0-20260908
+    ports: ['127.0.0.1:8017:8069']
+
+  odoo18:
+    <<: *odoo
+    image: odoo:18.0-20261015
+    ports: ['127.0.0.1:8018:8069']
+
+  odoo19:
+    <<: *odoo
+    image: odoo:19.0-20261015
+    ports: ['127.0.0.1:8019:8069']

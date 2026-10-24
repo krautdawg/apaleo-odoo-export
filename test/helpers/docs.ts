@@ -478,14 +478,20 @@ export const COMPATIBILITY_CLAIMS: readonly RegExp[] = [
 /** Datum, Abacus-Version, Schnittstellenversion, Programm and Ergebnis: a row records an import only when all five are filled. */
 const RECORDED_IMPORT_FIELDS = 5;
 
-/** The rows of the `## Testimporte` table in `docs/maintainers.md` that record an import (all five fields filled). */
+/**
+ * The rows of the first table under `## Testimporte` in `docs/maintainers.md`
+ * (the Abacus imports) that record an import (all five fields filled). The
+ * local Odoo test imports of o02 follow in their own table and do not count.
+ */
 export function recordedTestImports(maintainers: string): string[][] {
   const start = maintainers.search(/^## Testimporte$/m);
   if (start < 0) return [];
   const rest = maintainers.slice(start).split('\n').slice(1);
   const end = rest.findIndex((line) => line.startsWith('## '));
-  const rows = (end < 0 ? rest : rest.slice(0, end))
-    .filter((line) => line.trim().startsWith('|'))
+  const section = end < 0 ? rest : rest.slice(0, end);
+  const first = section.findIndex((line) => line.trim().startsWith('|'));
+  const after = first < 0 ? -1 : section.findIndex((line, i) => i > first && !line.trim().startsWith('|'));
+  const rows = (first < 0 ? [] : section.slice(first, after < 0 ? undefined : after))
     .slice(1)
     .filter((line) => !/^\|[\s|:-]+\|$/.test(line.trim()))
     .map((line) =>

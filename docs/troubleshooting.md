@@ -115,6 +115,27 @@ Der Writer für die AbaConnect-Datei «XML Buchungen» prüft jedes Feld, bevor 
 | `E-ABACUS-FILE-NAME` | Die Property-ID lässt sich nicht im Dateinamen verwenden (erlaubt sind nur Buchstaben, Ziffern, `_` und `-`). | Eröffne ein Issue mit der Property-ID (sie kommt aus apaleo). |
 | `N-ABACUS-TRUNCATED` | `Text1` oder `Text2` wurde auf 80 Zeichen gekürzt. | Nichts, ausser der gekürzte Text ist wichtig. Über die Protokolldatei findest du die Buchung in apaleo. |
 
+## Odoo-Datei (Buchungssätze)
+
+Der Writer für die Importdatei der Odoo-Buchungssätze prüft jede Buchung und jeden Buchungssatz, bevor er eine Datei schreibt, und meldet alle Fehler auf einmal, mit Tag und Konten, nie mit einem Gästenamen. Bei einem Fehler schreibt er keine Datei. Einzelheiten: [odoo-format.md](odoo-format.md).
+
+| Code | Ursache | Lösung |
+|---|---|---|
+| `E-ODOO-ACCOUNT` | Ein Konto passt nicht zur Regel von Odoo: 1 bis 64 Zeichen aus `A-Z`, `a-z`, `0-9` und `.`, ohne Leerzeichen. Gilt auch für `odoo.roundingAccount`. | Korrigiere die Kontonummer in der Kontenzuordnung oder in `odoo.roundingAccount`, so wie sie im Kontenplan von Odoo steht. |
+| `E-ODOO-TAX-REF` | Eine Steuer ist weder eine ID aus dem Kontenrahmen-Template (Kleinbuchstaben, Ziffern und `_`, zum Beispiel `tax_ust_19_skr03`) noch eine vollständige External ID mit einem Punkt (zum Beispiel `__import__.ust_7_hotel`). Ein Name wie `19%` geht nicht. | Trag die ID der Odoo-Steuer in die Kontenzuordnung ein. Die External ID einer Steuer siehst du im Entwicklermodus oder beim Export der Steuern mit der Spalte „External ID“. |
+| `E-ODOO-JOURNAL` | Das Journalkürzel hat nicht 1 bis 5 Zeichen aus `A-Z` und `0-9`. Odoo erlaubt höchstens 5 Zeichen. | Setz `odoo.journal` oder `properties[].journal` auf das Kürzel des Journals in Odoo, zum Beispiel `APA`. |
+| `E-ODOO-AMOUNT` | Ein Betrag ist nicht größer als 0 oder nicht auf den Cent genau, oder die Steuer aus apaleo ist negativ oder nicht kleiner als der Bruttobetrag. | Eröffne ein Issue mit der Meldung (ohne Namen): Zeilen mit Betrag 0 werden normalerweise vor dem Schreiben übersprungen. |
+| `E-ODOO-SAME-ACCOUNT` | Soll- und Habenkonto einer Buchung sind gleich. | Prüf die Kontenzuordnung: Zwei apaleo-Konten derselben Buchung zeigen auf dasselbe Odoo-Konto. |
+| `E-ODOO-DATE` | Das Datum einer Buchung ist ungültig oder liegt außerhalb des Zeitraums der Datei, oder der Zeitraum selbst ist ungültig. | Prüf `--from` und `--to` (Format `JJJJ-MM-TT`); sonst eröffne ein Issue, denn der Export liest nur Buchungen des Zeitraums. |
+| `E-ODOO-RATE` | Ein Steuersatz liegt nicht zwischen 0 und 100 oder hat mehr als zwei Nachkommastellen, oder dieselbe Odoo-Steuer kommt mit zwei verschiedenen Sätzen vor. | Prüf Steuer und Satz der Zeile in der Kontenzuordnung: Jede Odoo-Steuer hat genau einen Satz, `tax_ust_7_skr03` gehört zu 7 %. |
+| `E-ODOO-PROPERTY-ID` | Die Hotel-ID lässt sich nicht in External IDs und im Dateinamen verwenden: Erlaubt sind 1 bis 20 Zeichen aus Buchstaben, Ziffern, `_` und `-`. | Eröffne ein Issue mit der Hotel-ID (sie kommt aus apaleo). |
+| `E-ODOO-ROUNDING-ACCOUNT` | Bei Rundung pro Steuer (`per_tax`) fehlt einer Steuergruppe ein Cent, und `odoo.roundingAccount` ist nicht gesetzt, oder `odoo.roundingAccount` ist das Konto einer Zeile mit Steuer. Die Meldung nennt Tag und Satz. | Setz `odoo.roundingAccount` auf ein Konto ohne Steuer, siehe [configuration.md](configuration.md#odoo). Rundet dein Odoo-Unternehmen pro Zeile, setz stattdessen `odoo.taxRounding` auf `per_line`. |
+| `E-ODOO-UNBALANCED` | Ein Buchungssatz wäre nach Odoos eigener Steuerberechnung nicht ausgeglichen; Odoo würde eine „Automatic Balancing Line“ auf dem Zwischenkonto anlegen. Die Meldung nennt Tag und Differenz. | Eröffne ein Issue mit der Meldung (ohne Namen): Die Basisanpassung sollte das verhindern. |
+| `E-ODOO-GROSS` | Die Nettobeträge einer Steuergruppe erreichen mit Odoos Steuer nicht den Bruttobetrag aus apaleo. | Eröffne ein Issue mit der Meldung (ohne Namen). |
+| `E-ODOO-VAT-FIT` | Odoos Steuer einer Steuergruppe weicht von apaleos Steuer um mehr als einen Cent pro apaleo-Zeile plus einen Cent ab. | Eröffne ein Issue mit der Meldung (ohne Namen). |
+| `N-ODOO-ROUNDING-LINE` | Kein Nettobetrag ergibt mit Odoos Steuer genau den Bruttobetrag, weil die Rundung darüber springt. Das Tool hat eine Zeile über 0,01 € hinzugefügt: bei Rundung pro Zeile mit derselben Steuer und „(Rundungsausgleich)“ in der Bezeichnung, bei Rundung pro Steuer ohne Steuer auf `odoo.roundingAccount`. | Nichts. Der Buchungssatz ist damit ausgeglichen; Odoos Steuer und apaleos Steuer stehen im Protokoll. |
+| `N-ODOO-TRUNCATED` | Eine Bezeichnung war länger als 128 Zeichen und wurde gekürzt. Die Meldung nennt Tag und Konto. | Nichts, außer der gekürzte Text ist wichtig. Über das Protokoll findest du die Buchungen in apaleo. |
+
 ## Einrichtung aus Deutschland oder Österreich übernommen
 
 Dieses Tool baut auf apaleo-datev-export und apaleo-bmd-export auf, die DATEV-Dateien für Deutschland und BMD-Dateien für Österreich schreiben. Diese Prüfungen fangen eine Einrichtung ab, die von dort oder von einem kostenpflichtigen Connector kopiert wurde, damit keine fremden Konten, Schlüssel oder Sätze in Abacus landen.
