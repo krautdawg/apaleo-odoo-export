@@ -6,7 +6,7 @@ import { BEISPIEL_CHART, BEISPIEL_MAPPING, LEDGER, OPTIONS } from '../helpers/po
 
 /**
  * The Hotel Beispiel fixture period 2026-09-14 to 2026-09-22 (29 ledger lines,
- * see test/fixtures/apaleo/README.md), posted with the Abacus test mapping
+ * see test/fixtures/apaleo/README.md), posted with the test mapping
  * (`odoo-beispiel.csv`: the Austrian rates 10 and 20 % of the fixtures with the
  * l10n_at taxes; the German month has its own fixtures). Totals computed by hand
  * (each booking carries the gross amount and apaleo's tax rounded per line):

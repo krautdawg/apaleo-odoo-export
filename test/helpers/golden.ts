@@ -67,7 +67,7 @@ export function describeDifference(expected: Uint8Array, actual: Uint8Array, fie
 
 /**
  * A readable description of how two UTF-8 text files differ, line by line
- * (for the Abacus XML files, whose lines are elements, not `;` fields), or
+ * (for text files whose lines are not `;` or `,` fields), or
  * undefined when the bytes are identical.
  */
 export function describeUtf8Difference(expected: Uint8Array, actual: Uint8Array): string | undefined {

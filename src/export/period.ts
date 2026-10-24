@@ -56,7 +56,7 @@ export function fiscalYearStart(date: LocalDate, monthDay: string): LocalDate {
 
 /**
  * Splits a period at calendar-month boundaries and at the fiscal-year start, so
- * each part becomes one Abacus file that stays inside one month and one fiscal year.
+ * each part becomes one Odoo file that stays inside one month and one fiscal year.
  */
 export function splitPeriod(range: DateRange, monthDay: string): PeriodPart[] {
   const parts: PeriodPart[] = [];

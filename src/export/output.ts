@@ -53,7 +53,7 @@ export interface ManifestEntry extends TargetManifestFields {
 /**
  * `manifest.json`. Reading keeps whatever an entry holds and uses only the fields
  * above, so a field an older or newer version wrote (such as the `bodySha256` of
- * earlier versions, or the `taxByMwstCode` of the former target) is ignored and kept as it is.
+ * earlier versions, or the fields of the former target) is ignored and kept as it is.
  */
 export interface Manifest {
   files: ManifestEntry[];

@@ -219,24 +219,16 @@ describe('injected context', () => {
     expect(ctx.out()).not.toMatch(/BMD|Abacus/);
   });
 
-  it('Two properties share a Mandant: doctor shows the abacus section and warns W-MANDANT-SHARED, naming both properties', async () => {
-    const config = 'odoo:\n  journal: APA\n  version: 18\nabacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n';
-    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
-    expect(await runCli(['doctor'], ctx)).toBe(0);
-    expect(ctx.out()).toContain('Abacus:        Mandant 1234, Leitwährung CHF (read only by the Abacus writer, removed in a later version)');
-    expect(ctx.out()).toContain('W-MANDANT-SHARED');
-    expect(ctx.out()).toContain('the properties BSP, BS2 all book into the Abacus Mandant 1234, Geschäftsbereich 0');
-    expect(ctx.out()).toContain('Belegnummern could repeat there; give each property its own Geschäftsbereich');
-    const own = createTestContext({ files: { 'apaleo-odoo.config.yaml': `${config}    geschaeftsbereich: 2\n` } });
-    expect(await runCli(['doctor'], own)).toBe(0);
-    expect(own.out()).not.toContain('W-MANDANT-SHARED');
-  });
-
-  it('doctor exits 1 for an invalid config, and for an old BMD or DATEV config naming the odoo section', async () => {
-    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'odoo:\n  journal: APA\n  version: 18\nabacus:\n  mandant: 1234\n  geschaeftsbereich: -1\n' } });
+  it('doctor exits 1 for an invalid config, and for an old Abacus, BMD or DATEV config naming the odoo section', async () => {
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'odoo:\n  journal: APA\n  version: 18\n  companyId: 0\n' } });
     expect(await runCli(['doctor'], ctx)).toBe(1);
-    expect(ctx.err()).toContain('abacus.geschaeftsbereich');
-    for (const [section, text] of [['datev', 'datev:\n  beraternummer: 1234567\n'], ['bmd', 'bmd:\n  buchsymbol: HO\n']] as const) {
+    expect(ctx.err()).toContain('odoo.companyId: must be a whole number between 1 and 999999');
+    const sections = [
+      ['abacus', 'odoo:\n  journal: APA\n  version: 18\nabacus:\n  mandant: 1234\n'],
+      ['datev', 'datev:\n  beraternummer: 1234567\n'],
+      ['bmd', 'bmd:\n  buchsymbol: HO\n'],
+    ] as const;
+    for (const [section, text] of sections) {
       const old = createTestContext({ files: { 'apaleo-odoo.config.yaml': text } });
       expect(await runCli(['doctor'], old)).toBe(1);
       expect(old.err()).toContain(`${section} is not a section of apaleo-odoo`);

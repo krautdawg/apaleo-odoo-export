@@ -5,7 +5,7 @@ import { loadConfig } from '../../src/core/config.js';
 import { runExport, type ExportRequest } from '../../src/export/index.js';
 import { buildBookings } from '../../src/posting/index.js';
 import { ApaleoPermissionError } from '../../src/sources/apaleo/index.js';
-import { BSP, CLIENT_ID, ODOO_SECTION } from '../helpers/apaleo.js';
+import { BSP } from '../helpers/apaleo.js';
 import { DE_MONTH, DE_ROWS, deMonthConfig } from '../helpers/de-month.js';
 import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, withoutAustrianTaxes, type ExportSetup } from '../helpers/export.js';
 import { renderMappingFile } from '../../src/mapping/index.js';
@@ -75,6 +75,7 @@ describe('the period-part runner', () => {
     ]);
     expect(manifest.files[0]).not.toHaveProperty('taxByMwstCode');
     expect(manifest.files[0]).not.toHaveProperty('mandant');
+    expect(manifest.files[0]).not.toHaveProperty('geschaeftsbereich');
   });
 
   it('takes the journal of the property for the file', async () => {
@@ -82,17 +83,6 @@ describe('the period-part runner', () => {
     await run(setup);
     const csv = readFileSync(join(exportsOf(setup), BSP, '2026-09', FILE), 'utf8');
     expect(csv).toContain(',2026-09-14,APB,');
-  });
-
-  it('ignores a leftover abacus section: two properties that share an Abacus Mandant get no W-MANDANT-SHARED in the Odoo protocol', async () => {
-    const config = `apaleo:\n  clientId: ${CLIENT_ID}\n${ODOO_SECTION}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n`;
-    const shared = exportSetup({ config, files: { 'mapping-BS2.csv': readMapping() }, data: (data) => addSecondProperty(data, 'BS2') });
-    const both = await run(shared, { propertyIds: [BSP, 'BS2'] });
-    expect(both.map((o) => [o.propertyId, o.status, withoutAustrianTaxes(o.findings).map((f) => f.code)])).toEqual([
-      [BSP, 'written', []],
-      ['BS2', 'written', []],
-    ]);
-    expect(readFileSync(join(exportsOf(shared), 'BS2', '2026-09', 'ODOO_Buchungen_20260901-20260930_BS2.protokoll.txt'), 'utf8')).not.toContain('Mandant');
   });
 
   it('stops a part on an E- finding of the coverage check or the posting rules, before writing', async () => {
@@ -258,19 +248,6 @@ describe('the period-part runner', () => {
     expect(outcome?.findings[0]?.message).toContain('An Odoo company books its journal entries in one currency (odoo.currency)');
     expect(setup.fake.calls.some((call) => call.startsWith('getLedger'))).toBe(false);
     expect(existsSync(exportsOf(setup))).toBe(false);
-  });
-
-  it('Abacus is the default target no longer, and the protocol names no Mandant: with an abacus section the Odoo file is written and its import block names company and journal only', async () => {
-    const setup = exportSetup({ config: exportConfig().replace('properties:\n', 'abacus:\n  mandant: 1234\nproperties:\n') });
-    const [outcome] = await run(setup);
-    expect(outcome?.status).toBe('written');
-    const folder = join(exportsOf(setup), BSP, '2026-09');
-    expect(readdirSync(folder).filter((name) => name.startsWith('ABACUS_'))).toEqual([]);
-    const protocol = readFileSync(join(folder, PROTOCOL), 'utf8');
-    const importBlock = protocol.slice(protocol.indexOf('Import into Odoo Accounting'), protocol.indexOf('\n\n', protocol.indexOf('Import into Odoo Accounting')));
-    expect(importBlock).toContain('Company: id 1');
-    expect(importBlock).toContain('journal APA');
-    expect(importBlock).not.toMatch(/Mandant|1234/);
   });
 
   it('German property: no E-CURRENCY with odoo.currency EUR; Swiss company: a CHF property with odoo.currency CHF is written too', async () => {

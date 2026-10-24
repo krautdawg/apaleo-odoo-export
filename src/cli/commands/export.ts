@@ -10,7 +10,7 @@ import { createSource, loadCommandConfig } from '../source.js';
 
 export const exportCommand: Command = {
   name: 'export',
-  summary: 'Write the Abacus XML Buchungen files of a month or period, one per property and month, after every check',
+  summary: 'Write the Odoo journal-entry CSV files of a month or period, one per property and month, after every check',
   usage: '--month YYYY-MM | --from YYYY-MM-DD --to YYYY-MM-DD [--property <id>] [--dry-run] [--overwrite] [--demo] [--config <path>]',
   options: {
     month: { type: 'string', valueName: '<YYYY-MM>', description: 'Export one calendar month' },

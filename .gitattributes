@@ -1,4 +1,4 @@
-# Golden files (BMD: Windows-1252 with CRLF, Abacus: UTF-8 with LF) are compared byte
+# Golden files (Odoo: UTF-8 with LF) are compared byte
 # for byte: never convert their line ends or encoding.
 test/golden/** -text
 # The Excel round-trip fixture is Windows-1252 with CRLF, like a file Excel (DE) saves.

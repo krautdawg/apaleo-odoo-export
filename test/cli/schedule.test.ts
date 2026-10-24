@@ -62,7 +62,7 @@ describe('apaleo-odoo schedule', () => {
 describe('monthly cadence', () => {
   it('exports the due month for every configured property and exits 0, as a cron job would call it', async () => {
     const setup = swissSetup({
-      config: exportConfig('  - id: BSP2', '    geschaeftsbereich: 2', ...ONE_MONTH),
+      config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
       // 07:30 in Zurich on the due day (schedule.timezone not set).
@@ -86,7 +86,7 @@ describe('monthly cadence', () => {
 
   it('names the property, the period and E-UNMAPPED for a failed month, still exports the other property, and exits 1', async () => {
     const setup = swissSetup({
-      config: exportConfig('  - id: BSP2', '    geschaeftsbereich: 2', ...ONE_MONTH),
+      config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT.replace(/^RevenueFoodAndBeverages_Normal:20\.00;.*\r?\n/m, ''), 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
       now: new Date('2026-10-05T04:00:00Z'),
@@ -101,7 +101,7 @@ describe('monthly cadence', () => {
 
   it('retries a failed month on the next run and skips the month that was written', async () => {
     const setup = swissSetup({
-      config: exportConfig('  - id: BSP2', '    geschaeftsbereich: 2', ...ONE_MONTH),
+      config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT.replace(/^RevenueFoodAndBeverages_Normal:20\.00;.*\r?\n/m, ''), 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
       now: new Date('2026-10-05T04:00:00Z'),
@@ -337,7 +337,7 @@ describe('file system errors in the output folder', () => {
     Object.assign(new Error(`EACCES: permission denied, ${syscall} '${path}'`), { code: 'EACCES', syscall, path });
   const twoProperties = () =>
     swissSetup({
-      config: exportConfig('  - id: BSP2', '    geschaeftsbereich: 2', ...ONE_MONTH),
+      config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
       now: new Date('2026-10-03T05:30:00Z'),

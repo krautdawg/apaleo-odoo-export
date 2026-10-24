@@ -36,7 +36,7 @@ export const schedule: Command = {
 };
 
 /**
- * `BSP 2026-10 written exports/BSP/2026-10/ABACUS_Buchungen_...xml W-RECENT-DAY` or
+ * `BSP 2026-10 written exports/BSP/2026-10/ODOO_Buchungen_...csv W-RECENT-DAY` or
  * `BSP 2026-10 failed E-UNMAPPED`: the result, the file and every finding code
  * (blocking ones first), with the findings indented below so cron mail and
  * `docker logs` show warnings and notes, not only errors.
