@@ -9,11 +9,12 @@ const definitions = excerpt.definitions;
 
 /**
  * Which Swagger model each fixture folder or file holds, for Hotel Beispiel, the
- * live recordings (`live/<property>/`) and the German fixture month (`de-month/`).
+ * live recordings (`live/<property>/`), the German fixture month (`de-month/`) and
+ * the German turn-of-year days (`de-2025-12-31/`).
  * Every fixture must be listed.
  */
 const MODELS: [RegExp, string][] = [
-  [/^(live\/[A-Z]+\/|de-month\/)?export-gross-daily\/\d{4}-\d{2}-\d{2}\.json$/, 'ExportGrossTransactionListModel'],
+  [/^(live\/[A-Z]+\/|de-month\/|de-2025-12-31\/)?export-gross-daily\/\d{4}-\d{2}-\d{2}\.json$/, 'ExportGrossTransactionListModel'],
   [/^(live\/[A-Z]+\/)?aggregate-daily\/\d{4}-\d{2}-\d{2}\.json$/, 'AggregateTransactionListModel'],
   [/^(live\/[A-Z]+\/|de-month\/)?accounts-schema\.json$/, 'ChartOfAccountsModel'],
   [/^(de-month\/)?properties\/page-\d+\.json$/, 'PropertyListModel'],
@@ -29,7 +30,8 @@ describe('apaleo fixtures conform to the Swagger excerpt', () => {
     expect(unknown).toEqual([]);
     expect(fixtures.length).toBeGreaterThanOrEqual(12);
     expect(fixtures.filter((file) => file.startsWith('live/'))).toHaveLength(10);
-    expect(fixtures.filter((file) => file.startsWith('de-month/'))).toHaveLength(10);
+    expect(fixtures.filter((file) => file.startsWith('de-month/'))).toHaveLength(14);
+    expect(fixtures.filter((file) => file.startsWith('de-2025-12-31/'))).toHaveLength(2);
   });
 
   it.each(fixtures)('%s', (file) => {

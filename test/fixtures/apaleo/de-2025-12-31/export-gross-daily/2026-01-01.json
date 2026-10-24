@@ -1,0 +1,38 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-01-01T08:30:00Z",
+      "date": "2026-01-01",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-JULIETT-1",
+        "number": "BSP-JULIETT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Frühstück (7%)",
+        "number": "RevenueBreakfast_Reduced:7.00",
+        "parentNumber": "RevenueBreakfast",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 21.4,
+      "netAmount": 20,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 1.4
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-JULIETT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0102",
+      "reference": "BSP-JULIETT-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

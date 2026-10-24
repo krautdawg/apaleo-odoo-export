@@ -23,6 +23,6 @@ The amounts are chosen so that the tax contained in every gross amount equals ap
 The demo (`examples/demo/apaleo/`) does not copy these files: it is a copy of the German fixture month (`de-month/`), kept apart from it so tests and docs can change separately, see `examples/demo/README.md`.
 
 
-The German fixture month (property `BSP` "Hotel Beispiel Berlin", EUR, `Europe/Berlin`, September 2026, posted with the SKR03 template mapping into the Odoo golden files) is in [`de-month/`](de-month/README.md).
+The German fixture month (property `BSP` "Hotel Beispiel Berlin", EUR, `Europe/Berlin`, September 2026, posted with the SKR03 template mapping into the Odoo golden files) is in [`de-month/`](de-month/README.md). The German turn of the year is in [`de-2025-12-31/`](de-2025-12-31/README.md).
 
 Recorded real responses of an apaleo DEV sandbox (properties `BER` and `VIE`, with eight-decimal net and tax amounts) are in [`live/`](live/README.md); the regression tests run the whole pipeline on them. More real responses are welcome: if you run `apaleo-odoo live-smoke` against a real account and the shapes differ, please run the privacy scan (`node test/helpers/fixture-scan.ts <folder>`), anonymise names, reservation ids and amounts, and add them as a new fixture day.

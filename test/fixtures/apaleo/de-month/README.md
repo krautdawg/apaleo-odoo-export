@@ -5,12 +5,12 @@
 | File | Swagger model | What it holds |
 |---|---|---|
 | `properties/page-1.json` | PropertyListModel | `BSP` Hotel Beispiel Berlin (DE, `Europe/Berlin`, `EUR`). |
-| `accounts-schema.json` | ChartOfAccountsModel | The recorded German chart of the sandbox property BER (`../live/BER/accounts-schema.json`: VAT types `Reduced:7.00`, `Normal:19.00`, `Null:0.00`, `Without:0.00` and the 2020 rates 16 % and 5 %), with `RevenueCancellationFees_Reduced:7.00` not archived. |
-| `export-gross-daily/<day>.json` | ExportGrossTransactionListModel | The 24 ledger lines below, one file per business day; other days are answered with 204. |
+| `accounts-schema.json` | ChartOfAccountsModel | The recorded German chart of the sandbox property BER (`../live/BER/accounts-schema.json`: VAT types `Reduced:7.00`, `Normal:19.00`, `Null:0.00`, `Without:0.00` and the 2020 rates 16 % and 5 %), with `RevenueCancellationFees_Reduced:7.00` not archived, and three fabricated additions (o05): the city-tax container `3500` with `3501` "Kurtaxe (no VAT)" (`Without:0.00`) and `3502` "Übernachtungsteuer (7%)" (`Reduced:7.00`), and the custom revenue group `RevenueBreakfast` "Frühstück" with `RevenueBreakfast_Normal:19.00` and `RevenueBreakfast_Reduced:7.00` (used by `../de-2025-12-31/`). |
+| `export-gross-daily/<day>.json` | ExportGrossTransactionListModel | The 38 ledger lines below, one file per business day; other days are answered with 204. |
 
-The mapping is what `init-mapping --template skr03-hotel` writes on this chart for `odoo.version: 18` (Kasse `1001`, Geldtransit `1360`; `test/helpers/de-month.ts`). `test/posting/fixture-month-de.test.ts` posts the month and compares every summary value, every entry line and Odoo's modelled VAT with hand-computed constants, and the rendered files with `test/golden/odoo/de-month.per-line.csv` and `de-month.per-tax.csv` (company 1, journal `APA`, rounding account `2700` for `per_tax`).
+The mapping is `test/fixtures/mapping/skr03-de-month.csv`: what `init-mapping --template skr03-hotel` writes on this chart for `odoo.version: 18` (Kasse `1001`, Geldtransit `1360`), with the two levy rows filled in as a Kanzlei would decide them: `3501` (guest-owed Kurtaxe) on `1590` without tax, `3502` (hotel-owed Übernachtungsteuer) on `8300` with `tax_ust_7_skr03` and 7. `test/helpers/de-month.ts` builds it and `fixture-month-de.test.ts` checks that the committed file still equals it (`UPDATE_GOLDEN=1` rewrites it). `test/posting/fixture-month-de.test.ts` posts the month and compares every summary value, every entry line and Odoo's modelled VAT with hand-computed constants, and the rendered files with `test/golden/odoo/de-month.per-line.csv` and `de-month.per-tax.csv` (company 1, journal `APA`, rounding account `2700` for `per_tax`).
 
-Ledger lines (entry numbers `BSPE0001` to `BSPE0019`; a payment and its `/Offset` second line share one):
+Ledger lines (entry numbers `BSPE0001` to `BSPE0031`; a payment and its `/Offset` second line share one):
 
 | Day | Entry | Line | Booked as |
 |---|---|---|---|
@@ -32,5 +32,17 @@ Ledger lines (entry numbers `BSPE0001` to `BSPE0019`; a payment and its `/Offset
 | 09-18 | BSPE0017 | check-out to accounts receivable with invoice `BSP-2026-0815`, 185.50, with `/Offset` | 1401 / 1410, second line skipped |
 | 09-28 | BSPE0018 | `BSP-ECHO-1` minibar 4.98 at 19 % (net 4.18487395, tax 0.79512605, rounded 0.80) | 1410 / 8400 (19 %), a rounding cent with both rounding methods |
 | 09-28 | BSPE0019 | paid by Mastercard 4.98, with `/Offset` | 1360 / 1410, second line skipped |
+| 09-20 | BSPE0020 | `BSP-FOXTROT-1` guest-owed Kurtaxe 5.00 on `3501`, `taxes[]` with one `Without` entry of 0 % and 0.00 | 1410 / 1590, no tax |
+| 09-20 | BSPE0021 | hotel-owed Übernachtungsteuer 10.70 on `3502` at 7 % (net 10.00, tax 0.70) | 1410 / 8300 (`tax_ust_7_skr03`), `W-CITY-TAX-TAXED` in the export |
+| 09-20 | BSPE0022 | paid by Visa 25.70 (10.00 too much), with `/Offset` | 1360 / 1410, second line skipped |
+| 09-20 | BSPE0023 | the overpayment 10.00 parked on `BSP-FOXTROT-1_Liabilities/Null:0.00` as a `PostCharge` | 1410 / 1719, no tax |
+| 09-21 | BSPE0024 | `BSP-GOLF-1` no-show fee 107.00 at 7 % on `RevenueNoShow_Reduced:7.00` (tax 7.00) | 1410 / 8300 (7 %) |
+| 09-21 | BSPE0025 | `BSP-HOTEL-1` other service 119.00 at 19 % on `RevenueOther_Normal:19.00` (tax 19.00) | 1410 / 8400 (19 %) |
+| 09-21 | BSPE0026 | `BSP-INDIA-1` cancellation fee 80.00 on `RevenueCancellationFees_Without:0.00`, no taxes | 1410 / 8200 |
+| 09-21 | BSPE0027 | `BSP-INDIA-1` pays 50.00 cash, with `/Offset` | 1001 / 1410, second line skipped |
+| 09-22 | BSPE0028 | refund of the parked 10.00 to Visa as a negative prepayment | 1719 / 1360 |
+| 09-30 | BSPE0029 | write-off of `BSP-GOLF-1`'s no-show fee, 107.00 at 7 % (tax 7.00), on `BSP-GOLF-1_LossOfAccountsReceivable/Reduced:7.00` | 2401 (`tax_ust_7_skr03`, debit) / 1410 |
+| 09-30 | BSPE0030 | write-off of `BSP-HOTEL-1`, 119.00 at 19 % (tax 19.00) | 2406 (`tax_ust_19_skr03`, debit) / 1410 |
+| 09-30 | BSPE0031 | write-off of the rest of `BSP-INDIA-1`'s cancellation fee, 30.00 without taxes | 2400 / 1410, no tax |
 
-The gross amounts are chosen so that Odoo's own rounding cannot reach some of them: with `per_line`, 95.00 and 100.04 at 7 % and 4.98 at 19 % each need a rounding cent; with `per_tax`, 100.04 at 7 % and 4.98 at 19 % need one on the rounding account, and 09-10 shows Odoo's VAT one cent above apaleo's (120.00 and 95.00 at 7 % rounded once). Kurtaxe, Beherbergungsteuer and a write-off follow in o05.
+The gross amounts are chosen so that Odoo's own rounding cannot reach some of them: with `per_line`, 95.00 and 100.04 at 7 % and 4.98 at 19 % each need a rounding cent; with `per_tax`, 100.04 at 7 % and 4.98 at 19 % need one on the rounding account, and 09-10 shows Odoo's VAT one cent above apaleo's (120.00 and 95.00 at 7 % rounded once). The lines of o05 have exact tax amounts, so they need no rounding cent. Every folio is settled by the end of the month (`1410` balance 0).

@@ -67,13 +67,24 @@ export function readLiveFixture(property: LiveProperty, relative: string): unkno
  * The fabricated German fixture month (`test/fixtures/apaleo/de-month/`, see its
  * README): property BSP "Hotel Beispiel Berlin", EUR, Europe/Berlin, September 2026.
  */
-export const DE_MONTH_DAYS: readonly LocalDate[] = ['2026-09-03', '2026-09-10', '2026-09-11', '2026-09-12', '2026-09-14', '2026-09-17', '2026-09-18', '2026-09-28'];
+export const DE_MONTH_DAYS: readonly LocalDate[] = [
+  '2026-09-03', '2026-09-10', '2026-09-11', '2026-09-12', '2026-09-14', '2026-09-17', '2026-09-18', '2026-09-20', '2026-09-21', '2026-09-22', '2026-09-28', '2026-09-30',
+];
+
+/**
+ * The German turn-of-year fixture (`test/fixtures/apaleo/de-2025-12-31/`): a
+ * breakfast line at 19 % on 2025-12-31 and one at 7 % on 2026-01-01, served
+ * with the property and the chart of the German fixture month.
+ */
+export const DE_TURN_OF_YEAR_DAYS: readonly LocalDate[] = ['2025-12-31', '2026-01-01'];
 
 export interface FixtureServerOptions {
   /** Serve the live recordings (properties BER and VIE) instead of Hotel Beispiel. */
   live?: boolean;
   /** Serve the German fixture month (property BSP, Hotel Beispiel Berlin) instead of Hotel Beispiel. */
   deMonth?: boolean;
+  /** Serve the German turn-of-year days (`de-2025-12-31/`) with the property and chart of the German fixture month. */
+  deTurnOfYear?: boolean;
   /** Answer a request differently; return undefined to fall through to the fixtures. */
   override?: (request: Request, url: URL) => Response | undefined | Promise<Response | undefined>;
   /** Seconds the issued token is valid. Default 3600. */
@@ -91,11 +102,11 @@ export function apaleoFixtureHandler(options: FixtureServerOptions = {}) {
     }
     if (url.origin !== API) return undefined;
     if (request.headers.get('authorization') !== `Bearer ${ACCESS_TOKEN}`) return new Response(null, { status: 401 });
-    return apiResponse(request.method, url, options.live ? 'live' : options.deMonth ? 'de-month' : 'beispiel');
+    return apiResponse(request.method, url, options.live ? 'live' : options.deTurnOfYear ? 'de-2025-12-31' : options.deMonth ? 'de-month' : 'beispiel');
   };
 }
 
-type FixtureSet = 'beispiel' | 'live' | 'de-month';
+type FixtureSet = 'beispiel' | 'live' | 'de-month' | 'de-2025-12-31';
 
 function apiResponse(method: string, url: URL, fixtures: FixtureSet): Response | undefined {
   const query = url.searchParams;
@@ -103,13 +114,13 @@ function apiResponse(method: string, url: URL, fixtures: FixtureSet): Response |
   if (route === 'GET /inventory/v1/properties') {
     if (query.get('pageNumber') !== '1') return noContent();
     if (fixtures === 'live') return Response.json(LIVE_PROPERTY_LIST);
-    return Response.json(readFixture(fixtures === 'de-month' ? 'de-month/properties/page-1.json' : 'properties/page-1.json'));
+    return Response.json(readFixture(fixtures.startsWith('de-') ? 'de-month/properties/page-1.json' : 'properties/page-1.json'));
   }
   const propertyId = query.get('propertyId') ?? '';
   const known: readonly string[] = fixtures === 'live' ? LIVE_PROPERTIES : [BSP];
   if (!known.includes(propertyId)) return new Response('{"messages":["Property not found"]}', { status: 404 });
-  const folder = fixtures === 'live' ? `live/${propertyId}/` : fixtures === 'de-month' ? 'de-month/' : '';
-  if (route === 'GET /finance/v1/accounts/schema') return Response.json(readFixture(`${folder}accounts-schema.json`));
+  const folder = fixtures === 'live' ? `live/${propertyId}/` : fixtures === 'beispiel' ? '' : `${fixtures}/`;
+  if (route === 'GET /finance/v1/accounts/schema') return Response.json(readFixture(`${fixtures.startsWith('de-') ? 'de-month/' : folder}accounts-schema.json`));
   const daily: Record<string, string> = {
     'POST /finance/v1/accounts/export-gross-daily': 'export-gross-daily',
     'POST /finance/v1/accounts/aggregate-daily': 'aggregate-daily',
@@ -200,6 +211,16 @@ export async function loadDeMonthData(): Promise<FakeSourceData> {
     properties: await source.listProperties(),
     charts: { [BSP]: await source.getChartOfAccounts(BSP) },
     ledger: { [BSP]: await source.getLedger(BSP, '2026-09-01', '2026-10-01') },
+  };
+}
+
+/** The German turn-of-year days read through the real apaleo adapter, with the chart of the German fixture month. */
+export async function loadDeTurnOfYearData(): Promise<FakeSourceData> {
+  const { source } = createFixtureSource({ deTurnOfYear: true });
+  return {
+    properties: await source.listProperties(),
+    charts: { [BSP]: await source.getChartOfAccounts(BSP) },
+    ledger: { [BSP]: await source.getLedger(BSP, '2025-12-31', '2026-01-02') },
   };
 }
 

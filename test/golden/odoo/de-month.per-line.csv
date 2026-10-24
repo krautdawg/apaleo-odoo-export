@@ -20,6 +20,21 @@ apaleo_c1_BSP_20260917,apaleo BSP 2026-09-17,2026-09-17,APA,apaleo_c1_BSP_202609
 apaleo_c1_BSP_20260918,apaleo BSP 2026-09-18,2026-09-18,APA,apaleo_c1_BSP_20260918_0001,1401,Forderungen Firmenrechnungen,185.50,0.00,
 ,,,,apaleo_c1_BSP_20260918_0002,8300,Erlöse Beherbergung 7 %,0.00,140.00,account.1_tax_ust_7_skr03
 ,,,,apaleo_c1_BSP_20260918_0003,8400,Erlöse Getränke 19 %,0.00,30.00,account.1_tax_ust_19_skr03
+apaleo_c1_BSP_20260920,apaleo BSP 2026-09-20,2026-09-20,APA,apaleo_c1_BSP_20260920_0001,1360,Zahlung Visa,25.70,0.00,
+,,,,apaleo_c1_BSP_20260920_0002,1590,Kurtaxe,0.00,5.00,
+,,,,apaleo_c1_BSP_20260920_0003,1719,Anzahlungen ohne USt,0.00,10.00,
+,,,,apaleo_c1_BSP_20260920_0004,8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03
+apaleo_c1_BSP_20260921,apaleo BSP 2026-09-21,2026-09-21,APA,apaleo_c1_BSP_20260921_0001,1001,Zahlung bar,50.00,0.00,
+,,,,apaleo_c1_BSP_20260921_0002,1410,Gästeforderungen,256.00,0.00,
+,,,,apaleo_c1_BSP_20260921_0003,8200,Erlöse ohne USt,0.00,80.00,
+,,,,apaleo_c1_BSP_20260921_0004,8300,Erlöse No-Show 7 %,0.00,100.00,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260921_0005,8400,Erlöse sonstige 19 %,0.00,100.00,account.1_tax_ust_19_skr03
+apaleo_c1_BSP_20260922,apaleo BSP 2026-09-22,2026-09-22,APA,apaleo_c1_BSP_20260922_0001,1360,Zahlung Visa,0.00,10.00,
+,,,,apaleo_c1_BSP_20260922_0002,1719,Anzahlungen ohne USt,10.00,0.00,
 apaleo_c1_BSP_20260928,apaleo BSP 2026-09-28,2026-09-28,APA,apaleo_c1_BSP_20260928_0001,1360,Zahlung Mastercard,4.98,0.00,
 ,,,,apaleo_c1_BSP_20260928_0002,8400,Erlöse sonstige 19 %,0.00,4.18,account.1_tax_ust_19_skr03
 ,,,,apaleo_c1_BSP_20260928_0003,8400,Erlöse sonstige 19 % (Rundungsausgleich),0.00,0.01,account.1_tax_ust_19_skr03
+apaleo_c1_BSP_20260930,apaleo BSP 2026-09-30,2026-09-30,APA,apaleo_c1_BSP_20260930_0001,1410,Gästeforderungen,0.00,256.00,
+,,,,apaleo_c1_BSP_20260930_0002,2400,Forderungsverluste ohne USt,30.00,0.00,
+,,,,apaleo_c1_BSP_20260930_0003,2401,Forderungsverluste 7 %,100.00,0.00,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260930_0004,2406,Forderungsverluste 19 %,100.00,0.00,account.1_tax_ust_19_skr03
