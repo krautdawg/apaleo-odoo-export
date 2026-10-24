@@ -22,7 +22,7 @@ apaleo_c1_BSP_20260918,apaleo BSP 2026-09-18,2026-09-18,APA,apaleo_c1_BSP_202609
 apaleo_c1_BSP_20260920,apaleo BSP 2026-09-20,2026-09-20,APA,apaleo_c1_BSP_20260920_0001,1360,Zahlung Visa,25.70,0.00,
 ,,,,apaleo_c1_BSP_20260920_0002,1590,Kurtaxe,0.00,5.00,
 ,,,,apaleo_c1_BSP_20260920_0003,1719,Anzahlungen ohne USt,0.00,10.00,
-,,,,apaleo_c1_BSP_20260920_0004,8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260920_0004,8300,Beherbergungsteuer 7 %,0.00,10.00,account.1_tax_ust_7_skr03
 apaleo_c1_BSP_20260921,apaleo BSP 2026-09-21,2026-09-21,APA,apaleo_c1_BSP_20260921_0001,1001,Zahlung bar,50.00,0.00,
 ,,,,apaleo_c1_BSP_20260921_0002,1410,Gästeforderungen,256.00,0.00,
 ,,,,apaleo_c1_BSP_20260921_0003,8200,Erlöse ohne USt,0.00,80.00,

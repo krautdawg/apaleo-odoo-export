@@ -173,7 +173,7 @@ describe('the German fixture month', () => {
       ['1360', 'Zahlung Visa', 2_570, undefined],
       ['1590', 'Kurtaxe', -500, undefined],
       ['1719', 'Anzahlungen ohne USt', -1_000, undefined],
-      ['8300', 'Kurtaxe 7 %', -1_000, 'tax_ust_7_skr03'],
+      ['8300', 'Beherbergungsteuer 7 %', -1_000, 'tax_ust_7_skr03'],
     ]);
     expect(lines('2026-09-21')).toEqual([
       ['1001', 'Zahlung bar', 5_000, undefined],

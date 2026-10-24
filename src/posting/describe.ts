@@ -33,10 +33,21 @@ const TYPE_LABELS: Readonly<Record<string, string>> = {
   TransitoryItems: 'Durchlaufende Posten',
 };
 
-/** Fixed labels of apaleo's levy types, with the rate when apaleo taxes the levy. */
+/** Fixed labels of apaleo's levy types without tax: a guest-owed Kurtaxe, a durchlaufender Posten. */
 const LEVY_LABELS: Readonly<Record<string, string>> = {
   CityTaxes: 'Kurtaxe',
   SecondCityTax: 'Kurtaxe 2',
+  GuestLevies: 'Gästeabgabe',
+};
+
+/**
+ * Fixed labels of a levy that apaleo taxes, with the rate: a tax on the levy
+ * means a hotel-owed Übernachtung- or Beherbergungsteuer passed on to the guest
+ * (part of the consideration), never a Kurtaxe, so the label names it neutrally.
+ */
+const TAXED_LEVY_LABELS: Readonly<Record<string, string>> = {
+  CityTaxes: 'Beherbergungsteuer',
+  SecondCityTax: 'Beherbergungsteuer 2',
   GuestLevies: 'Gästeabgabe',
 };
 
@@ -104,7 +115,7 @@ export function revenueLabel(ref: AccountRef, chart: ChartIndex, rate: number): 
  * revenue group and, for revenue, deposits, levies and bad debt, the rate of the
  * booking (0 without tax): `Erlöse
  * Beherbergung 7 %`, `Zahlung Visa`, `Gästeforderungen`, `Forderungen
- * Firmenrechnungen`, `Anzahlungen 7 %`, `Kurtaxe`, `Forderungsverluste 19 %`.
+ * Firmenrechnungen`, `Anzahlungen 7 %`, `Kurtaxe`, `Beherbergungsteuer 7 %`, `Forderungsverluste 19 %`.
  * It depends on the account only, never on the line, so the writer nets all
  * lines of an account into one line per day; it never contains a guest name.
  */
@@ -120,7 +131,7 @@ export function sideLabel(ref: AccountRef, chart: ChartIndex, rate: number): str
       return `Forderungsverluste ${rateLabel(rate)}`;
     default: {
       const levy = LEVY_LABELS[ref.type];
-      if (levy !== undefined) return rate === 0 ? levy : `${levy} ${percentLabel(rate)}`;
+      if (levy !== undefined) return rate === 0 ? levy : `${TAXED_LEVY_LABELS[ref.type] ?? levy} ${percentLabel(rate)}`;
       return TYPE_LABELS[ref.type] ?? ref.type;
     }
   }

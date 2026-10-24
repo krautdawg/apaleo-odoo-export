@@ -62,7 +62,7 @@ Die Zeilen der Abgaben (CityTaxes, SecondCityTax, GuestLevies) laufen durch ihre
 | Fall (2026-09-20) | Soll | Haben | Brutto | Steuer apaleo | Zeile in der Datei |
 |---|---|---|---|---|---|
 | Kurtaxe des Gastes (`3501`, BSPE0020) | `1410` Gästeforderungen | `1590` Kurtaxe | 5,00 € | keine | `1590` Haben 5,00 €, Steuerzelle leer, keine Kennzahl |
-| Übernachtungsteuer des Betriebs (`3502`, BSPE0021) | `1410` Gästeforderungen | `8300` Kurtaxe 7 % | 10,70 € | 0,70 € zu 7 % | `8300` Haben 10,00 € mit `account.1_tax_ust_7_skr03`; Odoo bucht 0,70 € auf `1771`, Kz 86 steigt um 10,00 € |
+| Übernachtungsteuer des Betriebs (`3502`, BSPE0021) | `1410` Gästeforderungen | `8300` Beherbergungsteuer 7 % | 10,70 € | 0,70 € zu 7 % | `8300` Haben 10,00 € mit `account.1_tax_ust_7_skr03`; Odoo bucht 0,70 € auf `1771`, Kz 86 steigt um 10,00 € |
 
 Die Übersicht zeigt die Abgaben pro Odoo-Konto: 5,00 € auf `1590` ohne Steuer und 10,70 € auf `8300` mit `tax_ust_7_skr03` (Kz 86), Steuer 0,70 €.
 
@@ -141,7 +141,7 @@ id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/de
 apaleo_c1_BSP_20260920,apaleo BSP 2026-09-20,2026-09-20,APA,apaleo_c1_BSP_20260920_0001,1360,Zahlung Visa,25.70,0.00,
 ,,,,apaleo_c1_BSP_20260920_0002,1590,Kurtaxe,0.00,5.00,
 ,,,,apaleo_c1_BSP_20260920_0003,1719,Anzahlungen ohne USt,0.00,10.00,
-,,,,apaleo_c1_BSP_20260920_0004,8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260920_0004,8300,Beherbergungsteuer 7 %,0.00,10.00,account.1_tax_ust_7_skr03
 ```
 
 Odoo legt beim Import die Steuerzeile 0,70 € auf `1771` an; damit ist der Buchungssatz ausgeglichen (25,70 € Soll gegen 5,00 + 10,00 + 10,00 + 0,70 € Haben).
@@ -162,7 +162,7 @@ Die Bezeichnung einer Zeile (`line_ids/name`) hängt nur vom Konto und vom Satz 
 
 - Erlöse nach apaleos Gruppe und Satz: `Erlöse Beherbergung 7 %`, `Erlöse Speisen 7 %`, `Erlöse Getränke 19 %`, `Erlöse No-Show 7 %`, `Erlöse Stornogebühren 7 %`, `Erlöse sonstige 19 %`, `Erlöse ohne USt`; andere Erlöskonten mit ihrem Namen ohne das englische „Revenues“;
 - `Zahlung bar`, `Zahlung Visa`, `Zahlung Mastercard`, `Zahlung Überweisung` (englische Namen der Zahlarten übersetzt, Kartenmarken behalten);
-- `Gästeforderungen`, `Forderungen Firmenrechnungen`, `Anzahlungen 7 %`, `Anzahlungen ohne USt`, `Forderungsverluste 19 %`, `Kurtaxe` (mit Steuer `Kurtaxe 7 %`), `Kurtaxe 2`, `Gästeabgabe`, `Hauskonto`, `Durchlaufende Posten`;
+- `Gästeforderungen`, `Forderungen Firmenrechnungen`, `Anzahlungen 7 %`, `Anzahlungen ohne USt`, `Forderungsverluste 19 %`, `Kurtaxe`, `Kurtaxe 2`, `Gästeabgabe`, `Hauskonto`, `Durchlaufende Posten`; eine Abgabe mit Steuer ist keine Kurtaxe, sondern die Übernachtung- oder Beherbergungsteuer des Betriebs und heißt `Beherbergungsteuer 7 %` (`Beherbergungsteuer 2 7 %`, `Gästeabgabe 7 %`);
 - Zeilen der Basisanpassung: `… (Rundungsausgleich)` bei Rundung pro Zeile, `Rundungsausgleich USt 7 %` bei Rundung pro Steuer.
 
 Die Belegnummer aus apaleo (Rechnung, Referenz des Zahlungsanbieters) steht im Protokoll bei jeder Zeile, wenn `posting.text2` auf `receipt` steht (Standard), sonst die Referenz der Reservierung.

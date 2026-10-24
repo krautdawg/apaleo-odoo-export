@@ -248,8 +248,8 @@ describe('Kurtaxe and guest levies', () => {
     const mapping = mappingWith(mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoVatPercent: '0', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' }));
     const { booking, bookings, findings, summary } = single(charge({ credit: ACCOUNTS.cityTax, grossCents: 1_070, netCents: 1_000, taxes: tax(7, 70) }), mapping);
     expect(findings).toEqual([]);
-    expect(booking).toMatchObject({ credit: { account: '8300', label: 'Kurtaxe 7 %' }, grossCents: 1_070, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 70 } });
-    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03\n');
+    expect(booking).toMatchObject({ credit: { account: '8300', label: 'Beherbergungsteuer 7 %' }, grossCents: 1_070, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 70 } });
+    expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',8300,Beherbergungsteuer 7 %,0.00,10.00,account.1_tax_ust_7_skr03\n');
     expect(summary.levies).toEqual([{ account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70, apaleoVat: '0.7' }]);
   });
 

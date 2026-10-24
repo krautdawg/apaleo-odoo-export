@@ -109,7 +109,7 @@ apaleo entries per line of the file (entry number and receipt or reference):
   2026-09-20 1360 Zahlung Visa debit 25.70: BSPE0022 (PSP-BSP-0020)
   2026-09-20 1590 Kurtaxe credit 5.00: BSPE0020 (BSP-FOXTROT-1-V1)
   2026-09-20 1719 Anzahlungen ohne USt credit 10.00: BSPE0023 (BSP-FOXTROT-1-V1)
-  2026-09-20 8300 Kurtaxe 7 % credit 10.00: BSPE0021 (BSP-FOXTROT-1-V1)
+  2026-09-20 8300 Beherbergungsteuer 7 % credit 10.00: BSPE0021 (BSP-FOXTROT-1-V1)
   2026-09-21 1001 Zahlung bar debit 50.00: BSPE0027 (KASSE-BSP-2)
   2026-09-21 1410 Gästeforderungen debit 256.00: BSPE0024 (BSP-GOLF-1-V1), BSPE0025 (BSP-HOTEL-1-V1), BSPE0026 (BSP-INDIA-1-V1), BSPE0027 (KASSE-BSP-2)
   2026-09-21 8200 Erlöse ohne USt credit 80.00: BSPE0026 (BSP-INDIA-1-V1)
@@ -126,7 +126,7 @@ apaleo entries per line of the file (entry number and receipt or reference):
   2026-09-30 2406 Forderungsverluste 19 % debit 100.00: BSPE0030 (BSP-HOTEL-1-V1)
 
 File: ODOO_Buchungen_20260901-20260930_BSP.csv
-SHA-256: 249e30bc4f95debd95af33283e99c6ec208621744ae0721db501bb6a7753b9a5
+SHA-256: 0bf9632d925bf3389555d89ad842739bba55956d36497e071501db6c6af69224
 Mapping SHA-256: 9f02c9538adf8f91f1aac756b4089ebf4925418b9d310aec6df7aa3f679bb109
 Tool: apaleo-odoo 0.0.0
 Created: 2026-10-05T08:00:00.000Z
