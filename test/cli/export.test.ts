@@ -79,7 +79,7 @@ describe('apaleo-odoo export', () => {
     expect(protocol).toContain('apaleo entries per line of the file (entry number and receipt or reference):');
     expect(protocol).toContain(`  File: ${FILE}`);
     expect(protocol).toContain(`SHA-256: ${sha256(file)}`);
-    expect(protocol).toContain('Tool: apaleo-odoo 0.0.0');
+    expect(protocol).toContain('Tool: apaleo-odoo 0.1.0');
   });
 
   it('Protocol names company and journal: the import block and the manifest entry name company 3 and journal APB', async () => {
