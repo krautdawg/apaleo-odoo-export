@@ -197,14 +197,14 @@ describe('injected context', () => {
     expect(ctx.out()).not.toContain('s3cr3t');
   });
 
-  it('doctor prints the effective schedule time zone: Europe/Zurich by default, else the configured or APALEO_ODOO_TIMEZONE zone', async () => {
+  it('doctor prints the effective schedule time zone: Europe/Berlin by default, else the configured or APALEO_ODOO_TIMEZONE zone', async () => {
     const config = 'odoo:\n  journal: APA\n  version: 18\n';
-    const swiss = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
-    expect(await runCli(['doctor'], swiss)).toBe(0);
-    expect(swiss.out()).toContain('Schedule:      cadence monthly, time zone Europe/Zurich');
-    const daily = createTestContext({ files: { 'apaleo-odoo.config.yaml': `${config}schedule:\n  timezone: Europe/Berlin\n  cadence: daily\n` } });
+    const german = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
+    expect(await runCli(['doctor'], german)).toBe(0);
+    expect(german.out()).toContain('Schedule:      cadence monthly, time zone Europe/Berlin');
+    const daily = createTestContext({ files: { 'apaleo-odoo.config.yaml': `${config}schedule:\n  timezone: Europe/Zurich\n  cadence: daily\n` } });
     expect(await runCli(['doctor'], daily)).toBe(0);
-    expect(daily.out()).toContain('Schedule:      cadence daily, time zone Europe/Berlin');
+    expect(daily.out()).toContain('Schedule:      cadence daily, time zone Europe/Zurich');
     const env = createTestContext({ files: { 'apaleo-odoo.config.yaml': config }, env: { APALEO_ODOO_TIMEZONE: 'Europe/Vienna' } });
     expect(await runCli(['doctor'], env)).toBe(0);
     expect(env.out()).toContain('Schedule:      cadence monthly, time zone Europe/Vienna');

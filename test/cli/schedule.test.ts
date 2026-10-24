@@ -6,6 +6,7 @@ import { runCli } from '../../src/cli/run.js';
 import type { LocalDate } from '../../src/core/date.js';
 import { BSP, FIXTURE_ENV, apaleoFixtureHandler } from '../helpers/apaleo.js';
 import { createTestContext, type TestContext } from '../helpers/context.js';
+import { DE_MAPPING_BYTES, DE_MONTH, deMonthConfig } from '../helpers/de-month.js';
 import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, stripAustrianTaxes, type ExportSetup, type ExportSetupOptions } from '../helpers/export.js';
 
 /**
@@ -33,12 +34,12 @@ function chargeOn(day: LocalDate) {
 
 const ledgerCalls = (setup: ExportSetup) => setup.fake.calls.filter((call) => call.startsWith('getLedger'));
 
-/** `exportSetup` with the Hotel Beispiel in Switzerland: its apaleo time zone is `Europe/Zurich`, as is the default `schedule.timezone`. */
-function swissSetup(options: ExportSetupOptions = {}): ExportSetup {
+/** `exportSetup` with the Hotel Beispiel in Berlin: its apaleo time zone is `Europe/Berlin`, as is the default `schedule.timezone`. */
+function berlinSetup(options: ExportSetupOptions = {}): ExportSetup {
   return exportSetup({
     ...options,
     data: (data) => {
-      for (const property of data.properties) property.timeZone = 'Europe/Zurich';
+      for (const property of data.properties) property.timeZone = 'Europe/Berlin';
       options.data?.(data);
     },
   });
@@ -53,7 +54,7 @@ describe('apaleo-odoo schedule', () => {
   });
 
   it('exits 2 when the config lists no property', async () => {
-    const setup = swissSetup({ config: exportConfig().replace(/properties:[\s\S]*$/, '') });
+    const setup = berlinSetup({ config: exportConfig().replace(/properties:[\s\S]*$/, '') });
     expect(await runCli(ONCE, setup.ctx)).toBe(2);
     expect(setup.ctx.err()).toContain('No property to export');
   });
@@ -61,11 +62,11 @@ describe('apaleo-odoo schedule', () => {
 
 describe('monthly cadence', () => {
   it('exports the due month for every configured property and exits 0, as a cron job would call it', async () => {
-    const setup = swissSetup({
+    const setup = berlinSetup({
       config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
-      // 07:30 in Zurich on the due day (schedule.timezone not set).
+      // 07:30 in Berlin on the due day (schedule.timezone not set).
       now: new Date('2026-10-03T05:30:00Z'),
     });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
@@ -77,15 +78,15 @@ describe('monthly cadence', () => {
   });
 
   it('exports nothing and exits 0 the day before the due day', async () => {
-    const setup = swissSetup({ config: exportConfig('schedule:', '  catchUpDays: 20'), now: new Date('2026-10-02T21:59:59Z') });
+    const setup = berlinSetup({ config: exportConfig('schedule:', '  catchUpDays: 20'), now: new Date('2026-10-02T21:59:59Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
-    expect(lines(setup.ctx)).toEqual(['2026-10-02T23:59:59+02:00 nothing due (cadence monthly, today 2026-10-02 in Europe/Zurich)']);
+    expect(lines(setup.ctx)).toEqual(['2026-10-02T23:59:59+02:00 nothing due (cadence monthly, today 2026-10-02 in Europe/Berlin)']);
     expect(setup.fake.calls).toEqual([]);
     expect(existsSync(join(setup.ctx.cwd, 'exports'))).toBe(false);
   });
 
   it('names the property, the period and E-UNMAPPED for a failed month, still exports the other property, and exits 1', async () => {
-    const setup = swissSetup({
+    const setup = berlinSetup({
       config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT.replace(/^RevenueFoodAndBeverages_Normal:20\.00;.*\r?\n/m, ''), 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
@@ -100,7 +101,7 @@ describe('monthly cadence', () => {
   });
 
   it('retries a failed month on the next run and skips the month that was written', async () => {
-    const setup = swissSetup({
+    const setup = berlinSetup({
       config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT.replace(/^RevenueFoodAndBeverages_Normal:20\.00;.*\r?\n/m, ''), 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
@@ -121,7 +122,7 @@ describe('monthly cadence', () => {
   });
 
   it('exports a whole calendar month: the files stay inside one calendar month', async () => {
-    const setup = swissSetup({ config: `${exportConfig()}schedule:\n  catchUpDays: 10\n`, now: new Date('2027-08-03T08:00:00Z') });
+    const setup = berlinSetup({ config: `${exportConfig()}schedule:\n  catchUpDays: 10\n`, now: new Date('2027-08-03T08:00:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual(['2027-08-03T10:00:00+02:00 BSP 2027-07 no bookings']);
   });
@@ -196,7 +197,7 @@ describe('daily cadence', () => {
   const daily = (...extra: string[]) => exportConfig('schedule:', '  cadence: daily', ...extra);
 
   it('exports 2026-10-18 on 2026-10-20 with offsetDays 2', async () => {
-    const setup = swissSetup({ config: daily('  catchUpDays: 5'), data: chargeOn('2026-10-18') });
+    const setup = berlinSetup({ config: daily('  catchUpDays: 5'), data: chargeOn('2026-10-18') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual([
       '2026-10-20T10:00:00+02:00 BSP 2026-10-16 no bookings',
@@ -206,14 +207,14 @@ describe('daily cadence', () => {
   });
 
   it('refuses a daily catch-up window under 5 days before asking apaleo', async () => {
-    const setup = swissSetup({ config: daily('  catchUpDays: 3') });
+    const setup = berlinSetup({ config: daily('  catchUpDays: 3') });
     expect(await runCli(ONCE, setup.ctx)).toBe(1);
     expect(setup.ctx.err()).toContain('schedule.catchUpDays: must be at least 5 with cadence daily');
     expect(setup.fake.calls).toEqual([]);
   });
 
   it('exports the days missed while the server was off, oldest first, without fetching the days already exported', async () => {
-    const setup = swissSetup({ config: daily('  catchUpDays: 40'), now: new Date('2026-09-21T08:00:00Z') });
+    const setup = berlinSetup({ config: daily('  catchUpDays: 40'), now: new Date('2026-09-21T08:00:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(setup.ctx.out()).toContain('BSP 2026-09-16 written');
 
@@ -239,12 +240,12 @@ describe('daily cadence', () => {
 
 describe('periods that are not final yet', () => {
   const dayOne = exportConfig('schedule:', '  monthly:', '    dayOfMonth: 1', '  catchUpDays: 5');
-  const notFinal = (from: string, zone = 'Europe/Zurich') =>
+  const notFinal = (from: string, zone = 'Europe/Berlin') =>
     new RegExp(`^ {2}N-NOT-FINAL: the period ends 2026-09-30\\..*counts as final from ${from} 06:00 in ${zone}`);
 
   it('holds September back with dayOfMonth 1 until 06:00 on 2 October and exports it then, late posting of the audit included', async () => {
-    // 2026-09-30T22:05Z is 2026-10-01 00:05 in Zurich: the night audit for 30 September may not have run.
-    const setup = swissSetup({ config: dayOne, now: new Date('2026-09-30T22:05:00Z') });
+    // 2026-09-30T22:05Z is 2026-10-01 00:05 in Berlin: the night audit for 30 September may not have run.
+    const setup = berlinSetup({ config: dayOne, now: new Date('2026-09-30T22:05:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual(['2026-10-01T00:05:00+02:00 BSP 2026-09 not yet final N-NOT-FINAL', expect.stringMatching(notFinal('2026-10-02'))]);
     expect(setup.fake.calls).toEqual([]);
@@ -271,7 +272,7 @@ describe('periods that are not final yet', () => {
 
   it('holds the day before yesterday back at 00:05 with the default offsetDays 2, and yesterday with offsetDays 1', async () => {
     const config = exportConfig('schedule:', '  cadence: daily', '  daily:', '    offsetDays: 1', '  catchUpDays: 5');
-    const setup = swissSetup({ config, data: chargeOn('2026-10-19'), now: new Date('2026-10-19T22:05:00Z') });
+    const setup = berlinSetup({ config, data: chargeOn('2026-10-19'), now: new Date('2026-10-19T22:05:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx).filter((l) => !l.startsWith(' '))).toEqual([
       '2026-10-20T00:05:00+02:00 BSP 2026-10-16 no bookings',
@@ -289,18 +290,18 @@ describe('periods that are not final yet', () => {
   });
 
   it("holds a month back that is final in schedule.timezone but not yet in the property's zone, and exports it on the next run", async () => {
-    // 2026-10-01T21:30Z: 2 October 06:30 in Tokyo (September final there with dayOfMonth 2), 1 October 23:30 at the hotel in Switzerland.
+    // 2026-10-01T21:30Z: 2 October 06:30 in Tokyo (September final there with dayOfMonth 2), 1 October 23:30 at the hotel in Berlin.
     const config = exportConfig('schedule:', '  timezone: Asia/Tokyo', '  monthly:', '    dayOfMonth: 2', '  catchUpDays: 3');
-    const setup = swissSetup({ config, now: new Date('2026-10-01T21:30:00Z') });
+    const setup = berlinSetup({ config, now: new Date('2026-10-01T21:30:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual([
       '2026-10-02T06:30:00+09:00 BSP 2026-09 not yet final N-NOT-FINAL',
-      expect.stringMatching(notFinal('2026-10-02', 'Europe/Zurich')),
+      expect.stringMatching(notFinal('2026-10-02', 'Europe/Berlin')),
     ]);
     expect(ledgerCalls(setup)).toEqual([]);
     expect(existsSync(join(setup.ctx.cwd, 'exports'))).toBe(false);
 
-    // The same cron time one day later: still inside the 3-day window, and final in Zurich.
+    // The same cron time one day later: still inside the 3-day window, and final in Berlin.
     setClock(setup.ctx, '2026-10-02T21:30:00Z');
     const before = setup.ctx.out().length;
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
@@ -308,9 +309,9 @@ describe('periods that are not final yet', () => {
   });
 
   it("exports a day held back in the property's zone on the next daily run with the smallest catch-up window", async () => {
-    // A daily cron at 06:30 in Tokyo for a hotel in Switzerland: 16 September is final in Tokyo on the 18th, in Zurich only after the run.
+    // A daily cron at 06:30 in Tokyo for a hotel in Berlin: 16 September is final in Tokyo on the 18th, in Berlin only after the run.
     const config = exportConfig('schedule:', '  timezone: Asia/Tokyo', '  cadence: daily', '  catchUpDays: 5');
-    const setup = swissSetup({ config, now: new Date('2026-09-17T21:30:00Z') });
+    const setup = berlinSetup({ config, now: new Date('2026-09-17T21:30:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(setup.ctx.out()).toContain('2026-09-18T06:30:00+09:00 BSP 2026-09-16 not yet final N-NOT-FINAL');
     expect(ledgerCalls(setup).join('\n')).not.toContain('2026-09-16 ');
@@ -322,7 +323,7 @@ describe('periods that are not final yet', () => {
   });
 
   it('reports a period that is not final yet as already exported when a file for it was written by hand', async () => {
-    const setup = swissSetup({ config: dayOne, now: new Date('2026-10-02T04:05:00Z') });
+    const setup = berlinSetup({ config: dayOne, now: new Date('2026-10-02T04:05:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     setClock(setup.ctx, '2026-09-30T22:05:00Z');
     setup.fake.calls.length = 0;
@@ -336,7 +337,7 @@ describe('file system errors in the output folder', () => {
   const permissionDenied = (syscall: string, path: string) =>
     Object.assign(new Error(`EACCES: permission denied, ${syscall} '${path}'`), { code: 'EACCES', syscall, path });
   const twoProperties = () =>
-    swissSetup({
+    berlinSetup({
       config: exportConfig('  - id: BSP2', '    journal: APB', ...ONE_MONTH),
       files: { 'mapping-BSP2.csv': BEISPIEL_MAPPING_TEXT },
       data: addSecondProperty,
@@ -392,6 +393,56 @@ describe('file system errors in the output folder', () => {
   });
 });
 
+describe('German findings on written days of the German month', () => {
+  /** A daily schedule on the German fixture month (Hotel Beispiel Berlin, EUR, SKR03 mapping of the Kanzlei), run at 10:00 in Berlin. */
+  const germanDay = (now: string, data?: (data: ExportSetup['data']) => void) =>
+    exportSetup({
+      config: `${deMonthConfig()}schedule:\n  cadence: daily\n  catchUpDays: 5\n`,
+      files: { 'mapping-BSP.csv': new TextDecoder().decode(DE_MAPPING_BYTES) },
+      data: (fixture) => {
+        Object.assign(fixture, structuredClone(DE_MONTH));
+        data?.(fixture);
+      },
+      now: new Date(now),
+    });
+
+  /** A breakfast of 23.80 at 19 % on 2026-09-12, where Speisen are taxed at 7 %; the base fits Odoo's tax to the cent. */
+  function breakfastAt19(data: ExportSetup['data']) {
+    const template = data.ledger[BSP]?.find((line) => line.businessDate === '2026-09-12' && line.credit.type === 'Revenues');
+    if (!template) throw new Error('fixture revenue line on 2026-09-12 missing');
+    data.ledger[BSP]?.push({
+      ...structuredClone(template),
+      credit: { number: 'RevenueBreakfast_Normal:19.00', name: 'Frühstück (19%)', type: 'Revenues', parentNumber: 'RevenueBreakfast' },
+      grossCents: 2_380,
+      netCents: 2_000,
+      netPrecise: '20',
+      taxes: [{ vatType: 'Normal', percent: 19, amountCents: 380, amountPrecise: '3.8' }],
+      sourceEntryNumber: 'BSPE-FOOD-19',
+    });
+  }
+
+  it('Warning on a written period: ends the written line with W-FOOD-RATE, prints the finding indented and exits 0', async () => {
+    const setup = germanDay('2026-09-14T08:00:00Z', breakfastAt19);
+    expect(await runCli(ONCE, setup.ctx)).toBe(0);
+    const out = setup.ctx.out().trimEnd().split('\n');
+    expect(out.slice(-2)).toEqual([
+      '2026-09-14T10:00:00+02:00 BSP 2026-09-12 written exports/BSP/2026-09/ODOO_Buchungen_20260912-20260912_BSP.csv W-FOOD-RATE',
+      expect.stringMatching(/^ {2}W-FOOD-RATE: on 2026-09-12 apaleo booked food revenue on RevenueBreakfast_Normal:19\.00 \("Frühstück \(19%\)"\) at 19 %.*Speisen are taxed at 7 %/),
+    ]);
+    expect(readdirSync(join(setup.ctx.cwd, 'exports', BSP, '2026-09'))).toContain('ODOO_Buchungen_20260912-20260912_BSP.csv');
+  });
+
+  it("Note on a written period: ends the written line with N-ODOO-ROUNDING-LINE, prints the note indented and exits 0", async () => {
+    const setup = germanDay('2026-09-12T08:00:00Z');
+    expect(await runCli(ONCE, setup.ctx)).toBe(0);
+    const out = setup.ctx.out().trimEnd().split('\n');
+    expect(out.slice(-2)).toEqual([
+      '2026-09-12T10:00:00+02:00 BSP 2026-09-10 written exports/BSP/2026-09/ODOO_Buchungen_20260910-20260910_BSP.csv N-ODOO-ROUNDING-LINE',
+      expect.stringMatching(/^ {2}N-ODOO-ROUNDING-LINE \(Account\): 2026-09-10, account 8300, 7 %: no base plus Odoo's tax reaches apaleo's gross 95\.00 exactly/),
+    ]);
+  });
+});
+
 describe('warnings and notes on lines that did not fail', () => {
   /** The Hotel Beispiel mapping with an extra "Notiz" column, which the mapping loader reports as W-UNKNOWN-COLUMN. */
   const withNoteColumn = BEISPIEL_MAPPING_TEXT.replace(/^\uFEFF/, '')
@@ -400,7 +451,7 @@ describe('warnings and notes on lines that did not fail', () => {
     .join('\n');
 
   it('appends the W- codes to a written line and prints the findings below it', async () => {
-    const setup = swissSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': withNoteColumn }, now: new Date('2026-10-03T05:30:00Z') });
+    const setup = berlinSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': withNoteColumn }, now: new Date('2026-10-03T05:30:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual([
       `2026-10-03T07:30:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE} W-UNKNOWN-COLUMN`,
@@ -410,7 +461,7 @@ describe('warnings and notes on lines that did not fail', () => {
 
   it('Swapped tax on a used row: fails with E-TAX-RATE-WRONG, which mapping check only warns about as W-TAX-RATE, and writes no file', async () => {
     const swapped = BEISPIEL_MAPPING_TEXT.replace('(10%);10;4010;account_tax_template_sales_10_code029;10;', '(10%);10;4010;tax_ust_19_skr03;10;');
-    const setup = swissSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': swapped }, now: new Date('2026-10-03T05:30:00Z') });
+    const setup = berlinSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': swapped }, now: new Date('2026-10-03T05:30:00Z') });
     expect(await runCli(ONCE, setup.ctx)).toBe(1);
     const out = setup.ctx.out().trimEnd().split('\n');
     expect(out[0]).toBe('2026-10-03T07:30:00+02:00 BSP 2026-09 failed E-TAX-RATE-WRONG W-TAX-UNCHECKED');
@@ -418,7 +469,7 @@ describe('warnings and notes on lines that did not fail', () => {
   });
 
   it('appends the codes to a no-bookings line but leaves out N-NO-BOOKINGS, which the result already says', async () => {
-    const setup = swissSetup({
+    const setup = berlinSetup({
       config: exportConfig('schedule:', '  cadence: daily', '  catchUpDays: 5'),
       files: { 'mapping-BSP.csv': withNoteColumn },
     });
