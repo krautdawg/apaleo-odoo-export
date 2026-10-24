@@ -477,12 +477,12 @@ describe('readme-quickstart CI job', () => {
   const workflow = parse(readRepoFile('.github/workflows/ci.yml')) as { jobs: Record<string, { steps: { run?: string }[] }> };
   const runs = workflow.jobs['readme-quickstart']?.steps.map((step) => step.run ?? '') ?? [];
 
-  it('extracts the README block after the quickstart marker, runs it, then the demo dry run and checks its Abacus summary', () => {
+  it('extracts the README block after the quickstart marker, runs it, then the demo dry run and checks its Odoo summary in EUR', () => {
     expect(runs.join('\n')).toContain('<!-- quickstart -->');
     expect(runs).toContain('bash -euxo pipefail "$RUNNER_TEMP/quickstart.sh"');
     const demo = runs.at(-1) ?? '';
     expect(demo.startsWith('node dist/cli/main.js export --month 2026-09 --demo --dry-run | tee "$RUNNER_TEMP/demo.txt"\n')).toBe(true);
-    for (const line of ['^Import into Abacus FIBU', '^Totals per Abacus account', '^  313 3.8 % (Ziffer 343): net ', '^DEMO Result: dry run']) {
+    for (const line of ['^Import into Odoo Accounting', '^  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR$', '^Totals per Odoo account', '^  tax_ust_7_skr03 7 % (Kz 86): net ', '^  tax_ust_19_skr03 19 % (Kz 81): net ', '^DEMO Result: dry run']) {
       expect(demo).toContain(`grep -q '${line}`);
     }
   });

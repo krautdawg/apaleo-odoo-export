@@ -97,7 +97,7 @@ describe('CI workflow', () => {
     const text = read('.github/workflows/ci.yml');
     expect(text).toContain('docker run --rm -w /data -v "$RUNNER_TEMP/demo-data:/data" apaleo-odoo-export:ci export --month 2026-09 --demo\n');
     expect(text).toContain('sudo chown 1000:1000 "$RUNNER_TEMP/demo-data"');
-    expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml"');
+    expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv"');
     for (const check of ["label description | grep -q 'apaleo'", "label description | grep -q 'Odoo'", "if label description | grep -q -e 'Abacus' -e 'BMD'; then exit 1; fi", 'test "$(label licenses)" = MIT']) {
       expect(text).toContain(check);
     }

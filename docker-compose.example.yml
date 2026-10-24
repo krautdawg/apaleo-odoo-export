@@ -8,7 +8,7 @@
 # Das Image wird hier aus dem Quellcode gebaut (build: .); es gibt kein Image in
 # einer Registry. Die Schleife ruft stündlich "schedule --once" auf: Es exportiert,
 # was fällig ist, und überspringt, was schon in ./data liegt. Häufige Aufrufe
-# kosten also nichts. Die Abacus-Dateien für deinen Treuhänder liegen danach in
+# kosten also nichts. Die Odoo-Dateien für deinen Steuerberater liegen danach in
 # ./data/<Hotel>/<JJJJ-MM>/.
 #
 # Mit Argumenten führt der Dienst stattdessen genau diesen einen Befehl aus und
