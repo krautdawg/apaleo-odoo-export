@@ -2,7 +2,7 @@ import { basename, join, resolve } from 'node:path';
 import type { CommandContext } from '../cli/context.js';
 import { VERSION } from '../cli/version.js';
 import { ChartIndex } from '../core/chart.js';
-import { abacusUnitKey, abacusUnitOf, sharedMandantFindings, type Config, type LoadedConfig } from '../core/config.js';
+import type { Config, LoadedConfig } from '../core/config.js';
 import { localDateIn, nextDay } from '../core/date.js';
 import { FindingsError, UserError } from '../core/errors.js';
 import { isErrorFinding, type Finding } from '../core/findings.js';
@@ -84,14 +84,12 @@ export interface PartOutcome {
  */
 export async function runExport(request: ExportRequest, deps: ExportDeps): Promise<PartOutcome[]> {
   const parts = splitPeriod(request.period, CALENDAR_YEAR_START);
-  const shared = sharedMandantFindings(deps.loaded.config);
   const properties = await deps.source.listProperties();
   const outcomes: PartOutcome[] = [];
   for (const propertyId of request.propertyIds) {
     const inputs = new PropertyInputs(propertyId, properties.find((p) => p.id === propertyId), deps);
     for (const part of parts) {
-      const notes = shared.filter((finding) => concernsProperty(finding, propertyId, deps.loaded.config));
-      const outcome = await exportPart(part, inputs, request, deps, notes);
+      const outcome = await exportPart(part, inputs, request, deps);
       outcomes.push(outcome);
       deps.onOutcome?.(outcome);
     }
@@ -149,13 +147,8 @@ export function notFinalFinding(part: DateRange, timeZone: string, finalAfter: s
   };
 }
 
-/** A `W-MANDANT-SHARED` finding concerns the property when the shared Mandant and Geschäftsbereich are its own. */
-function concernsProperty(finding: Finding, propertyId: string, config: Config): boolean {
-  return config.abacus !== undefined && finding.value === abacusUnitKey(abacusUnitOf(config.abacus, config.properties, propertyId));
-}
-
-async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: ExportRequest, deps: ExportDeps, notes: readonly Finding[]): Promise<PartOutcome> {
-  const findings: Finding[] = [...notes];
+async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: ExportRequest, deps: ExportDeps): Promise<PartOutcome> {
+  const findings: Finding[] = [];
   const target = deps.target ?? DEFAULT_TARGET;
   let lines: readonly LedgerLine[] = [];
   let result: PostingResult | undefined;

@@ -2,7 +2,7 @@
 
 - [ ] 1.1 Delete `src/abacus/`, `test/abacus/`, `test/golden/abacus/`, `test/helpers/abacus.ts` and any test helper or fixture only these use (for example `test/helpers/swiss-chart.ts`)
 - [ ] 1.2 Delete the Abrechnungsart and Mandant code paths in `src/core/config.ts`, `src/export/pipeline.ts` and `src/cli/commands/doctor.ts` with their tests; move any helper the Odoo code still uses to `src/core/`
-- [ ] 1.3 Remove the finding codes `E-ABACUS-*`, `N-ABACUS-*`, `W-MANDANT-SHARED` and `W-ABRECHNUNGSART-VEREINNAHMT` from `src/` (the Swiss template, MWST-Code and posting codes went in o03)
+- [ ] 1.3 Remove the finding codes `E-ABACUS-*`, `N-ABACUS-*`, `W-MANDANT-SHARED` and `W-ABRECHNUNGSART-VEREINNAHMT` from `src/` (the Swiss template, MWST-Code and posting codes went in o03) (the o03 review already dropped `W-MANDANT-SHARED` from the export protocol; only `doctor` still raises it. Proposal drift noted there: o03's proposal promised the `abacus` section would be "ignored with a warning", but no such warning was built; o04 closes it by refusing the section in 1.4)
 - [ ] 1.4 Refuse the `abacus` section (error naming `odoo`); remove `mandant` and `geschaeftsbereich` from `TargetManifestFields`; tests for the cli scenarios "Old Abacus section" and "Invalid config value"
 - [ ] 1.5 Remove `src/abacus` from the restricted-import boundary in `eslint.config.js` and from `test/lint/boundaries.test.ts`
 

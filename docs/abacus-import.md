@@ -26,7 +26,7 @@ Die Schnittstellenversion steht in der Datei (`abacus.version`, Standard `2015.0
 
 Die Datei nennt den Mandanten in `Parameter/Mandant` und in jeder Buchung (`abacus.mandant`). Mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus eine Datei im falschen Mandanten ab; lass sie eingeschaltet.
 
-Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-odoo doctor` und das Protokoll warnen dann mit `W-MANDANT-SHARED`.
+Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-odoo doctor` warnt dann mit `W-MANDANT-SHARED`.
 
 ```yaml
 abacus:
