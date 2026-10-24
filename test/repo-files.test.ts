@@ -46,8 +46,8 @@ describe('package', () => {
     for (const old of ['apaleo-abacus', 'apaleo-bmd', 'apaleo-datev']) expect(pkg.bin, old).not.toHaveProperty(old);
   });
 
-  it('starts at version 0.0.0 and describes the export to Odoo Accounting', () => {
-    expect(pkg.version).toBe('0.0.0');
+  it('is at version 0.1.0 and describes the export to Odoo Accounting', () => {
+    expect(pkg.version).toBe('0.1.0');
     expect(pkg.description).toBe('Free open-source export from the apaleo hotel PMS to Odoo Accounting journal entries (import file) for hotels in Germany.');
   });
 

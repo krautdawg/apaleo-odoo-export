@@ -8,6 +8,8 @@ Die Geschichte von apaleo-odoo-export beginnt hier. Das Projekt ist eine Kopie v
 
 ## [Unveröffentlicht]
 
+## [0.1.0] - 2026-10-24
+
 ### Hinzugefügt
 
 - **Odoo-Importdatei mit Buchungssätzen** (o02, o03): `export` schreibt pro Hotel und Zeitraum `ODOO_Buchungen_<von>-<bis>_<Hotel>.csv` für den Standardimport von Odoo 17, 18 und 19 (Buchhaltung > Buchhaltung > Journalbuchungen > Datensätze importieren): ein Buchungssatz als Entwurf pro Geschäftstag in das Journal aus `odoo.journal`, mit External IDs für Buchungssätze und Zeilen und der Referenz `apaleo <Hotel> <Datum>`. Jede Erlös- und Anzahlungszeile trägt die Odoo-Steuer über ihre External ID (`account.<Unternehmen>_tax_ust_7_skr03`) und ihren Nettobetrag; Steuerzeilen schreibt die Datei nie, die legt Odoo selbst an. Die Basisanpassung wählt jeden Nettobetrag so, dass Odoos eigene Steuer (pro Zeile oder pro Steuer gerundet, `odoo.taxRounding`) plus Basis genau den Bruttobetrag aus apaleo ergibt, damit Odoo keine „Automatische Ausgleichszeile“ anlegt; der Writer prüft jede Buchung vor dem Schreiben (`E-ODOO-*`). Der neue Abschnitt `odoo` der Konfiguration nennt Journal, Version, Unternehmen, Währung, Rundungsmethode und Rundungskonto.
@@ -31,3 +33,6 @@ Die Geschichte von apaleo-odoo-export beginnt hier. Das Projekt ist eine Kopie v
 - **KMU-Vorlage** (o03): `init-mapping --template kmu-hotel`, `--accounts-from`, die MWST-Codes, die Kostenstellen und die Schweizer Buchungsregeln und Warnungen der Abacus-Zuordnung.
 
 [Unveröffentlicht]: https://github.com/krautdawg/apaleo-odoo-export/commits/main
+
+[Unveröffentlicht]: https://github.com/krautdawg/apaleo-odoo-export/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/krautdawg/apaleo-odoo-export/releases/tag/v0.1.0

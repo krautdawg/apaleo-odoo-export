@@ -61,7 +61,7 @@ describe('contribution and conduct files', () => {
 
 describe('CHANGELOG.md', () => {
   const text = readRepoFile('CHANGELOG.md');
-  const unreleased = text.split(/^## \[Unveröffentlicht\]$/m)[1]?.split(/^## /m)[0] ?? '';
+  const unreleased = text.split(/^## \[0\.1\.0\] - \d{4}-\d{2}-\d{2}$/m)[1]?.split(/^## /m)[0] ?? '';
   const part = (heading: string) => unreleased.split(new RegExp(`^### ${heading}$`, 'm'))[1]?.split(/^### /m)[0] ?? '';
 
   it('follows the German edition of Keep a Changelog with an Unveröffentlicht section in German section names', () => {
@@ -75,11 +75,11 @@ describe('CHANGELOG.md', () => {
     expect(text).toContain('Alle wichtigen Änderungen an apaleo-odoo-export stehen in dieser Datei.');
     expect(text).toContain('Die Geschichte von apaleo-odoo-export beginnt hier.');
     expect(text).toContain('[apaleo-abacus-export](https://github.com/krautdawg/apaleo-abacus-export) v0.1.0');
-    expect(text).not.toMatch(/^## \[\d/m);
+    expect(text.match(/^## \[\d/gm)).toHaveLength(1);
     expect(text).not.toMatch(/\(a0\d/);
   });
 
-  it('Unreleased section: lists the Odoo features under Hinzugefügt and the Abacus output and the KMU template under Entfernt', () => {
+  it('0.1.0 section: lists the Odoo features under Hinzugefügt and the Abacus output and the KMU template under Entfernt', () => {
     const added = part('Hinzugefügt');
     for (const feature of ['Odoo-Importdatei', 'ein Buchungssatz als Entwurf pro Geschäftstag', 'External ID', 'Basisanpassung', 'init-mapping --template skr03-hotel', 'init-mapping --template skr04-hotel', 'Kurtaxe', 'Anzahlungen', 'Forderungsverluste', 'Stornogebühren', '7 % ab 2026-01-01', 'export --demo', 'schedule --once', 'Docker']) {
       expect(added, feature).toContain(feature);
