@@ -479,17 +479,18 @@ describe('docs folder', () => {
     expect(readRepoFile('docs/configuration.md')).toContain('](odoo-import.md)');
   });
 
-  it('Going public later: docs/maintainers.md has the "Vor der Veröffentlichung" checklist, starting with the test import', () => {
-    expect(MAINTAINERS).toContain('**niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**');
-    const checklist = section(MAINTAINERS, '## Vor der Veröffentlichung');
-    const steps = checklist.split('\n').filter((line) => /^\d+\. \[ \] /.test(line));
-    expect(steps[0]).toMatch(/Kanzlei.*Testimport in Odoo.*odoo-import\.md#erster-testimport-checkliste.*\[Testimporte\]\(#testimporte\)/);
-    expect(steps[0]).toContain('einmal in Odoo 19 auf Odoo Online (Testversion) und einmal in Odoo 17 oder 18 Community');
-    expect(steps[1]).toMatch(/deutschen apaleo-Sandbox.*`test\/fixtures\/apaleo\/live\/`/);
-    const order = ['Testimport in Odoo', 'deutschen apaleo-Sandbox', '--visibility public', 'Vorschaubild (Social Preview)', 'Discussions', 'v0.1.0'].map((step) => checklist.indexOf(step));
-    expect(order.every((position) => position >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(checklist).not.toContain('[x]');
+  it('Public: docs/maintainers.md says the repository is public and keeps the "Veröffentlichung" checklist, starting with the open test import', () => {
+    expect(section(MAINTAINERS, '## Das Repository ist öffentlich')).toContain('v0.1.0');
+    expect(MAINTAINERS).not.toMatch(/ist privat|vorerst privat|bleibt trotzdem privat|Solange das Repository privat/);
+    const checklist = section(MAINTAINERS, '## Veröffentlichung');
+    const open = checklist.split('\n').filter((line) => /^\d+\. \[ \] /.test(line));
+    expect(open[0]).toMatch(/Kanzlei.*Testimport in Odoo.*odoo-import\.md#erster-testimport-checkliste.*\[Testimporte\]\(#testimporte\)/);
+    expect(open[0]).toContain('einmal in Odoo 19 auf Odoo Online (Testversion) und einmal in Odoo 17 oder 18 Community');
+    expect(open[1]).toMatch(/deutschen apaleo-Sandbox.*`test\/fixtures\/apaleo\/live\/`/);
+    for (const step of ['Vorschaubild (Social Preview)', 'Discussions', 'frischen Klon']) expect(open.join('\n')).toContain(step);
+    const done = checklist.split('\n').filter((line) => /^\d+\. \[x\] /.test(line)).join('\n');
+    for (const step of ['Sichtbarkeit', 'Sicherheitslücken', 'Schutz für den Branch', 'v0.1.0', 'Historie', 'pnpm test']) expect(done).toContain(step);
+    expect(MAINTAINERS).not.toContain('--visibility public');
     expect(checklist).not.toContain('beschreiben noch das Vorgängerprodukt');
   });
 
@@ -519,12 +520,12 @@ describe('docs folder', () => {
     expect(item).not.toMatch(/Treuhänder|MWST|Rappen|«|»/);
   });
 
-  it('Metadata applied: docs/maintainers.md names the description and every topic set by o08, says they take effect only once public, and leaves the visibility alone', () => {
-    const privateSection = section(MAINTAINERS, '## Das Repository ist vorerst privat');
-    expect(privateSection).toContain(`„${REPO_DESCRIPTION}“`);
-    for (const topic of REPO_TOPICS) expect(privateSection, topic).toContain(`\`${topic}\``);
-    expect(privateSection).toContain('gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility');
-    expect(privateSection).not.toMatch(/--visibility|abacus|mwst|treuhand|schweiz-|switzerland/i);
+  it('Metadata applied: docs/maintainers.md names the description and every topic set by o08, and how to check them', () => {
+    const publicSection = section(MAINTAINERS, '## Das Repository ist öffentlich');
+    expect(publicSection).toContain(`„${REPO_DESCRIPTION}“`);
+    for (const topic of REPO_TOPICS) expect(publicSection, topic).toContain(`\`${topic}\``);
+    expect(publicSection).toContain('gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility');
+    expect(publicSection).not.toMatch(/--visibility|abacus|mwst|treuhand|schweiz-|switzerland/i);
   });
 });
 
