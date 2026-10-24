@@ -427,13 +427,22 @@ describe('docs folder', () => {
     expect(section(MAINTAINERS, '## Testimporte')).toContain('| Datum | Abacus-Version | Schnittstellenversion | Programm | Ergebnis |');
   });
 
-  it('plans later only items inside this product, no other target formats and no BMD-only items', () => {
+  it('plans later only items inside this product, no other target formats and no BMD-only or Abacus-only items', () => {
     const backlog = section(MAINTAINERS, '## Später geplant');
-    for (const item of ['Saldosteuersatz', 'Debitoren-Schnittstelle', 'Wöchentlicher Rhythmus', 'Sammelbuchung pro Tag', 'Gebühren aus Abrechnungsdateien', 'E-Mail-Versand', 'Dauerprozess mit eigenem Zeitplan', 'Überwachung und Alarme', 'Dependabot', 'Veröffentlichung auf npm oder in einer Registry']) {
+    for (const item of ['Wöchentlicher Rhythmus', 'Gebühren aus Abrechnungsdateien', 'E-Mail-Versand', 'Dauerprozess mit eigenem Zeitplan', 'Überwachung und Alarme', 'Dependabot', 'Veröffentlichung auf npm oder in einer Registry']) {
       expect(backlog).toContain(item);
     }
     expect(backlog).not.toMatch(/DATEV|RZL|lexoffice|Mews|Smoobu|Zielformat/);
     expect(backlog).not.toMatch(/\bBMD\b|Personenkonten-Datei|BMD Com/);
+    expect(backlog).not.toMatch(/Saldosteuersatz|Debitoren-Schnittstelle|Sammelbuchung pro Tag/);
+  });
+
+  it('Odoo push later: plans the direct transfer through the external API, drafts only, with the reasons of the research', () => {
+    const backlog = section(MAINTAINERS, '## Später geplant');
+    const item = backlog.split('\n').find((line) => line.startsWith('- **Direkte Übertragung in Odoo')) ?? '';
+    expect(item).toContain('**Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe**');
+    for (const reason of ['„Custom“', 'zwei Protokolle', 'Odoo 22', 'API-Schlüssel mit Schreibrechten', 'Steuerzeilen']) expect(item, reason).toContain(reason);
+    expect(item).not.toMatch(/Treuhänder|MWST|Rappen|«|»/);
   });
 
   it('Metadata applied: records the gh repo edit command with the Swiss description and every topic, removes BMD and DATEV topics and leaves the visibility alone', () => {

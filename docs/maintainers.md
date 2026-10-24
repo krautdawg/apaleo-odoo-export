@@ -56,10 +56,8 @@ Trag unter «Ergebnis» ein, was ohne Nacharbeit ging und was nicht (zum Beispie
 
 Nicht Teil von Version 1, in keiner bestimmten Reihenfolge, und alles innerhalb dieses Tools. Jeder Punkt braucht eine eigene OpenSpec-Änderung.
 
-- **Saldosteuersatz- und Pauschalsteuersatzmethode**: Buchungen ohne MWST-Code pro Zeile für Mandanten, die mit dem Saldosteuersatz abrechnen, mit einer Anleitung für die Abrechnung in Abacus.
-- **Debitoren-Schnittstelle**: Firmenrechnungen als offene Posten in die Abacus Debitorenbuchhaltung (DEBI) statt auf ein Sachkonto, mit den Kundenstammdaten.
+- **Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe**: Das Tool legt die Buchungssätze selbst als Entwürfe in Odoo an, statt eine Importdatei zu schreiben. In Version 1 gibt es das nicht, weil die externe API nur im Odoo-Tarif „Custom“ freigeschaltet ist (nicht in „One App Free“ und „Standard“), weil zwei Protokolle nötig wären (JSON-2 ab Odoo 19, XML-RPC für 17 und 18, und XML-RPC fällt mit Odoo 22 weg), weil das Tool dafür einen API-Schlüssel mit Schreibrechten als Secret bräuchte und weil für jede Odoo-Version zu prüfen wäre, dass Entwürfe ihre Steuerzeilen behalten. Die Importdatei funktioniert dagegen in jedem Tarif, jeder Edition und jeder Version.
 - **Wöchentlicher Rhythmus**: `schedule.cadence` mit einer Datei pro Woche, zwischen Tag und Monat.
-- **Sammelbuchung pro Tag**: neben der Datei mit einer Buchung pro apaleo-Zeile eine verdichtete Datei mit einer Sammelbuchung pro Tag, Konto und MWST-Code, wenn Treuhänder das wünschen, zum Beispiel für sehr grosse Hotels.
 - **Gebühren aus Abrechnungsdateien**: die Gebühren und Rückbuchungen (Chargebacks) der Zahlungsdienstleister aus ihren Abrechnungen buchen.
 - **E-Mail-Versand**: die Dateien per SMTP an den Treuhänder schicken statt über einen gemeinsamen Ordner.
 - **Dauerprozess mit eigenem Zeitplan**: ein Modus, der dauerhaft läuft und eine eigene Uhr hat, statt `schedule --once` aus Cron oder der Compose-Schleife.
