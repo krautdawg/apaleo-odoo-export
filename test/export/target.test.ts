@@ -26,13 +26,15 @@ const fakeTarget: TargetWriter<PostedBooking> = {
     findings: [],
   }),
   sameContent: (existing, next) => Buffer.from(existing).equals(Buffer.from(next)),
+  // The fake file carries no revision.
+  revisionOf: () => undefined,
   importBlock: (bookings) => ['FAKE import:', `  ${bookings.length} lines`],
   movements: (booking) => odooMovements(booking),
   taxReturnLine: () => undefined,
   manifestFields: () => ({}),
   advice: {
     currency: 'FAKE currency advice.',
-    overlap: 'FAKE overlap advice',
+    overlap: ({ revision }) => `FAKE overlap advice, revision ${revision}`,
     reimport: ({ propertyId }) => `FAKE reimport advice for ${propertyId}.`,
   },
 };
@@ -139,7 +141,7 @@ describe.each(CONTRACT_CASES)('the export through a TargetWriter: %s', (_label, 
     expect(errorCodes(outcome)).toEqual(['E-PERIOD-OVERLAP']);
     const [overlap] = withoutAustrianTaxes(outcome.findings);
     expect(overlap?.message).toContain(`${name('20260901', '20260915')} already covers some of the days`);
-    expect(overlap?.message.endsWith(` ${target.advice.overlap}`)).toBe(true);
+    expect(overlap?.message.endsWith(` ${target.advice.overlap({ propertyId: BSP, demo: false, revision: 2 })}`)).toBe(true);
     expect(overlap?.message).not.toMatch(/DATEV|datev\./);
     expect(existsSync(join(folderOf(setup), FILE))).toBe(false);
   });
@@ -152,7 +154,7 @@ describe.each(CONTRACT_CASES)('the export through a TargetWriter: %s', (_label, 
     expect(refused.status).toBe('failed');
     expect(errorCodes(refused)).toEqual(['E-FILE-EXISTS']);
     const [exists] = withoutAustrianTaxes(refused.findings);
-    expect(exists?.message).toContain(`${target.advice.reimport({ propertyId: BSP, demo: false })} Then run again with --overwrite`);
+    expect(exists?.message).toContain(`${target.advice.reimport({ propertyId: BSP, demo: false, revision: 2 })} Then run again with --overwrite`);
     expect(exists?.message).toMatch(new RegExp(`the old file is kept as <name>\\.replaced-<timestamp>\\${extension}\\.$`));
     expect(exists?.message).not.toMatch(/DATEV|datev\.|Festschreibung/);
 
@@ -308,9 +310,15 @@ describe('the checks and the summary do not depend on the target (recorded VIE d
     expect(fake.status).toBe('written');
     expect(fake.path).toMatch(/FAKE_20261021-20261021_VIE\.txt$/);
     expect(fake.bookings).toBe(29);
-    // Only the import block belongs to the target.
-    const withoutImport = (summary: string) => summary.replace(/\n(FAKE import|Import into Odoo)[^]*?\n\n/, '\n');
-    expect(withoutImport(fake.summary)).toBe(withoutImport(standard.summary));
+    // Only the import block and the file figures (Odoo's VAT per tax, the counts of the file) belong to the target.
+    const withoutTarget = (summary: string) =>
+      summary
+        .replace(/^Odoo's VAT per tax and rate[^]*?\n\n/m, '')
+        .replace(/^Entries in the file: .*\n\n/m, '')
+        .replace(/\n(FAKE import|Import into Odoo)[^]*$/, '\n');
+    expect(withoutTarget(fake.summary)).toBe(withoutTarget(standard.summary));
+    expect(fake.summary).not.toMatch(/^Odoo's VAT per tax and rate/m);
+    expect(standard.summary).toContain('  account_tax_template_sales_10_code029 10 %: net 77.45, Odoo VAT 7.75, apaleo per line 7.74, apaleo precise 7.75 (7.74545454), difference (Odoo minus apaleo) 0.01\n    2026-10-21: Odoo VAT 7.75');
     expect(fake.summary).toContain('FAKE import:\n  29 lines\n');
     expect(standard.summary).toContain('  Entries: 1 draft journal entries (one per business day)');
     expect(fake.findings).toEqual(standard.findings);

@@ -303,7 +303,32 @@ describe('docs folder', () => {
     const troubleshooting = readRepoFile('docs/troubleshooting.md');
     expect(troubleshooting).toContain('`netAmount` oder `taxes[…].amount`: Du nutzt eine alte Version');
     expect(troubleshooting).toContain('`grossAmount`: Das ist auch in der aktuellen Version ein echter Fehler');
-    expect(readRepoFile('docs/export.md')).toContain('10 %: net 77.46, apaleo per line 7.74, gross 85.20, apaleo precise 7.75 (7.74545454), difference (per line minus precise) -0.01');
+    expect(readRepoFile('docs/export.md')).toContain('tax_ust_7_skr03 7 % (Kz 86): net 734.44, apaleo per line 51.40, gross 785.84, apaleo precise 51.41 (51.41009346), difference (per line minus precise) -0.01');
+  });
+
+  it('Export doc for Odoo: docs/export.md and docs/examples/README.md are German as used in Germany, without Swiss or Austrian practice terms and without « »', () => {
+    for (const file of ['docs/export.md', 'docs/examples/README.md']) {
+      const text = readRepoFile(file);
+      for (const term of ['Treuhänder', 'MWST', 'Rappen', 'Mandant', 'grösser', 'ausserhalb', 'standardmässig', 'Massnahme', '«', '»', 'Abacus', 'Ziffer', 'Debitorenverlust', 'Annullation', 'Leitwährung', 'KMU', 'CHF', 'Personenkonto', 'Nebenjournal', 'Europe/Zurich', 'österreichisch']) {
+        expect(text, `${file}: ${term}`).not.toContain(term);
+      }
+      expect(checkPracticeTerms(file, text)).toEqual([]);
+      expect(text).toContain('ß');
+    }
+    const exportDoc = readRepoFile('docs/export.md');
+    for (const heading of ['## Zeitraum und Monate', '## Welche Tage sich exportieren lassen', '## Was vor dem Schreiben geprüft wird', '## Der Probelauf: was die Übersicht zeigt', '## Ausgabeordner', '## Noch einmal exportieren', '## Demo ohne apaleo']) {
+      expect(headings(exportDoc, '##'), heading).toContain(heading.slice(3));
+    }
+    for (const term of ['`unchanged`', '`E-FILE-EXISTS`', '`--overwrite`', '`E-PERIOD-OVERLAP`', '`manifest.json`', '`revision`', '.protokoll.txt', '„(Korrektur 2)“', '`_DEMO`', '`E-ODOO-UNBALANCED`']) expect(exportDoc, term).toContain(term);
+    expect(section(exportDoc, '## Noch einmal exportieren')).toMatch(/lösche ihre Entwürfe und storniere ihre gebuchten Buchungssätze/);
+    expect(section(readRepoFile('docs/examples/README.md'), '# Beispielausgabe: „Hotel Beispiel Berlin“')).toContain('**Importiere die Datei nur in eine Testdatenbank**');
+  });
+
+  it('Hotel compares after the import: the dry-run section names which summary line to compare with which Odoo view, and that a difference to apaleo comes from Odoo\'s rounding', () => {
+    const dryRun = section(readRepoFile('docs/export.md'), '## Der Probelauf: was die Übersicht zeigt');
+    for (const phrase of ['Steuerzeilen pro Satz', 'Steuerbericht', 'Kz 81', 'Kz 86', '`1410`', '`1360`', 'Gästeforderungen', 'Geldtransitkontos', 'Odoos Rundung, kein Fehler', 'Nach dem Import mit Odoo vergleichen']) {
+      expect(dryRun, phrase).toContain(phrase);
+    }
   });
 
   it('documents every config key and every environment variable in docs/configuration.md', () => {
@@ -401,11 +426,13 @@ describe('docs folder', () => {
     expect(replace.indexOf('Stornodatum')).toBeLessThan(replace.indexOf('4. Importiere die neue Datei'));
   });
 
-  it('Corrected month: until o06 chooses the revision, the guide and the format doc say that --overwrite still writes revision 1', () => {
+  it('Corrected month: the export chooses the revision, so the guide and the format doc no longer say that --overwrite writes revision 1', () => {
     const replace = section(readRepoFile('docs/odoo-import.md'), '## Einen Monat ersetzen');
-    expect(replace).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*dieselben External IDs.*\*\*Entwürfe\*\*.*lehnt Odoo die neue Datei/s);
+    expect(replace).not.toContain('Noch nicht umgesetzt');
+    expect(replace).toContain('Das Tool wählt die Revision selbst');
     const format = section(readRepoFile('docs/odoo-format.md'), '## Korrekturen: Revisionen („Korrektur N“)');
-    expect(format).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*Revision 1/s);
+    expect(format).not.toContain('Noch nicht umgesetzt');
+    expect(format).toContain('`--overwrite` schreibt eine mehr als die Datei, die sie ersetzt');
     expect(format).toContain('„Stornodatum“ (Reversal Date)');
   });
 

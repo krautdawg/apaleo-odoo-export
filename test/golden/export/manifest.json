@@ -8,6 +8,7 @@
       "to": "2026-09-30",
       "bookings": 24,
       "currency": "EUR",
+      "revision": 1,
       "odooCompanyId": 1,
       "odooJournal": "APA",
       "entries": 5,

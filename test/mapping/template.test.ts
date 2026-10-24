@@ -112,9 +112,17 @@ describe.each([
     for (const number of ['RevenueNoShow_Without:0.00', 'RevenueCancellationFees_Without:0.00']) {
       const row = find(rows, number);
       expect(mapped(row), number).toEqual([chart.rev0, '', '0']);
-      expect(row?.comment).toContain('Stornogebühren ohne USt');
+      expect(row?.comment).toContain('No-Show- und Stornogebühren, die apaleo ohne Steuer bucht');
       expect(row?.comment).toContain('entscheidet die Kanzlei');
+      expect(row?.comment).toContain('Schadenersatz gehört auf ein eigenes Konto');
+      expect(row?.comment).toContain('nie tax_not_taxable');
     }
+  });
+
+  it('has one 0 % revenue rule only: no separate no-show row that books the same account and tax as the catch-all', () => {
+    const untaxed = template.rules.filter((rule) => rule.apaleoType === 'Revenues' && rule.apaleoVatPercent === 0);
+    expect(untaxed).toHaveLength(1);
+    expect(untaxed[0]?.namePattern).toBeUndefined();
   });
 
   it('matches cancellation and no-show names too: Storno, Stornierung, Cancellation, No-Show, Noshow', () => {
@@ -135,6 +143,16 @@ describe.each([
       expect(row?.comment, name).toContain('eigenes 7-%-Erlöskonto für Speisen');
       expect(row?.comment, name).toContain('W-FOOD-RATE');
     }
+  });
+
+  it('counts Essen, Essensgutschein, Abendessen, Mittagessen and compounds such as Firmenessen as food, but not Messen, Interessen or Interessentenpaket', () => {
+    const compounds = ['Firmenessen', 'Tagungsessen', 'Weihnachtsessen', 'Geschäftsessen', 'Festessen', 'Galaessen', 'Mitarbeiteressen', 'Gästeessen'];
+    for (const name of ['Essen', 'Essensgutschein', 'Abendessen', 'Mittagessen', 'Abendessen Halbpension', ...compounds]) expect(FOOD_NAME_PATTERN.test(name), name).toBe(true);
+    for (const name of ['Zuschlag Messen', 'Messen', 'Interessen', 'Interessentenpaket', 'Messezuschlag']) expect(FOOD_NAME_PATTERN.test(name), name).toBe(false);
+    const named = suggest([account('M1', 'Zuschlag Messen', 'Revenues', rate(19)), account('M2', 'Abendessen', 'Revenues', rate(7)), account('M3', 'Firmenessen', 'Revenues', rate(7))], template);
+    expect(find(named, 'M1')?.comment).not.toContain('Speisen zu 7 %');
+    expect(mapped(find(named, 'M2'))).toEqual([chart.rev7, chart.tax7, '7']);
+    expect(mapped(find(named, 'M3'))).toEqual([chart.rev7, chart.tax7, '7']);
   });
 
   it('uses the food and beverage patterns of W-FOOD-RATE in its rules', () => {

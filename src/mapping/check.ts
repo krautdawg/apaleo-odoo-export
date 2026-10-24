@@ -90,17 +90,34 @@ export const USED_ROW_TAX_RATE_ERROR = 'E-TAX-RATE-WRONG';
  */
 export function checkUsedTaxes(mapping: Mapping, lines: readonly LedgerLine[], chart: ChartIndex | undefined, options: CoverageOptions): Finding[] {
   const used = new Map<number, MappingRow>();
+  /** Per used row of another type (an `*any*` row, a parent's row): the levy accounts it resolved for, by type. */
+  const levies = new Map<number, Map<string, string>>();
   for (const line of lines) {
     if (VAT_ACCOUNT_TYPES.has(line.debit.type) || VAT_ACCOUNT_TYPES.has(line.credit.type)) continue;
     const rate = options.rateOf(line);
     for (const account of [line.debit, line.credit]) {
       const row = resolve(mapping, account, { rate, ...(chart ? { chart } : {}) });
-      if (row && row.odooAccount !== '' && taxOf(row) !== undefined) used.set(row.line, row);
+      if (!row || row.odooAccount === '' || taxOf(row) === undefined) continue;
+      used.set(row.line, row);
+      if (LEVY_TYPES.has(account.type) && !LEVY_TYPES.has(row.apaleoType)) {
+        const byType = levies.get(row.line) ?? new Map<string, string>();
+        if (!byType.has(account.type)) byType.set(account.type, account.number);
+        levies.set(row.line, byType);
+      }
     }
   }
   const merged = new Map<string, { finding: Finding; lines: number[] }>();
   for (const row of [...used.values()].sort((a, b) => a.line - b.line)) {
-    for (const finding of checkRow(row, {})) {
+    // A Kurtaxe account that resolves to a row of another type is checked as a levy too.
+    const asLevy = [...(levies.get(row.line) ?? [])].flatMap(([type, account]) =>
+      checkRow({ ...row, apaleoType: type }, {})
+        .filter((finding) => finding.code === 'W-CITY-TAX-TAXED')
+        .map((finding) => ({
+          ...finding,
+          message: finding.message.replace(`the ${type} row for apaleo account ${row.apaleoAccount}`, `the ${row.apaleoType} row for apaleo account ${row.apaleoAccount}, used for the ${type} account ${account},`),
+        })),
+    );
+    for (const finding of [...checkRow(row, {}), ...asLevy]) {
       if (!USED_ROW_TAX_WARNINGS.has(finding.code)) continue;
       const wrongRate = finding.code === 'W-TAX-RATE';
       const code = wrongRate ? USED_ROW_TAX_RATE_ERROR : finding.code;

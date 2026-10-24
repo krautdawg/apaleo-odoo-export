@@ -71,7 +71,7 @@ Importiere eine Datei aber nie über **gebuchte** Buchungssätze: Odoo 18 und 19
 
 Kommt nach dem Export eine Nachbuchung in apaleo, schreibt das Tool den Monat mit `export --overwrite` neu ([export.md](export.md#noch-einmal-exportieren)). Die neue Datei ist die nächste **Revision**: Die Buchungssätze darin haben neue External IDs mit `_r2`, `_r3` und so weiter (zum Beispiel `apaleo_c1_BSP_20260914_r2`) und die Referenz mit dem Zusatz „(Korrektur N)“, zum Beispiel `apaleo BSP 2026-09-14 (Korrektur 2)`. Einzelheiten: [odoo-format.md](odoo-format.md#korrekturen-revisionen-korrektur-n).
 
-> **Noch nicht umgesetzt:** Die Revision kommt mit einem der nächsten Ausbauschritte des Exports (OpenSpec-Change o06). Bis dahin schreibt `--overwrite` dieselben External IDs und dieselben Referenzen wie die erste Datei. Das reicht nur, solange von der früheren Datei ausschließlich **Entwürfe** in Odoo stehen: Lösch die Entwürfe (Schritt 2), dann importiere die neue Datei. Ist auch nur ein Buchungssatz der früheren Datei gebucht, lehnt Odoo die neue Datei nach dem Stornieren ganz ab, weil sie dieselben External IDs trägt; es geht nichts verloren, aber du ersetzt einen gebuchten Monat erst mit der Revision.
+Das Tool wählt die Revision selbst: Es liest sie aus dem Manifest oder, ohne Manifest, aus der vorhandenen Datei und schreibt mit `--overwrite` die nächste. Auch eine Datei für Tage, deren frühere Datei du verschoben oder gelöscht hast, bekommt die nächste Revision; lösch das Manifest deshalb nicht. Das Protokoll der neuen Datei nennt sie in der Zeile `Revision:` des Importblocks.
 
 So ersetzt du den Monat:
 

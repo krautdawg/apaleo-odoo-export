@@ -69,8 +69,8 @@ describe('the German fixture month', () => {
       { tax: 'tax_ust_19_skr03', ratePercent: 19, netCents: 16_418, vatCents: 3_120, grossCents: 19_538, apaleoVat: '31.19512605' },
     ]);
     expect(summary.levies).toEqual([
-      { account: '1590', tax: '', ratePercent: 0, grossCents: 500, vatCents: 0 },
-      { account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70 },
+      { account: '1590', tax: '', ratePercent: 0, grossCents: 500, vatCents: 0, apaleoVat: '0' },
+      { account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70, apaleoVat: '0.7' },
     ]);
     expect(summary.cityTaxCents).toBe(1_570);
     expect(summary.depositVatByRate).toEqual([
@@ -173,7 +173,7 @@ describe('the German fixture month', () => {
       ['1360', 'Zahlung Visa', 2_570, undefined],
       ['1590', 'Kurtaxe', -500, undefined],
       ['1719', 'Anzahlungen ohne USt', -1_000, undefined],
-      ['8300', 'Kurtaxe 7 %', -1_000, 'tax_ust_7_skr03'],
+      ['8300', 'Beherbergungsteuer 7 %', -1_000, 'tax_ust_7_skr03'],
     ]);
     expect(lines('2026-09-21')).toEqual([
       ['1001', 'Zahlung bar', 5_000, undefined],

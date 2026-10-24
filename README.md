@@ -40,7 +40,7 @@ Nach der Installation (Schritt 2 unten) läuft der echte Export auf mitgeliefert
 node dist/cli/main.js export --month 2026-09 --demo --dry-run
 ```
 
-Das zeigt die Buchungsübersicht für September 2026 im «Hotel Beispiel» in CHF. Ohne `--dry-run` schreibt es die Datei nach `./demo-output/`, markiert mit `DEMO` im Dateinamen (`…_BSP_DEMO.xml`), am Anfang jedes Buchungstexts und im Protokoll. Im Docker-Image: siehe [docs/docker.md](docs/docker.md#die-demo-im-image).
+Das zeigt die Buchungsübersicht für September 2026 im erfundenen „Hotel Beispiel Berlin“ in EUR. Ohne `--dry-run` schreibt es die Datei nach `./demo-output/`, markiert mit `DEMO` im Dateinamen (`ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv`), in den External IDs, am Anfang jeder Referenz und im Protokoll. Im Docker-Image: siehe [docs/docker.md](docs/docker.md#die-demo-im-image).
 
 ## Schnellstart
 

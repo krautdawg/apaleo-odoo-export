@@ -31,6 +31,8 @@ describe('Field filling without personal data: labels', () => {
     [ACCOUNTS.cityTax, 0, 'Kurtaxe'],
     [{ number: '3502', name: 'Second city tax', type: 'SecondCityTax' }, 0, 'Kurtaxe 2'],
     [{ number: '3503', name: 'Guest levy', type: 'GuestLevies' }, 7, 'Gästeabgabe 7 %'],
+    [ACCOUNTS.cityTax, 7, 'Beherbergungsteuer 7 %'],
+    [{ number: '3502', name: 'Second city tax', type: 'SecondCityTax' }, 7, 'Beherbergungsteuer 2 7 %'],
     [ACCOUNTS.liabilities, 7, 'Anzahlungen 7 %'],
     [ACCOUNTS.liabilities0, 0, 'Anzahlungen ohne USt'],
     [{ number: 'X_LossOfAccountsReceivable', name: 'Müller, Hans', type: 'LossOfAccountsReceivable', parentNumber: '6900' }, 19, 'Forderungsverluste 19 %'],

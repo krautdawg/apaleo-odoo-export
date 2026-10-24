@@ -69,6 +69,8 @@ export interface LevyTotal {
   grossCents: number;
   /** Sum of apaleo's rounded tax, signed as owed; 0 without tax. */
   vatCents: number;
+  /** Sum of apaleo's precise taxes, signed as owed, as decimal text; `0` without tax. */
+  apaleoVat: string;
 }
 
 /** Gross amount and apaleo's tax rounded per line, unsigned. */

@@ -11,10 +11,10 @@ import { checkCoverage, checkUsedTaxes, loadMapping, type Mapping } from '../map
 import { odooTarget } from '../odoo/target.js';
 import { buildBookings, releaseRateOf, type PostedBooking, type PostingOptions, type PostingResult } from '../posting/index.js';
 import { checkAggregates, checkFoodRate, checkTaxRates, plausibilityFindings } from './checks.js';
-import { monthFolder, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
+import { monthFolder, revisionsFor, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
 import { dayRuleFindings, finalFrom, lastFinalDay, splitPeriod, type DateRange, type PeriodPart } from './period.js';
 import { renderSummary } from './summary.js';
-import type { TargetFileMeta, TargetWriter } from './target.js';
+import type { TargetFileFigures, TargetFileMeta, TargetWriter } from './target.js';
 import { ApaleoPermissionError } from '../sources/apaleo/index.js';
 
 export interface ExportRequest {
@@ -152,8 +152,9 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
   const target = deps.target ?? DEFAULT_TARGET;
   let lines: readonly LedgerLine[] = [];
   let result: PostingResult | undefined;
-  /** The target's import block, once the file is rendered. */
+  /** The target's import block and file figures, once the file is rendered. */
   let importBlock: string[] | undefined;
+  let figures: TargetFileFigures | undefined;
   const outcome = (status: PartStatus, extra: Partial<PartOutcome> = {}): PartOutcome => ({
     propertyId: inputs.id,
     part,
@@ -167,6 +168,7 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
       bookings: result?.bookings.length ?? 0,
       ...(result ? { summary: result.summary } : {}),
       ...(importBlock ? { importBlock } : {}),
+      ...(figures ? { figures } : {}),
       taxReturnLine: (ratePercent) => target.taxReturnLine(ratePercent),
       findings,
     }),
@@ -219,12 +221,22 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
       return outcome('empty');
     }
 
-    const meta: TargetFileMeta = { config: deps.loaded.config, propertyId: inputs.id, part, demo: request.demo === true, createdAt: deps.ctx.now() };
-    const { bytes, findings: renderFindings } = target.render(result.bookings, meta);
-    findings.push(...renderFindings);
+    const base = { config: deps.loaded.config, propertyId: inputs.id, part, demo: request.demo === true, createdAt: deps.ctx.now() };
+    const path = join(monthFolder(deps.ctx.cwd, deps.loaded.config.output.dir, inputs.id, part.month), target.fileName(base));
+    // A re-run renders for the revision of the file on disk, so that unchanged data gives the same bytes;
+    // a new file or a replacement comes after every earlier file of these days, so it never reuses their External IDs.
+    const { revision, next } = await revisionsFor(deps.ctx, target, path, part);
+    let meta: TargetFileMeta = { ...base, revision };
+    let rendered = target.render(result.bookings, meta);
+    const plan = await planOutput(deps.ctx, target, path, rendered.bytes, part, { overwrite: request.overwrite, file: meta, revision, nextRevision: next });
+    if (plan.action === 'replace') {
+      meta = { ...base, revision: plan.revision };
+      rendered = target.render(result.bookings, meta);
+    }
+    const { bytes } = rendered;
+    findings.push(...rendered.findings);
     importBlock = target.importBlock(result.bookings, meta);
-    const path = join(monthFolder(deps.ctx.cwd, deps.loaded.config.output.dir, inputs.id, part.month), target.fileName(meta));
-    const plan = await planOutput(deps.ctx, target, path, bytes, part, request.overwrite, meta);
+    figures = target.fileFigures?.(result.bookings, meta);
     if (plan.action === 'refuse') findings.push(plan.finding);
     if (hasError(findings)) return outcome('failed', { path });
     if (request.dryRun) return outcome('checked', { path, plan: plan.action });
@@ -239,6 +251,7 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
         to: part.to,
         bookings: bookings.length,
         currency: target.currency(deps.loaded.config),
+        revision: meta.revision,
         ...target.manifestFields(meta, bookings),
         mappingSha256,
         toolVersion: VERSION,

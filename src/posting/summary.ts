@@ -74,7 +74,7 @@ export class SummaryBuilder {
     }
     this.cityTax += creditedAmount(line, LEVY_TYPES);
     const levy = [credit, debit].find((posted) => LEVY_TYPES.has(posted.ref.type));
-    if (levy) this.addLevy(levy, owedOn(line, levy, booking));
+    if (levy) this.addLevy(levy, owedOn(line, levy, booking), apaleoVat.map((vat) => vat.precise));
     for (const payment of [debit, credit]) {
       if (payment.ref.type !== 'Payments') continue;
       const signed = payment === debit ? line.grossCents : -line.grossCents;
@@ -117,11 +117,13 @@ export class SummaryBuilder {
   }
 
   /** A levy line on its Odoo account, with apaleo's tax when the levy side carries the Odoo tax. */
-  private addLevy(levy: PostedSide, owed: ReturnType<typeof owedOn>): void {
+  /** `apaleoPrecise` counts only for a levy booked with a tax: without one, the levy books no VAT. */
+  private addLevy(levy: PostedSide, owed: ReturnType<typeof owedOn>, apaleoPrecise: readonly string[]): void {
     const key = `${levy.row.odooAccount}\u0000${owed.tax}\u0000${owed.rate}`;
-    const entry = this.levies.get(key) ?? { account: levy.row.odooAccount, tax: owed.tax, ratePercent: owed.rate, grossCents: 0, vatCents: 0 };
+    const entry = this.levies.get(key) ?? { account: levy.row.odooAccount, tax: owed.tax, ratePercent: owed.rate, grossCents: 0, vatCents: 0, apaleoVat: '0' };
     entry.grossCents += owed.net + owed.vat;
     entry.vatCents += owed.vat;
+    if (owed.tax !== '') entry.apaleoVat = sumDecimals([entry.apaleoVat, ...apaleoPrecise]);
     this.levies.set(key, entry);
   }
 

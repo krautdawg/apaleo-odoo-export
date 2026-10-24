@@ -68,14 +68,18 @@ export function buildEntries(bookings: readonly OdooBooking[], options: OdooRend
  * (tax, side) group.
  */
 function canonicalTaxRefs(bookings: readonly OdooBooking[], companyId: number): readonly OdooBooking[] {
-  const prefix = `${TAX_EXTERNAL_ID_MODULE}.${companyId}_`;
   return bookings.map((booking) => {
-    const taxRef = booking.vat?.taxRef;
-    if (!booking.vat || taxRef === undefined || !taxRef.startsWith(prefix)) return booking;
-    const short = taxRef.slice(prefix.length);
-    if (!/^[a-z0-9_]+$/.test(short)) return booking;
-    return { ...booking, vat: { ...booking.vat, taxRef: short } };
+    if (!booking.vat) return booking;
+    const taxRef = canonicalTaxRef(booking.vat.taxRef, companyId);
+    return taxRef === booking.vat.taxRef ? booking : { ...booking, vat: { ...booking.vat, taxRef } };
   });
+}
+
+/** `account.<companyId>_<id>` as its chart-template id `<id>`; any other tax value as it is. */
+export function canonicalTaxRef(taxRef: string, companyId: number): string {
+  const prefix = `${TAX_EXTERNAL_ID_MODULE}.${companyId}_`;
+  const short = taxRef.startsWith(prefix) ? taxRef.slice(prefix.length) : '';
+  return /^[a-z0-9_]+$/.test(short) ? short : taxRef;
 }
 
 /**

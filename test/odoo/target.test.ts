@@ -19,6 +19,7 @@ function meta(overrides: Partial<TargetFileMeta> = {}, from: LocalDate = '2026-0
     part: { from, to, month: from.slice(0, 7), wjBeginn: '2026-01-01' },
     demo: false,
     createdAt: new Date('2026-10-03T09:15:00Z'),
+    revision: 1,
     ...overrides,
   };
 }
@@ -54,7 +55,7 @@ describe('odooTarget', () => {
     const bookings = specDay();
     const rendered = odooTarget.render(bookings, meta());
     expect(decode(rendered.bytes)).toBe(renderOdooCsv(bookings, odooOptions()).text);
-    const revised = odooTarget.render(bookings, meta(), 3);
+    const revised = odooTarget.render(bookings, meta({ revision: 3 }));
     expect(decode(revised.bytes)).toContain('apaleo_c1_BSP_20260914_r3,apaleo BSP 2026-09-14 (Korrektur 3)');
     expect(odooTarget.revisionOf(revised.bytes)).toBe(3);
     expect(odooTarget.sameContent(rendered.bytes, odooTarget.render(bookings, meta()).bytes)).toBe(true);
@@ -149,7 +150,7 @@ describe('odooTarget', () => {
 
   it('Import block of a revision names the reference to delete and reverse first, and the rounding account with per_tax in 19', () => {
     const odoo19 = config({ version: 19, roundingAccount: '2700' });
-    const text = odooTarget.importBlock([...specDay(), drinks({ grossCents: 999, vat: vat('tax_ust_19_skr03', 19, 160) }), payment(999)], meta({ config: odoo19 }), 2).join('\n');
+    const text = odooTarget.importBlock([...specDay(), drinks({ grossCents: 999, vat: vat('tax_ust_19_skr03', 19, 160) }), payment(999)], meta({ config: odoo19, revision: 2 })).join('\n');
     expect(text).toContain('Revision: 2 (Korrektur 2, new External IDs): before importing, delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP") and reverse its posted entries');
     expect(text).toContain('reverse its posted entries with the reversal date of each original entry, not today, so the month nets to zero in its own tax period');
     expect(text).toContain('Rounding method: per_tax, rounding account 2700; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Tax")');
@@ -158,15 +159,19 @@ describe('odooTarget', () => {
 
   it('Refusal advice names Odoo: next revision with new External IDs, delete the drafts of the earlier revision and reverse its posted entries, no Abacus', () => {
     const { advice } = odooTarget;
-    const reimport = advice.reimport({ propertyId: 'BSP', demo: false });
-    expect(reimport).toMatch(/--overwrite the new file gets the next revision and new External IDs/);
+    const reimport = advice.reimport({ propertyId: 'BSP', demo: false, revision: 2 });
+    expect(reimport).toContain('With --overwrite the new file is revision 2 with new External IDs (_r2) and the reference suffix "(Korrektur 2)"');
     expect(reimport).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP")');
     expect(reimport).toContain('reverse its posted entries, because an import cannot change a posted entry and a reversal keeps its External ID');
     expect(reimport).toContain('Set the reversal date to the date of each original entry, not today, so the month nets to zero in its own tax period');
-    expect(advice.reimport({ propertyId: 'BSP', demo: true })).toContain('(filter by the reference "DEMO apaleo BSP")');
-    expect(advice.overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
+    expect(advice.reimport({ propertyId: 'BSP', demo: true, revision: 3 })).toContain('(filter by the reference "DEMO apaleo BSP")');
+    const overlap = advice.overlap({ propertyId: 'BSP', demo: false, revision: 2 });
+    expect(overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
+    expect(overlap).toContain('the new file is then revision 2 with new External IDs (_r2) and the reference suffix "(Korrektur 2)"');
+    expect(overlap).toContain('Keep manifest.json in the folder');
+    expect(advice.overlap({ propertyId: 'BSP', demo: false, revision: 1 })).not.toContain('revision');
     expect(advice.currency).toMatch(/one currency \(odoo\.currency\).*does not convert/);
-    for (const text of [advice.currency, advice.overlap, reimport]) expect(text).not.toMatch(/abacus/i);
+    for (const text of [advice.currency, overlap, reimport]) expect(text).not.toMatch(/abacus/i);
   });
 
   it('takes its settings from a function, for tests and later targets', () => {

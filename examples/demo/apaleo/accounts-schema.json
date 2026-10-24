@@ -416,6 +416,40 @@
               }
             }
           ]
+        },
+        {
+          "accountNumber": "RevenueBreakfast",
+          "name": "Frühstück",
+          "type": "Revenues",
+          "parentNumber": "5000",
+          "hasChildren": true,
+          "isArchived": false,
+          "subAccounts": [
+            {
+              "accountNumber": "RevenueBreakfast_Normal:19.00",
+              "name": "Frühstück (19%)",
+              "type": "Revenues",
+              "parentNumber": "RevenueBreakfast",
+              "hasChildren": false,
+              "isArchived": false,
+              "vat": {
+                "type": "Normal",
+                "percent": 19
+              }
+            },
+            {
+              "accountNumber": "RevenueBreakfast_Reduced:7.00",
+              "name": "Frühstück (7%)",
+              "type": "Revenues",
+              "parentNumber": "RevenueBreakfast",
+              "hasChildren": false,
+              "isArchived": false,
+              "vat": {
+                "type": "Reduced",
+                "percent": 7
+              }
+            }
+          ]
         }
       ]
     },
@@ -821,6 +855,39 @@
           "name": "LiabilitiesVat Reduced (7%)",
           "type": "VatOnLiabilities",
           "parentNumber": "8001",
+          "hasChildren": false,
+          "isArchived": false,
+          "vat": {
+            "type": "Reduced",
+            "percent": 7
+          }
+        }
+      ]
+    },
+    {
+      "accountNumber": "3500",
+      "name": "City Tax",
+      "type": "CityTaxes",
+      "hasChildren": true,
+      "isArchived": false,
+      "subAccounts": [
+        {
+          "accountNumber": "3501",
+          "name": "Kurtaxe (no VAT)",
+          "type": "CityTaxes",
+          "parentNumber": "3500",
+          "hasChildren": false,
+          "isArchived": false,
+          "vat": {
+            "type": "Without",
+            "percent": 0
+          }
+        },
+        {
+          "accountNumber": "3502",
+          "name": "Übernachtungsteuer (7%)",
+          "type": "CityTaxes",
+          "parentNumber": "3500",
           "hasChildren": false,
           "isArchived": false,
           "vat": {

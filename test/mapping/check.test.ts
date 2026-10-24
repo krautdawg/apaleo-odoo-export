@@ -446,6 +446,20 @@ describe('checkUsedTaxes', () => {
     expect(used([revenue(), levyRow], [lodging])).toEqual([]);
   });
 
+  it('Kurtaxe on an *any* row: a CityTaxes, SecondCityTax or GuestLevies account resolving to an *any* row with tax_ust_7_skr03 warns W-CITY-TAX-TAXED naming the levy account', () => {
+    for (const type of ['CityTaxes', 'SecondCityTax', 'GuestLevies']) {
+      const anyRow = mappingRow({ apaleoAccount: '3502', apaleoType: '*any*', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' });
+      const levy = ledgerLine({ credit: { number: '3502', name: 'Übernachtungsteuer (7%)', type }, grossCents: 1_070, netCents: 1_000, taxes: t7(70) });
+      const findings = used([anyRow], [levy]);
+      expect(codes(findings), type).toEqual(['W-CITY-TAX-TAXED']);
+      expect(findings[0]?.message, type).toMatch(
+        new RegExp(`^line 3 of the mapping file: the \\*any\\* row for apaleo account 3502, used for the ${type} account 3502, books the Odoo tax tax_ust_7_skr03 at 7 %\\..*§ 10 Abs\\. 1 UStG`),
+      );
+    }
+    const revenueAny = mappingRow({ apaleoAccount: ACC7, apaleoType: '*any*', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' });
+    expect(used([revenueAny], [lodging])).toEqual([]);
+  });
+
   it('Unused row with a custom tax: reports only the rows the lines resolve to', () => {
     const unused = mappingRow({ apaleoAccount: 'RevenueOther_Normal:19.00', apaleoType: 'Revenues', apaleoVatPercent: '19', odooAccount: '8400', odooTax: '__import__.spa', taxPercent: '19' });
     expect(used([revenue(), unused], [lodging])).toEqual([]);
