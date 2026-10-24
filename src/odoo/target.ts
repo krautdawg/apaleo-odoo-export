@@ -129,9 +129,13 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
     taxReturnLine: kennzahl,
     advice: {
       currency: 'An Odoo company books its journal entries in one currency (odoo.currency), and the tool does not convert, so every property must book in that currency.',
-      overlap:
+      overlap: (file) =>
         'Both files contain entries for the same days, so importing both would overwrite reviewed drafts with the other file\'s content or book those days twice in Odoo. ' +
-        'Export the same period as that file, or move it away (if it was imported, delete its draft entries and reverse its posted ones in Odoo first) and run again',
+        'Export the same period as that file, or move it away (if it was imported, delete its draft entries and reverse its posted ones in Odoo first) and run again' +
+        (file.revision >= 2
+          ? `: the new file is then revision ${file.revision} with new External IDs (_r${file.revision}) and the reference suffix "(Korrektur ${file.revision})", ` +
+            'so it never reuses the External IDs of an earlier file for these days. Keep manifest.json in the folder: it records the revisions of the files moved away'
+          : ''),
       reimport: (file) =>
         `With --overwrite the new file is revision ${file.revision} with new External IDs (_r${file.revision}) and the reference suffix "(Korrektur ${file.revision})", ` +
         'so importing it creates new entries in Odoo. Before importing it, delete the draft ' +

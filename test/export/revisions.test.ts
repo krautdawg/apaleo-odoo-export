@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../../src/core/config.js';
@@ -131,6 +131,91 @@ describe('revisions of a replaced file (export-run, "Idempotent re-runs")', () =
       ['replaced', 2],
       ['current', 3],
     ]);
+  });
+
+  it('Moved away after an overwrite: r1, --overwrite to r2, the current file moved away, then the next export writes revision 3 and the manifest keeps r1 and r2', async () => {
+    const setup = germanMonth(...ODOO_19);
+    await run(setup);
+    latePosting(setup.data);
+    setup.ctx.now = () => new Date('2026-10-21T09:30:00Z');
+    expect((await run(setup, { overwrite: true })).status).toBe('replaced');
+    const archive = join(setup.ctx.cwd, 'archive');
+    mkdirSync(archive);
+    renameSync(join(folder(setup), FILE), join(archive, FILE));
+
+    setup.ctx.now = () => new Date('2026-10-22T09:30:00Z');
+    const fresh = await run(setup);
+    expect(fresh.status).toBe('written');
+    const third = text(setup, FILE);
+    expect(entryIds(third).every((id) => /^apaleo_c1_BSP_202609\d{2}_r3$/.test(id))).toBe(true);
+    expect(references(third).every((ref) => ref.endsWith(' (Korrektur 3)'))).toBe(true);
+    expect(manifest(setup).files.map((e) => [e.status, e.revision])).toEqual([
+      ['replaced', 1],
+      ['removed', 2],
+      ['current', 3],
+    ]);
+    expect(manifest(setup).files[1]).toMatchObject({ file: FILE, removedAt: '2026-10-22T09:30:00.000Z' });
+    expect((await run(setup)).status).toBe('unchanged');
+  });
+
+  it('Deleted with its manifest entry kept: the month deleted after import, the next export writes revision 2, not revision 1 with the imported External IDs', async () => {
+    const setup = germanMonth(...ODOO_19);
+    await run(setup);
+    rmSync(join(folder(setup), FILE));
+    expect((await run(setup)).status).toBe('written');
+    expect(entryIds(text(setup, FILE)).every((id) => id.endsWith('_r2'))).toBe(true);
+    expect(manifest(setup).files.map((e) => [e.status, e.revision])).toEqual([
+      ['removed', 1],
+      ['current', 2],
+    ]);
+  });
+
+  it('Part of a moved-away month: E-PERIOD-OVERLAP names revision 2; with the month moved away, 20 to 30 September is revision 2 with new External IDs', async () => {
+    const setup = germanMonth(...ODOO_19);
+    await run(setup);
+    const lateSeptember = { from: '2026-09-20', to: '2026-09-30' } as const;
+    const refused = await run(setup, { period: lateSeptember });
+    const overlap = refused.findings.find((f) => f.code === 'E-PERIOD-OVERLAP');
+    expect(overlap?.message).toContain('the new file is then revision 2 with new External IDs (_r2) and the reference suffix "(Korrektur 2)"');
+    expect(overlap?.message).toContain('Keep manifest.json in the folder');
+
+    const archive = join(setup.ctx.cwd, 'archive');
+    mkdirSync(archive);
+    renameSync(join(folder(setup), FILE), join(archive, FILE));
+    expect((await run(setup, { period: lateSeptember })).status).toBe('written');
+    const part = text(setup, 'ODOO_Buchungen_20260920-20260930_BSP.csv');
+    const ids = entryIds(part);
+    expect(ids).toContain('apaleo_c1_BSP_20260920_r2');
+    expect(ids.every((id) => /^apaleo_c1_BSP_2026092\d_r2$|^apaleo_c1_BSP_20260930_r2$/.test(id))).toBe(true);
+    // Not one External ID of the month that was moved away comes back.
+    const month = new Set(entryIds(readFileSync(join(archive, FILE), 'utf8')));
+    expect(ids.filter((id) => month.has(id))).toEqual([]);
+  });
+
+  it('Part of a month without the manifest: the backup of a replaced month still counts, so the part after it moved away is revision 3', async () => {
+    const setup = germanMonth(...ODOO_19);
+    await run(setup);
+    latePosting(setup.data);
+    expect((await run(setup, { overwrite: true })).status).toBe('replaced');
+    rmSync(join(folder(setup), FILE));
+    rmSync(join(folder(setup), 'manifest.json'));
+    expect((await run(setup, { period: { from: '2026-09-20', to: '2026-09-30' } })).status).toBe('written');
+    // The backup is revision 1, so a revision 2 replaced it: that file is gone with the manifest, but its External IDs may be in Odoo.
+    expect(entryIds(text(setup, 'ODOO_Buchungen_20260920-20260930_BSP.csv')).every((id) => id.endsWith('_r3'))).toBe(true);
+  });
+
+  it('Periods that share no day keep revision 1: 1 to 15 and 16 to 30 September are both revision 1, and an earlier demo file of the month does not count', async () => {
+    const setup = germanMonth(...ODOO_19);
+    expect((await run(setup, { demo: true })).status).toBe('written');
+    const demoFile = 'ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv';
+    expect(existsSync(join(folder(setup), demoFile))).toBe(true);
+    rmSync(join(folder(setup), demoFile));
+    expect((await run(setup, { period: { from: '2026-09-01', to: '2026-09-15' } })).status).toBe('written');
+    expect((await run(setup, { period: { from: '2026-09-16', to: '2026-09-30' } })).status).toBe('written');
+    for (const name of ['ODOO_Buchungen_20260901-20260915_BSP.csv', 'ODOO_Buchungen_20260916-20260930_BSP.csv']) {
+      expect(entryIds(text(setup, name)).every((id) => /^apaleo_c1_BSP_202609\d{2}$/.test(id)), name).toBe(true);
+    }
+    expect(existsSync(join(folder(setup), FILE))).toBe(false);
   });
 
   it('Config changed the journal: refuses with E-FILE-EXISTS and keeps the old file; --overwrite writes revision 2 with the new journal code', async () => {

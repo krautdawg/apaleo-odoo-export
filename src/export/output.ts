@@ -30,11 +30,39 @@ function matchTargetFile(target: FolderTarget, name: string): RegExpExecArray | 
   return stateless.exec(name);
 }
 
+/** `.replaced-<timestamp>` before the extension: the mark of a file replaced with `--overwrite`. */
+const REPLACED_MARK = /\.replaced-\d{8}T\d{6}Z(?=\.[^.]*$|$)/;
+
+/**
+ * A file of the target, current or replaced (named by the file it was), with its
+ * first and last day (`YYYYMMDD`) and its series: the name with both days blanked
+ * out. Files of one series carry the same identity apart from their days (such
+ * as the property and a demo marker), so their entries share ids in the target
+ * for the days they share. Undefined for any other file.
+ */
+function seriesFile(target: FolderTarget, name: string): { from: string; to: string; series: string } | undefined {
+  const original = name.replace(REPLACED_MARK, '');
+  const pattern = target.filePattern;
+  const match = new RegExp(pattern.source, `${pattern.flags.replace(/[gyd]/g, '')}d`).exec(original);
+  const [from, to] = [match?.[1], match?.[2]];
+  const [first, last] = [match?.indices?.[1], match?.indices?.[2]];
+  if (!from || !to || !first || !last) return undefined;
+  const series = [...original];
+  for (const [start, end] of [first, last]) series.fill('#', start, end);
+  return { from, to, series: series.join('') };
+}
+
 /** One file the export wrote or replaced. Entries for replaced files keep only what is known about them. */
 /** The target's own fields (where the file books into) come from `TargetWriter.manifestFields`. */
 export interface ManifestEntry extends TargetManifestFields {
   file: string;
-  status: 'current' | 'replaced';
+  /**
+   * `current`: the file is (or was last seen) in the folder under `file`.
+   * `replaced`: kept as the `.replaced-<timestamp>` backup `file` by `--overwrite`.
+   * `removed`: the file was no longer in the folder when a later export wrote a
+   * new file under the same name; the entry keeps its revision on record.
+   */
+  status: 'current' | 'replaced' | 'removed';
   from: LocalDate;
   to: LocalDate;
   /** SHA-256 of the whole file: the file is deterministic, so this alone identifies its content. */
@@ -50,6 +78,7 @@ export interface ManifestEntry extends TargetManifestFields {
   createdAt?: string;
   replacedAt?: string;
   replacedBy?: string;
+  removedAt?: string;
 }
 
 /**
@@ -69,7 +98,7 @@ export function sha256(bytes: Uint8Array): string {
 export type OutputPlan =
   | { action: 'write' }
   | { action: 'unchanged'; previous: Uint8Array }
-  | { action: 'replace'; previous: Uint8Array; backup: string; previousRevision: number }
+  | { action: 'replace'; previous: Uint8Array; backup: string; previousRevision: number; revision: number }
   | { action: 'refuse'; finding: Finding };
 
 /** `20261020T080000Z`: the time in a backup file name. */
@@ -140,9 +169,66 @@ export async function existingRevision(ctx: CommandContext, target: FolderTarget
   const manifest = await readManifest(ctx, join(dirname(path), MANIFEST_FILE));
   const hash = sha256(bytes);
   const entry = manifest.files.find((file) => file.file === basename(path) && file.status === 'current' && file.sha256 === hash);
-  const recorded = entry?.revision;
-  if (typeof recorded === 'number' && Number.isInteger(recorded) && recorded >= 1) return recorded;
-  return target.revisionOf(bytes) ?? 1;
+  return validRevision(entry?.revision) ?? target.revisionOf(bytes) ?? 1;
+}
+
+/**
+ * The highest revision of any file of the same series as `path` (current,
+ * replaced or removed) whose days overlap `period`: from `manifest.json` and from
+ * the files in the folder (the current ones and the `.replaced-<timestamp>`
+ * backups, read back by `revisionOf`, 1 for a file without a readable revision).
+ * A replaced file of revision N counts as N + 1: a file of that revision replaced
+ * it, even when that file and the manifest are gone. Undefined when no file ever
+ * covered any of these days.
+ */
+async function highestEarlierRevision(ctx: CommandContext, target: FolderTarget, path: string, period: DateRange): Promise<number | undefined> {
+  const folder = dirname(path);
+  const own = seriesFile(target, basename(path));
+  if (!own) return undefined;
+  const [from, to] = [compactDate(period.from), compactDate(period.to)];
+  const overlaps = (file: { from: string; to: string; series: string } | undefined) => file !== undefined && file.series === own.series && file.from <= to && from <= file.to;
+  const revisions: number[] = [];
+  const manifest = await readManifest(ctx, join(folder, MANIFEST_FILE));
+  for (const entry of manifest.files) {
+    const file = seriesFile(target, entry.file);
+    if (!file) continue;
+    const days = typeof entry.from === 'string' && typeof entry.to === 'string' ? { ...file, from: compactDate(entry.from), to: compactDate(entry.to) } : file;
+    if (overlaps(days)) revisions.push((validRevision(entry.revision) ?? 1) + (entry.status === 'replaced' ? 1 : 0));
+  }
+  let names: string[] = [];
+  try {
+    names = await ctx.fs.readdir(folder);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  for (const name of names) {
+    if (!overlaps(seriesFile(target, name))) continue;
+    const bytes = await readIfExists(ctx, join(folder, name));
+    if (bytes) revisions.push((target.revisionOf(bytes) ?? 1) + (REPLACED_MARK.test(name) ? 1 : 0));
+  }
+  return revisions.length > 0 ? Math.max(...revisions) : undefined;
+}
+
+const validRevision = (value: unknown): number | undefined => (typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : undefined);
+
+/** The revision to render the file of a period for, and the one a replacement gets. */
+export interface Revisions {
+  /**
+   * The revision of the file at the path (`existingRevision`), so an unchanged
+   * re-run stays byte-identical. Without one, one more than the highest
+   * revision of any earlier file of these days (moved away, deleted, replaced, or
+   * covering some of the days), so the new file never reuses External IDs an
+   * earlier file brought into the target program; 1 when no file ever did.
+   */
+  revision: number;
+  /** For `--overwrite`: one more than the highest revision of the file at the path and every earlier file of these days. */
+  next: number;
+}
+
+export async function revisionsFor(ctx: CommandContext, target: FolderTarget, path: string, period: DateRange): Promise<Revisions> {
+  const current = await existingRevision(ctx, target, path);
+  const highest = Math.max(current ?? 0, (await highestEarlierRevision(ctx, target, path, period)) ?? 0);
+  return current === undefined ? { revision: highest + 1, next: highest + 2 } : { revision: current, next: highest + 1 };
 }
 
 /** What `planOutput` needs to know about the file besides its bytes. */
@@ -150,8 +236,10 @@ export interface PlanOptions {
   /** `--overwrite`: replace a file with other content. */
   overwrite: boolean;
   file: Pick<TargetFileMeta, 'propertyId' | 'demo'>;
-  /** The revision the bytes were rendered for: the existing file's (`existingRevision`), or 1 without one. */
+  /** The revision the bytes were rendered for (`Revisions.revision`). */
   revision: number;
+  /** The revision a replacement gets (`Revisions.next`). */
+  nextRevision: number;
 }
 
 /**
@@ -167,21 +255,21 @@ export async function planOutput(ctx: CommandContext, target: FolderTarget, path
       action: 'refuse',
       finding: {
         code: 'E-PERIOD-OVERLAP',
-        message: `${join(dirname(path), overlap)} already covers some of the days ${period.from} to ${period.to}. ${target.advice.overlap}`,
+        message: `${join(dirname(path), overlap)} already covers some of the days ${period.from} to ${period.to}. ${target.advice.overlap({ ...options.file, revision: options.revision })}`,
       },
     };
   }
   const previous = await readIfExists(ctx, path);
   if (!previous) return { action: 'write' };
   if (target.sameContent(previous, bytes)) return { action: 'unchanged', previous };
-  if (options.overwrite) return { action: 'replace', previous, backup: replacedName(path, ctx.now()), previousRevision: options.revision };
+  if (options.overwrite) return { action: 'replace', previous, backup: replacedName(path, ctx.now()), previousRevision: options.revision, revision: options.nextRevision };
   return {
     action: 'refuse',
     finding: {
       code: 'E-FILE-EXISTS',
       message:
         `${path} already exists with other content: the apaleo data, the mapping or the config changed since it was written, ` +
-        `for example by a late posting. ${target.advice.reimport({ ...options.file, revision: options.revision + 1 })} Then run again with --overwrite: ` +
+        `for example by a late posting. ${target.advice.reimport({ ...options.file, revision: options.nextRevision })} Then run again with --overwrite: ` +
         `the old file is kept as <name>.replaced-<timestamp>${extname(path)}.` +
         (target.advice.afterOverwrite ? ` ${target.advice.afterOverwrite}` : ''),
     },
@@ -222,8 +310,10 @@ export async function writeOutput(ctx: CommandContext, plan: OutputPlan, file: W
     const manifestPath = join(dirname(path), MANIFEST_FILE);
     const manifest = await readManifest(ctx, manifestPath);
     const name = basename(path);
-    const previousEntry = manifest.files.find((entry) => entry.file === name);
-    const files = manifest.files.filter((entry) => entry.file !== name);
+    // Entries of earlier files under this name that were removed or replaced stay on record.
+    const isCurrent = (entry: ManifestEntry) => entry.file === name && entry.status === 'current';
+    const previousEntry = manifest.files.find(isCurrent);
+    const files = manifest.files.filter((entry) => !isCurrent(entry));
 
     if (plan.action === 'replace') {
       await replaceKeepingBackup(ctx, path, plan.backup, bytes);
@@ -240,6 +330,8 @@ export async function writeOutput(ctx: CommandContext, plan: OutputPlan, file: W
       });
     } else {
       await writeFileAtomic(ctx, path, bytes);
+      // The file of the entry was no longer in the folder: keep its revision on record.
+      if (previousEntry) files.push({ ...previousEntry, status: 'removed', removedAt: ctx.now().toISOString() });
     }
     await writeFileAtomic(ctx, protocol, new TextEncoder().encode(file.protocol));
     files.push(currentEntry(file));
@@ -275,7 +367,7 @@ export async function repairCompanions(ctx: CommandContext, file: WrittenFile): 
     }
     const manifest = await readManifest(ctx, manifestPath);
     if (!entryOk(manifest)) {
-      await writeManifest(ctx, manifestPath, [...manifest.files.filter((entry) => entry.file !== name), currentEntry(file)]);
+      await writeManifest(ctx, manifestPath, [...manifest.files.filter((entry) => !(entry.file === name && entry.status === 'current')), currentEntry(file)]);
       repaired.push(MANIFEST_FILE);
     }
     return repaired;

@@ -165,9 +165,13 @@ describe('odooTarget', () => {
     expect(reimport).toContain('reverse its posted entries, because an import cannot change a posted entry and a reversal keeps its External ID');
     expect(reimport).toContain('Set the reversal date to the date of each original entry, not today, so the month nets to zero in its own tax period');
     expect(advice.reimport({ propertyId: 'BSP', demo: true, revision: 3 })).toContain('(filter by the reference "DEMO apaleo BSP")');
-    expect(advice.overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
+    const overlap = advice.overlap({ propertyId: 'BSP', demo: false, revision: 2 });
+    expect(overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
+    expect(overlap).toContain('the new file is then revision 2 with new External IDs (_r2) and the reference suffix "(Korrektur 2)"');
+    expect(overlap).toContain('Keep manifest.json in the folder');
+    expect(advice.overlap({ propertyId: 'BSP', demo: false, revision: 1 })).not.toContain('revision');
     expect(advice.currency).toMatch(/one currency \(odoo\.currency\).*does not convert/);
-    for (const text of [advice.currency, advice.overlap, reimport]) expect(text).not.toMatch(/abacus/i);
+    for (const text of [advice.currency, overlap, reimport]) expect(text).not.toMatch(/abacus/i);
   });
 
   it('takes its settings from a function, for tests and later targets', () => {

@@ -34,7 +34,7 @@ const fakeTarget: TargetWriter<PostedBooking> = {
   manifestFields: () => ({}),
   advice: {
     currency: 'FAKE currency advice.',
-    overlap: 'FAKE overlap advice',
+    overlap: ({ revision }) => `FAKE overlap advice, revision ${revision}`,
     reimport: ({ propertyId }) => `FAKE reimport advice for ${propertyId}.`,
   },
 };
@@ -141,7 +141,7 @@ describe.each(CONTRACT_CASES)('the export through a TargetWriter: %s', (_label, 
     expect(errorCodes(outcome)).toEqual(['E-PERIOD-OVERLAP']);
     const [overlap] = withoutAustrianTaxes(outcome.findings);
     expect(overlap?.message).toContain(`${name('20260901', '20260915')} already covers some of the days`);
-    expect(overlap?.message.endsWith(` ${target.advice.overlap}`)).toBe(true);
+    expect(overlap?.message.endsWith(` ${target.advice.overlap({ propertyId: BSP, demo: false, revision: 2 })}`)).toBe(true);
     expect(overlap?.message).not.toMatch(/DATEV|datev\./);
     expect(existsSync(join(folderOf(setup), FILE))).toBe(false);
   });

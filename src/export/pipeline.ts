@@ -11,7 +11,7 @@ import { checkCoverage, checkUsedTaxes, loadMapping, type Mapping } from '../map
 import { odooTarget } from '../odoo/target.js';
 import { buildBookings, releaseRateOf, type PostedBooking, type PostingOptions, type PostingResult } from '../posting/index.js';
 import { checkAggregates, checkFoodRate, checkTaxRates, plausibilityFindings } from './checks.js';
-import { existingRevision, monthFolder, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
+import { monthFolder, revisionsFor, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
 import { dayRuleFindings, finalFrom, lastFinalDay, splitPeriod, type DateRange, type PeriodPart } from './period.js';
 import { renderSummary } from './summary.js';
 import type { TargetFileFigures, TargetFileMeta, TargetWriter } from './target.js';
@@ -223,13 +223,14 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
 
     const base = { config: deps.loaded.config, propertyId: inputs.id, part, demo: request.demo === true, createdAt: deps.ctx.now() };
     const path = join(monthFolder(deps.ctx.cwd, deps.loaded.config.output.dir, inputs.id, part.month), target.fileName(base));
-    // A re-run renders for the revision of the file on disk, so that unchanged data gives the same bytes.
-    const revision = (await existingRevision(deps.ctx, target, path)) ?? 1;
+    // A re-run renders for the revision of the file on disk, so that unchanged data gives the same bytes;
+    // a new file or a replacement comes after every earlier file of these days, so it never reuses their External IDs.
+    const { revision, next } = await revisionsFor(deps.ctx, target, path, part);
     let meta: TargetFileMeta = { ...base, revision };
     let rendered = target.render(result.bookings, meta);
-    const plan = await planOutput(deps.ctx, target, path, rendered.bytes, part, { overwrite: request.overwrite, file: meta, revision });
+    const plan = await planOutput(deps.ctx, target, path, rendered.bytes, part, { overwrite: request.overwrite, file: meta, revision, nextRevision: next });
     if (plan.action === 'replace') {
-      meta = { ...base, revision: revision + 1 };
+      meta = { ...base, revision: plan.revision };
       rendered = target.render(result.bookings, meta);
     }
     const { bytes } = rendered;

@@ -109,8 +109,13 @@ export interface TargetWriter<B> {
 export interface TargetAdvice {
   /** In `E-CURRENCY`, after the two currencies: why the file cannot carry another currency. */
   currency: string;
-  /** After "<file> already covers some of the days …": why not to import both, and what to do with the other file. */
-  overlap: string;
+  /**
+   * After "<file> already covers some of the days …": why not to import both,
+   * and what to do with the other file. Takes the property and demo flag of the
+   * refused file and the revision it gets once the other file is moved away
+   * (one more than every earlier file of these days, so its External IDs are new).
+   */
+  overlap(file: Pick<TargetFileMeta, 'propertyId' | 'demo' | 'revision'>): string;
   /**
    * Before the `--overwrite` hint: why not to import both files, and how to
    * undo an imported old file first. Takes the property and demo flag of the
