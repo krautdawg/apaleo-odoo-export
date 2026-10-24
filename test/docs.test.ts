@@ -429,6 +429,13 @@ describe('the compatibility claim check', () => {
     expect(recordedTestImports(readRepoFile('docs/maintainers.md'))).toEqual([]);
   });
 
+  it('does not count the local Odoo test imports, which follow in their own table', () => {
+    const odoo = ['', '### Lokale Testimporte in Odoo', '', '| Datum | Odoo-Version | Edition und Hosting | Kontenrahmen | Rundungsmethode | Ergebnis | Geprüft von |', '|---|---|---|---|---|---|---|', '| 2026-10-24 | 17.0 | Community, lokal (Docker) | SKR03 | beide | ok | Maintainer, lokal |'];
+    expect(recordedTestImports(maintainers(odoo))).toEqual([]);
+    expect(recordedTestImports(maintainers(['| 2026-11-10 | Abacus 2025 | 2015.00 | F5534 | ohne Fehler |', ...odoo]))).toHaveLength(1);
+    expect(readRepoFile('docs/maintainers.md')).toContain('| 2026-10-24 | 19.0 (`odoo:19.0-20261015`) | Community, lokal (Docker) | SKR04 |');
+  });
+
   it('Claim without a recorded import: names the README and the phrase', () => {
     expect(checkCompatibilityClaims('README.md', 'Die Datei ist getestet mit Abacus FIBU.', 0)).toEqual([
       'README.md: "getestet mit Abacus" claims a tested import, but docs/maintainers.md records no import under ## Testimporte',

@@ -163,6 +163,19 @@ describe('injected context', () => {
     expect(ctx.out()).not.toContain('/x/old.yaml');
   });
 
+  it('doctor prints the effective odoo values and the sentence on the rounding method when the section is present', async () => {
+    const config = 'abacus:\n  mandant: 1234\nodoo:\n  journal: APA\n  version: 19\n  roundingAccount: "2700"\n';
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
+    expect(await runCli(['doctor'], ctx)).toBe(0);
+    expect(ctx.out()).toContain('Odoo:          version 19, company 1, journal APA, currency EUR');
+    expect(ctx.out()).toContain('Tax rounding:  per_tax, rounding account 2700');
+    expect(ctx.out()).toContain('must equal the rounding method of the Odoo company (Settings > Accounting > Taxes > Rounding Method: "Round per Tax")');
+
+    const without = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n' } });
+    expect(await runCli(['doctor'], without)).toBe(0);
+    expect(without.out()).not.toContain('Odoo');
+  });
+
   it('output depends only on the context clock', async () => {
     const runAt = async (iso: string) => {
       const ctx = createTestContext({ now: new Date(iso) });

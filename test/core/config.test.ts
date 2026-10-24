@@ -326,6 +326,87 @@ describe('abacus section', () => {
   });
 });
 
+describe('odoo section', () => {
+  const odoo = (lines: string) => `${VALID}odoo:\n${lines}`;
+
+  it('is optional until Odoo is the default target', async () => {
+    expect((await load(VALID)).config.odoo).toBeUndefined();
+  });
+
+  it('Odoo defaults: only journal APA and version 17 give company 1, EUR and per_line', async () => {
+    const { config } = await load(odoo('  journal: APA\n  version: 17\n'));
+    expect(config.odoo).toEqual({ journal: 'APA', version: 17, companyId: 1, currency: 'EUR', taxRounding: 'per_line' });
+    expect((await load(odoo('  journal: APA\n  version: "18"\n'))).config.odoo?.taxRounding).toBe('per_line');
+  });
+
+  it('Version 19 rounds per tax: journal APA, version 19 and roundingAccount "2700" give per_tax', async () => {
+    const { config } = await load(odoo('  journal: APA\n  version: 19\n  roundingAccount: "2700"\n'));
+    expect(config.odoo).toMatchObject({ taxRounding: 'per_tax', roundingAccount: '2700' });
+    // An upgraded database keeps its rounding method: per_line can be set for 19, and per_tax for 17.
+    expect((await load(odoo('  journal: APA\n  version: 19\n  taxRounding: per_line\n'))).config.odoo?.taxRounding).toBe('per_line');
+    expect((await load(odoo('  journal: APA\n  version: 17\n  taxRounding: per_tax\n  roundingAccount: 2700\n'))).config.odoo).toMatchObject({ taxRounding: 'per_tax', roundingAccount: '2700' });
+  });
+
+  it('Rounding account missing: names odoo.roundingAccount, says it is required with taxRounding: per_tax and points to docs/configuration.md', async () => {
+    const error = await loadError(odoo('  journal: APA\n  version: 19\n'));
+    expect(error.message).toContain('odoo.roundingAccount: is required');
+    expect(error.message).toContain('required with taxRounding: per_tax');
+    expect(error.message).toContain('docs/configuration.md');
+    expect((await loadError(odoo('  journal: APA\n  version: 18\n  taxRounding: per_tax\n'))).message).toContain('odoo.roundingAccount: is required');
+  });
+
+  it('Journal code too long: APALEO names odoo.journal and the limit of 5 characters', async () => {
+    const error = await loadError(odoo('  journal: APALEO\n  version: 18\n'));
+    expect(error.message).toContain('odoo.journal: must be the code of the Odoo journal: 1 to 5 characters of A-Z and 0-9 (Odoo allows at most 5 characters)');
+  });
+
+  it('Unsupported version: 16 names odoo.version and the allowed values 17, 18 and 19', async () => {
+    const error = await loadError(odoo('  journal: APA\n  version: 16\n'));
+    expect(error.message).toContain('odoo.version: must be 17, 18 or 19');
+  });
+
+  it('Invalid currency: USD names odoo.currency and the allowed values EUR and CHF', async () => {
+    const error = await loadError(odoo('  journal: APA\n  version: 18\n  currency: USD\n'));
+    expect(error.message).toContain('odoo.currency: must be "EUR" or "CHF"');
+  });
+
+  it('names journal and version when they are missing, and rejects other wrong values', async () => {
+    const missing = await loadError(odoo('  companyId: 2\n'));
+    expect(missing.message).toContain('odoo.journal: is required: name the code of the Odoo journal');
+    expect(missing.message).toContain('odoo.version: is required: name the Odoo version of the database: 17, 18 or 19');
+    const wrong = await loadError(odoo('  journal: APA\n  version: 18\n  companyId: 0\n  taxRounding: globally\n  roundingAccount: "27 00"\n  analytic: 1\n'));
+    expect(wrong.message).toContain('odoo.companyId: must be a whole number between 1 and 999999');
+    expect(wrong.message).toContain('odoo.taxRounding: must be "per_line" or "per_tax"');
+    expect(wrong.message).toContain('odoo.roundingAccount: must be an Odoo account code');
+    expect(wrong.message).toContain('odoo.analytic: unknown key');
+  });
+
+  it('reads codes written as numbers as text, refuses rewritten ones, and lets each property set its journal', async () => {
+    const { config } = await load(`${VALID}odoo:\n  journal: 100\n  version: 18\n  companyId: 3\n  currency: CHF\nproperties:\n  - id: BSP\n  - id: BS2\n    journal: APA2\n`);
+    expect(config.odoo).toEqual({ journal: '100', version: 18, companyId: 3, currency: 'CHF', taxRounding: 'per_line' });
+    expect(config.properties).toEqual([{ id: 'BSP' }, { id: 'BS2', journal: 'APA2' }]);
+    const error = await loadError(`${VALID}odoo:\n  journal: 011\n  version: 17\n  taxRounding: per_tax\n  roundingAccount: 0x10\nproperties:\n  - id: BSP\n    journal: 1e2\n`);
+    expect(error.message).toContain('odoo.journal: 011 is read as the number 11');
+    expect(error.message).toContain('odoo.roundingAccount: 0x10 is read as the number 16');
+    expect(error.message).toContain('properties.0.journal: 1e2 is read as the number 100');
+    expect((await loadError(`${VALID}odoo:\n  journal: APA\n  version: 17\nproperties:\n  - id: BSP\n    journal: apa\n`)).message).toContain('properties.0.journal: must be the code of the Odoo journal');
+  });
+
+  it('the commented odoo block of the example config loads once uncommented', async () => {
+    const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
+    const lines = example.split('\n');
+    const start = lines.indexOf('# odoo:');
+    expect(start).toBeGreaterThan(0);
+    const end = lines.findIndex((line, i) => i > start && !line.startsWith('#'));
+    const block = lines
+      .slice(start, end)
+      .map((line) => line.replace(/^# /, ''))
+      .filter((line) => !/^\s*#/.test(line));
+    const { config } = await load(`${VALID}${block.join('\n')}\n`);
+    expect(config.odoo).toEqual({ journal: 'APA', version: 18, companyId: 1, currency: 'EUR', taxRounding: 'per_line' });
+  });
+});
+
 describe('Abacus Mandanten of the properties', () => {
   const abacus = {
     mandant: '1234',

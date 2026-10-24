@@ -72,7 +72,7 @@ export function createAbacusTarget(settingsOf: (meta: TargetFileMeta) => AbacusT
       overlap:
         'Importing both files would book those days twice in Abacus, so import only one of them. Export the same period as that file, ' +
         `or move it away (if it was imported, ${UNDO_IN_ABACUS}) and run again`,
-      reimport:
+      reimport: () =>
         'A change of the abacus section (Mandant, Geschäftsbereich, Abrechnungsart, version, MWST accounts) also changes the file, ' +
         'so the bookings themselves may be unchanged. Abacus does not recognise a file it has already imported, so importing both files ' +
         `would book those days twice. If the Treuhänder has already imported the old file, ${UNDO_IN_ABACUS} ` +

@@ -62,6 +62,32 @@ Die Standardwerte der Konten und Codes sind die des KMU-Mustermandanten von Abac
 
 Schreib einen Code mit führender Null, Buchstaben `x` oder `e` in Anführungszeichen, zum Beispiel `normal: "011"`. Ohne Anführungszeichen liest YAML `011` als Zahl 11, `0x1F` als 31 und `1e2` als 100, und `011` und `11` sind verschiedene MWST-Codes. Das Tool lehnt solche Werte bei Mandant, Konten und MWST-Codes ab und nennt den Schlüssel.
 
+### `odoo`
+
+Wohin die Buchungssätze in Odoo gehen. Bis Odoo das Standardziel des Tools ist, ist der Abschnitt optional; wenn er da ist, prüft `doctor` ihn und zeigt die Werte. Was jeder Wert in der Importdatei bewirkt, steht in [odoo-format.md](odoo-format.md).
+
+| Schlüssel | Standard | Bedeutung |
+|---|---|---|
+| `odoo` | optional | Der Abschnitt für Odoo. Wenn er da ist, brauchen `odoo.journal` und `odoo.version` einen Wert. |
+| `odoo.journal` | Pflicht | Das Kürzel des Journals in Odoo, in das die Buchungssätze importiert werden, 1 bis 5 Zeichen `A-Z` und `0-9`, zum Beispiel `APA`. Leg dafür in Odoo ein eigenes Journal vom Typ „Sonstige“ (Miscellaneous) an. |
+| `odoo.version` | Pflicht | Die Odoo-Version der Datenbank: `17`, `18` oder `19`. Sie bestimmt den Standard von `odoo.taxRounding`. |
+| `odoo.companyId` | `1` | Die Datenbank-ID des Unternehmens, dem die Steuern gehören, 1 bis 999999. Sie steht in jeder Steuer-ID (`account.1_tax_ust_19_skr03`) und in den External IDs der Buchungssätze. Bei einer Niederlassung (Odoo 18 und 19) ist es die ID des Hauptunternehmens, weil Niederlassungen dessen Steuern nutzen. Die ID siehst du im Entwicklermodus in der Adresse des Unternehmens. |
+| `odoo.currency` | `EUR` | Die Währung des Unternehmens, `EUR` oder `CHF`. Jedes Hotel muss in dieser Währung buchen; das Tool rechnet nicht um. |
+| `odoo.taxRounding` | `per_line` bei Odoo 17 und 18, `per_tax` bei Odoo 19 | Die Rundungsmethode des Unternehmens: `per_line` („Je Zeile runden“, Round per Line) oder `per_tax` („Global runden“, Round Globally, in Odoo 19 „Rundung pro Steuer“, Round per Tax). Sie muss zu Einstellungen > Buchhaltung > Steuern > Rundungsmethode passen, sonst legt Odoo eine Ausgleichsbuchung auf dem Zwischenkonto an. Eine aktualisierte Datenbank behält ihre alte Einstellung. |
+| `odoo.roundingAccount` | keiner | Ein Konto ohne Steuer (auch ohne Standardsteuer) für den Cent, den die Rundung pro Steuer nicht erreicht, zum Beispiel `2700`. Mit `per_tax` Pflicht; fehlt es, nennt das Tool `odoo.roundingAccount`. Frag deinen Steuerberater, welches Konto er dafür möchte. |
+
+Schreib Kürzel und Konten mit führender Null oder Buchstaben `x` oder `e` in Anführungszeichen, zum Beispiel `roundingAccount: "0270"`. Ohne Anführungszeichen liest YAML `0270` als Zahl 270; das Tool lehnt solche Werte bei `odoo.journal`, `odoo.roundingAccount` und `properties[].journal` ab und nennt den Schlüssel.
+
+```yaml
+odoo:
+  journal: APA
+  version: 19
+  companyId: 1
+  currency: EUR
+  taxRounding: per_tax
+  roundingAccount: "2700"
+```
+
 ### `posting`
 
 | Schlüssel | Standard | Bedeutung |
@@ -79,6 +105,7 @@ Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` e
 | `properties[].mapping` | `./mapping-<id>.csv` | Die Kontenzuordnung (CSV) des Hotels, relativ zum Arbeitsverzeichnis. |
 | `properties[].mandant` | `abacus.mandant` | Ein eigener Abacus-Mandant für dieses Hotel. |
 | `properties[].geschaeftsbereich` | `abacus.geschaeftsbereich` | Ein eigener Geschäftsbereich für dieses Hotel im Abacus-Mandanten. |
+| `properties[].journal` | `odoo.journal` | Ein eigenes Odoo-Journal für dieses Hotel, 1 bis 5 Zeichen `A-Z` und `0-9`. |
 
 Bucht dein Treuhänder zwei Hotels in denselben Abacus-Mandanten, braucht jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`), sonst können sich ihre Belegnummern wiederholen. Teilen sich zwei Hotels Mandant und Geschäftsbereich, warnen `doctor` und das Protokoll mit `W-MANDANT-SHARED`.
 

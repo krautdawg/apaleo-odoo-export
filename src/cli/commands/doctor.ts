@@ -1,5 +1,6 @@
 import { ConfigNotFoundError, EXAMPLE_CONFIG_FILE, abrechnungsartFindings, loadConfig, resolveConfigPath, sharedMandantFindings } from '../../core/config.js';
 import { formatFinding } from '../../core/findings.js';
+import { roundingMethodLabel } from '../../odoo/format.js';
 import { CONFIG_OPTION, EXIT_OK, stringOption, type Command } from '../command.js';
 import { VERSION } from '../version.js';
 
@@ -24,6 +25,16 @@ export const doctor: Command = {
       print('Client secret', loaded.secrets.apaleoClientSecret ? 'set (APALEO_CLIENT_SECRET)' : 'not set (APALEO_CLIENT_SECRET)');
       const { abacus } = loaded.config;
       print('Abacus', `Mandant ${abacus.mandant}, Leitwährung ${abacus.leitwaehrung}, ${abacus.abrechnungsart}, version ${abacus.version}`);
+      const { odoo } = loaded.config;
+      if (odoo) {
+        const rounding = odoo.taxRounding === 'per_tax' ? `per_tax, rounding account ${odoo.roundingAccount ?? 'not set'}` : 'per_line';
+        print('Odoo', `version ${odoo.version}, company ${odoo.companyId}, journal ${odoo.journal}, currency ${odoo.currency}`);
+        print('Tax rounding', rounding);
+        ctx.stdout.write(
+          `The tax rounding must equal the rounding method of the Odoo company (Settings > Accounting > Taxes > Rounding Method: ` +
+            `"${roundingMethodLabel(odoo.taxRounding, odoo.version)}"), or Odoo adds an "Automatic Balancing Line" to the entries.\n`,
+        );
+      }
       const { schedule } = loaded.config;
       print('Schedule', `cadence ${schedule.cadence}, time zone ${schedule.timezone}`);
       for (const finding of [...sharedMandantFindings(loaded.config), ...abrechnungsartFindings(abacus)]) ctx.stdout.write(`${formatFinding(finding)}\n`);

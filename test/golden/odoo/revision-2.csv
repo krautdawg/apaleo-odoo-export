@@ -1,0 +1,4 @@
+id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/debit,line_ids/credit,line_ids/tax_ids/id
+apaleo_c1_BSP_20260914_r2,apaleo BSP 2026-09-14 (Korrektur 2),2026-09-14,APA,apaleo_c1_BSP_20260914_r2_0001,1360,Zahlung Visa,143.80,0.00,
+,,,,apaleo_c1_BSP_20260914_r2_0002,8300,Logis 7 %,0.00,112.15,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260914_r2_0003,8400,Getränke 19 %,0.00,20.00,account.1_tax_ust_19_skr03

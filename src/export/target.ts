@@ -87,22 +87,29 @@ export interface TargetAdvice {
   currency: string;
   /** After "<file> already covers some of the days …": why not to import both, and what to do with the other file. */
   overlap: string;
-  /** Before the `--overwrite` hint: why not to import both files, and how to undo an imported old file first. */
-  reimport: string;
+  /**
+   * Before the `--overwrite` hint: why not to import both files, and how to
+   * undo an imported old file first. Takes the property and demo flag of the
+   * refused file, so the advice can name what to look for in the target program.
+   */
+  reimport(file: Pick<TargetFileMeta, 'propertyId' | 'demo'>): string;
   /** After the `--overwrite` hint, when the target has a case in which an imported file cannot be undone. */
   afterOverwrite?: string;
 }
 
 /**
- * The manifest fields a target may fill (`TargetWriter.manifestFields`). They
- * are named after the Abacus settings because Abacus is the only target; a
- * new target with other settings adds its own optional fields here.
+ * The manifest fields a target may fill (`TargetWriter.manifestFields`), each
+ * target its own optional fields.
  */
 export interface TargetManifestFields {
   /** The Abacus Mandant the file books into. */
   mandant?: string;
   /** The Abacus Geschäftsbereich the file books into. */
   geschaeftsbereich?: number;
+  /** The Odoo company whose taxes the file names (`odoo.companyId`). */
+  odooCompanyId?: number;
+  /** The code of the Odoo journal the file is imported into. */
+  odooJournal?: string;
 }
 
 /** The part of a target the output folder logic uses. */
