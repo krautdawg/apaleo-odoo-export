@@ -445,7 +445,7 @@ describe('docs folder', () => {
     expect(item).not.toMatch(/Treuhänder|MWST|Rappen|«|»/);
   });
 
-  it('Metadata applied: records the gh repo edit command with the Swiss description and every topic, removes BMD and DATEV topics and leaves the visibility alone', () => {
+  it('Metadata applied: records the a08 gh repo edit command for apaleo-abacus-export with the Swiss description and every topic, removes BMD and DATEV topics, leaves the visibility alone and defers this repo\'s metadata to o08', () => {
     const topics = ['apaleo', 'abacus', 'abacus-export', 'abaconnect', 'abacus-fibu', 'mwst', 'kmu-kontenrahmen', 'hotel', 'hospitality', 'accounting', 'buchhaltung', 'treuhand', 'switzerland', 'schweiz'];
     const privateSection = section(MAINTAINERS, '## Das Repository ist vorerst privat');
     expect(privateSection).toContain(`--add-topic ${topics.join(',')}`);
@@ -453,7 +453,10 @@ describe('docs folder', () => {
     expect(privateSection).toMatch(/--remove-topic [^\n]*\bbmd\b[^\n]*\bdatev\b/);
     expect(privateSection).not.toMatch(/--description "[^"]*\b(BMD|DATEV)\b|--add-topic [^\n]*\b(bmd|datev|ekr|austria|oesterreich)\b/);
     expect(privateSection).not.toContain('--visibility');
-    expect(privateSection).toContain('gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility');
+    expect(privateSection).toContain('gh repo edit krautdawg/apaleo-abacus-export \\\n');
+    expect(privateSection).toContain('gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility');
+    expect(privateSection).not.toMatch(/gh repo edit krautdawg\/apaleo-odoo-export\b/);
+    expect(privateSection).toMatch(/krautdawg\/apaleo-odoo-export\) hat bisher nur die Beschreibung "apaleo Odoo Export \(in Arbeit\)" und keine Themen\. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08\./);
   });
 });
 

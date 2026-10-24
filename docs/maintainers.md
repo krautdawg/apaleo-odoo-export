@@ -4,15 +4,17 @@
 
 Das Repository ist privat. Beschreibung und Themen sollen Hotels und Treuhänder in der Schweiz finden, die auf GitHub nach «apaleo Abacus Export», «AbaConnect Import», «Abacus FIBU MWST» oder «apaleo Buchhaltung Schweiz» suchen, aber **niemand ausserhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
 
-Die OpenSpec-Änderung a08 hat Beschreibung und Themen mit diesem Befehl gesetzt, ohne die Sichtbarkeit zu ändern; `--remove-topic` entfernt Themen aus den Vorgängerprojekten, falls jemand sie gesetzt hat:
+Die OpenSpec-Änderung a08 hat Beschreibung und Themen des Vorgängerprojekts apaleo-abacus-export mit diesem Befehl gesetzt, ohne die Sichtbarkeit zu ändern; `--remove-topic` entfernt Themen aus den früheren Projekten, falls jemand sie gesetzt hat. Der Befehl ist nur noch ein Protokoll und gilt nicht für dieses Repository:
 
 ```sh
-gh repo edit krautdawg/apaleo-odoo-export \
+gh repo edit krautdawg/apaleo-abacus-export \
   --description "Kostenloser apaleo Abacus Export (Open Source): XML-Buchungsimport für die Abacus Finanzbuchhaltung aus apaleo, für Hotels in der Schweiz und ihre Treuhänder. Selbst gehostet, MIT, kein Abo." \
   --add-topic apaleo,abacus,abacus-export,abaconnect,abacus-fibu,mwst,kmu-kontenrahmen,hotel,hospitality,accounting,buchhaltung,treuhand,switzerland,schweiz \
   --remove-topic bmd,bmd-ntcs,datev,ekr,austria,oesterreich
-gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility
+gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility
 ```
+
+Dieses Repository (krautdawg/apaleo-odoo-export) hat bisher nur die Beschreibung "apaleo Odoo Export (in Arbeit)" und keine Themen. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08.
 
 Keiner der Schritte unter «Vor der Veröffentlichung» ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
 
