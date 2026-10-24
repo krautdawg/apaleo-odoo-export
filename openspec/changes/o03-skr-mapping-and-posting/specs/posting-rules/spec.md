@@ -27,19 +27,11 @@ The posting module SHALL skip, and list with reason, count and unsigned gross to
 - **THEN** every `<folio>_Receivables → <folio>_Receivables/Offset` and `<res>_AccountsReceivable → <res>_AccountsReceivable/Offset` line is listed as `SAME_ACCOUNT`
 
 ### Requirement: Field filling without personal data
-Every booking side SHALL carry a label in German as used in Germany built from the account type, the apaleo account group and the rate (`Erlöse Beherbergung 7 %`, `Erlöse Speisen 7 %`, `Erlöse Getränke 19 %`, `Erlöse sonstige 19 %`, `Erlöse ohne USt`, `Zahlung <payment method>` with English method names translated or kept as brand names, `Gästeforderungen`, `Forderungen Firmenrechnungen`, `Anzahlungen 7 %`, `Kurtaxe`, `Forderungsverluste 19 %`), SHALL use the parent account name or a fixed label instead of the leaf name for guest, booking and per-reservation accounts, and SHALL NOT contain guest names; the label of an account SHALL NOT depend on the line, so the writer can net all lines of an account. The receipt number (with `posting.text2` `receipt`, the default, when one exists) or else the reference SHALL be kept on the booking for the protocol and SHALL NOT be written to the Odoo file. The analytic account SHALL be taken only from the mapping row of a Revenues or LossOfAccountsReceivable side and SHALL stay empty on every other side.
+Every booking side SHALL carry a label in German as used in Germany built from the account type, the apaleo account group and the rate (`Erlöse Beherbergung 7 %`, `Erlöse Speisen 7 %`, `Erlöse Getränke 19 %`, `Erlöse sonstige 19 %`, `Erlöse ohne USt`, `Zahlung <payment method>` with English method names translated or kept as brand names, `Gästeforderungen`, `Forderungen Firmenrechnungen`, `Anzahlungen 7 %`, `Kurtaxe`, `Forderungsverluste 19 %`), SHALL use the parent account name or a fixed label instead of the leaf name for guest, booking and per-reservation accounts, and SHALL NOT contain guest names; the label of an account SHALL NOT depend on the line, so the writer can net all lines of an account. The receipt number (with `posting.text2` `receipt`, the default, when one exists) or else the reference SHALL be kept on the booking for the protocol and SHALL NOT be written to the Odoo file.
 
 #### Scenario: Payment crediting a named guest folio
 - **WHEN** a payment line debits the Visa account and credits a guest folio account named `Müller, Hans` (type Receivables, not in the global ledger)
 - **THEN** the labels are `Zahlung Visa` and `Gästeforderungen`, and no label or protocol line contains `Müller`
-
-#### Scenario: Revenue line carries the analytic account
-- **WHEN** an accommodation charge credits a revenue account whose row has `analytic` `12`
-- **THEN** the revenue side has the analytic account `12` and the receivables side none
-
-#### Scenario: Payment line never carries an analytic account
-- **WHEN** a payment line debits `1360` and credits `1410`, and the rows of both accounts have an `analytic` value
-- **THEN** neither side has an analytic account
 
 #### Scenario: Receipt kept for the protocol
 - **WHEN** a payment line has receipt type PspReference number `PSP123` and reference `BSP-ABCDEF-1`
@@ -58,6 +50,14 @@ Every booking side SHALL carry a label in German as used in Germany built from t
 ### Requirement: Posting summary for Abacus
 **Reason**: The summary is per Odoo account and Odoo tax, with the Kennzahl and Odoo's modelled VAT.
 **Migration**: See "Posting summary for Odoo".
+
+### Requirement: Vereinnahmte Entgelte
+**Reason**: The posting module produces Odoo bookings from this slice on; the Abacus Hilfskonto booking for vereinnahmte Entgelte has no Odoo counterpart, and Odoo's cash-basis taxes are a setting of the Odoo tax, not of the import file.
+**Migration**: None in v1; a hotel taxed on receipts (Ist-Versteuerung) asks its Steuerberater, and `docs/odoo-import.md` (o04) names the question.
+
+### Requirement: Swiss fixture month
+**Reason**: The Swiss month in CHF tested Abacus bookings with the KMU template, both removed in this slice; its tests are deleted, not ported.
+**Migration**: See "German fixture month"; CHF is still accepted with `odoo.currency: CHF` and covered by the export-run scenario "Swiss company".
 
 ## ADDED Requirements
 

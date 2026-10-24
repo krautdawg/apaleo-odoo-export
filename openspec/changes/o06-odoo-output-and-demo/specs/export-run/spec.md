@@ -51,7 +51,7 @@ With `--dry-run` the export SHALL run every step except writing, SHALL print the
 - **THEN** the summary shows, for every rate with a difference, the month's Odoo VAT, apaleo VAT, the difference and the days on which it arose, and the explaining sentence
 
 ### Requirement: Idempotent re-runs
-Re-running an export for a period whose file exists SHALL do nothing when the new file is byte-identical to the existing one, SHALL refuse with `E-FILE-EXISTS` when any byte differs, and with `--overwrite` SHALL keep the old file under a `.replaced-<timestamp>.csv` name, write the new one and record both in the manifest. The comparison SHALL read the existing file, so it works without the manifest. When the file is unchanged but its protocol or current manifest entry is missing or describes another file (a run interrupted between writing the file and its companions), the run SHALL rewrite them and report `N-COMPANIONS-REPAIRED`. Writing SHALL hold an exclusive lock file in the property-month folder and SHALL re-check the file on disk under that lock, so two concurrent runs never both write or replace the same file; the run that finds the lock or a changed file SHALL fail that property-month with `E-EXPORT` and write nothing. An export whose period overlaps another Odoo file in the same folder SHALL be refused with `E-PERIOD-OVERLAP`, because the entries of the shared days carry the same External IDs and importing both would overwrite reviewed drafts with the other file's content.
+Every file SHALL be rendered for a revision: 1 for the first file of a period, and on `--overwrite` one more than the revision of the file it replaces, taken from that file's manifest entry or, without one, from the target writer's `revisionOf()` of the file on disk; the manifest SHALL record the revision of every file. Re-running an export for a period whose file exists SHALL render with the existing file's revision and SHALL do nothing when the new file is byte-identical to the existing one, SHALL refuse with `E-FILE-EXISTS` when any byte differs, and with `--overwrite` SHALL keep the old file under a `.replaced-<timestamp>.csv` name, write the new one with the next revision and record both in the manifest. The comparison SHALL read the existing file, so it works without the manifest. When the file is unchanged but its protocol or current manifest entry is missing or describes another file (a run interrupted between writing the file and its companions), the run SHALL rewrite them and report `N-COMPANIONS-REPAIRED`. Writing SHALL hold an exclusive lock file in the property-month folder and SHALL re-check the file on disk under that lock, so two concurrent runs never both write or replace the same file; the run that finds the lock or a changed file SHALL fail that property-month with `E-EXPORT` and write nothing. An export whose period overlaps another Odoo file in the same folder SHALL be refused with `E-PERIOD-OVERLAP`, because both files contain entries for the shared days and importing both would overwrite reviewed drafts with the other file's content or book those days twice.
 
 #### Scenario: Unchanged re-run
 - **WHEN** the same month is exported twice with unchanged apaleo data and mapping
@@ -59,7 +59,15 @@ Re-running an export for a period whose file exists SHALL do nothing when the ne
 
 #### Scenario: Late posting changed the month
 - **WHEN** a late posting changed the month after it was exported
-- **THEN** the second run refuses with `E-FILE-EXISTS`, explains that before importing the new file the draft entries with the reference `apaleo BSP` of that period must be deleted in Odoo and posted ones reversed, because the import cannot change posted entries, and suggests `--overwrite`
+- **THEN** the second run refuses with `E-FILE-EXISTS`, suggests `--overwrite`, and explains that the new file will be revision 2 with new External IDs, and that before importing it the draft entries with the reference `apaleo BSP` of that period must be deleted in Odoo and the posted ones reversed, because an import cannot change a posted entry and a reversal keeps its External ID
+
+#### Scenario: Overwrite writes the next revision
+- **WHEN** the month exists as revision 1 and the user runs the export again with `--overwrite` after a late posting
+- **THEN** the old file is kept as `.replaced-<timestamp>.csv`, the new file's entries carry `apaleo_c1_BSP_<YYYYMMDD>_r2` and the reference suffix ` (Korrektur 2)`, the manifest records revision 2, and a later run without changes reports `unchanged`
+
+#### Scenario: Revision without the manifest
+- **WHEN** the existing file is revision 2, `manifest.json` was deleted, and the user exports again with `--overwrite` after another change
+- **THEN** the revision is read from the existing file and the new file is revision 3
 
 #### Scenario: Manifest deleted
 - **WHEN** `manifest.json` was deleted and the same month is exported again with unchanged data
@@ -67,7 +75,7 @@ Re-running an export for a period whose file exists SHALL do nothing when the ne
 
 #### Scenario: Config changed the journal
 - **WHEN** the month was exported and `odoo.journal` was changed before the same month is exported again with unchanged data
-- **THEN** the run refuses with `E-FILE-EXISTS` and keeps the old file, and with `--overwrite` it replaces the file and the new entries carry the new journal code
+- **THEN** the run refuses with `E-FILE-EXISTS` and keeps the old file, and with `--overwrite` it replaces the file with revision 2, whose entries carry the new journal code
 
 #### Scenario: Config changed the rounding method
 - **WHEN** the month was exported with `odoo.taxRounding: per_line` and is exported again with `per_tax`
@@ -75,4 +83,4 @@ Re-running an export for a period whose file exists SHALL do nothing when the ne
 
 #### Scenario: Overlapping period
 - **WHEN** the folder holds the file for 2026-09-01 to 2026-09-30 and the user exports 2026-09-20 to 2026-09-30
-- **THEN** the export refuses with `E-PERIOD-OVERLAP`, names the existing file, says that both files share the External IDs of those days, and writes nothing
+- **THEN** the export refuses with `E-PERIOD-OVERLAP`, names the existing file, says that both files contain entries for those days, and writes nothing

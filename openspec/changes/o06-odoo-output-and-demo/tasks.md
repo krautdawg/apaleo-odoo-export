@@ -7,7 +7,7 @@
 ## 2. Checks and re-runs
 
 - [ ] 2.1 `src/export/checks.ts`: wording of the movement model; the writer's `E-ODOO-*` findings reported like the other blocking checks; tests for "Side bug is caught", "Fitting bug is caught" and the BER aggregate scenario
-- [ ] 2.2 Re-run advice from `odooTarget.advice`; `.replaced-<timestamp>.csv`; tests for every scenario of "Idempotent re-runs"
+- [ ] 2.2 Re-run advice from `odooTarget.advice`; `.replaced-<timestamp>.csv`; revision in the `TargetWriter` render options, `revisionOf()` in the `TargetWriter` interface, revision in the manifest, next revision on `--overwrite`; tests for every scenario of "Idempotent re-runs", including a golden pair of revision 1 and revision 2 of the German month after a late posting
 
 ## 3. Demo and examples
 
@@ -18,7 +18,7 @@
 
 ## 4. Docs
 
-- [ ] 4.1 Rewrite `docs/export.md` and `docs/examples/README.md` per "Export doc for Odoo" and add both to `GERMANY_FILES`
+- [ ] 4.1 Rewrite `docs/export.md` and `docs/examples/README.md` per "Export doc for Odoo"; the release check greps both for Swiss and Austrian practice terms and `«` `»`
 
 ## 5. Release check
 

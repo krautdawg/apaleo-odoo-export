@@ -22,7 +22,7 @@ The repository SHALL contain `docs/examples/` with a golden Odoo import file, it
 ## ADDED Requirements
 
 ### Requirement: Export doc for Odoo
-`docs/export.md` and `docs/examples/README.md` SHALL be rewritten in German as used in Germany (both checked by the German (Germany) rules of the docs test from this slice on): periods and the split per month, the date rules, the dry run with every part of the summary and how to compare it with Odoo after the import, the output folder with file, protocol and `manifest.json`, re-runs (`unchanged`, `E-FILE-EXISTS`, `--overwrite`, `E-PERIOD-OVERLAP`) with what to do in Odoo, and the demo.
+`docs/export.md` and `docs/examples/README.md` SHALL be rewritten in German as used in Germany (no Swiss or Austrian practice terms and no `«` `»`, grepped in this slice's release check): periods and the split per month, the date rules, the dry run with every part of the summary and how to compare it with Odoo after the import, the output folder with file, protocol and `manifest.json`, re-runs (`unchanged`, `E-FILE-EXISTS`, `--overwrite`, `E-PERIOD-OVERLAP`) with what to do in Odoo, and the demo.
 
 #### Scenario: Hotel compares after the import
 - **WHEN** a hotel reads the dry-run section of `docs/export.md`

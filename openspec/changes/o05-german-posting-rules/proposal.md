@@ -8,7 +8,7 @@ The posting core books every apaleo line through its mapping row, but the German
 - Template rows and comments for these cases in `skr03-hotel` and `skr04-hotel` (`@2`), with `init-mapping --update` noting rows whose template suggestion changed (`N-TEMPLATE-SUGGESTION`).
 - New warnings `W-CITY-TAX-TAXED` (a CityTaxes, SecondCityTax or GuestLevies row with a tax) and `W-FOOD-RATE` (a food revenue line at 19 % from 2026-01-01 or at 7 % before), in `mapping check` and for the rows and days a month uses.
 - The German fixture month gains a guest-owed Kurtaxe, a hotel-owed Übernachtungsteuer, write-offs at 7 % and 19 %, a no-show fee at 7 %, an untaxed cancellation fee and a food line dated 2025-12-31 in a second fixture day.
-- `docs/posting-rules.md` rewritten for Odoo and Germany (joins `GERMANY_FILES`); the mapping guide's special-case sections completed.
+- `docs/posting-rules.md` rewritten for Odoo and Germany; the mapping guide's special-case sections completed.
 
 ## Capabilities
 

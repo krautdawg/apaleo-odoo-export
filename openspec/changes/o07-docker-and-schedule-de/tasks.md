@@ -7,7 +7,7 @@
 
 - [ ] 2.1 `docker-compose.example.yml`, `.env.example` and `Dockerfile` comments in German (Germany); commented `APALEO_ODOO_TIMEZONE: Europe/Berlin`
 - [ ] 2.2 `.github/workflows/ci.yml` docker job: check `demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv`
-- [ ] 2.3 Rewrite `docs/docker.md` per "Docker guide for Germany" and add it to `GERMANY_FILES`
+- [ ] 2.3 Rewrite `docs/docker.md` per "Docker guide for Germany"; the release check greps it for Swiss and Austrian practice terms and `«` `»` (the docs test checks them from o08 on)
 
 ## 3. Release check
 

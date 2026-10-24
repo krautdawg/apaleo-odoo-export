@@ -6,7 +6,7 @@
 
 - **BREAKING** `schedule.timezone` defaults to `Europe/Berlin`; the scheduler spec names `apaleo-odoo` and the Odoo file.
 - `docker-compose.example.yml`, `.env.example` and `Dockerfile` comments in German as used in Germany; commented `APALEO_ODOO_TIMEZONE: Europe/Berlin`.
-- `docs/docker.md` rewritten (joins `GERMANY_FILES`): the loop, the host-cron alternative, where the Odoo files are (`/data/<propertyId>/<YYYY-MM>/ODOO_Buchungen_*.csv` with protocol), that handing them to the Kanzlei or importing them into Odoo is up to the hotel, the demo in the image, updates.
+- `docs/docker.md` rewritten in German as used in Germany: the loop, the host-cron alternative, where the Odoo files are (`/data/<propertyId>/<YYYY-MM>/ODOO_Buchungen_*.csv` with protocol), that handing them to the Kanzlei or importing them into Odoo is up to the hotel, the demo in the image, updates.
 - CI's docker job checks the Odoo demo file `demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv`.
 - Scheduler scenarios use German findings (`W-FOOD-RATE`, `N-ODOO-ROUNDING-LINE`).
 

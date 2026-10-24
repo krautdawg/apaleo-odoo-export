@@ -11,12 +11,12 @@
 ## 2. Docs test
 
 - [ ] 2.1 `test/docs.test.ts`: read command lines of `apaleo-odoo`, fail on any `apaleo-abacus`, `apaleo-bmd` or `apaleo-datev` command line inside `sh`/`bash` fences, add `odoo` to the config-key prefix pattern
-- [ ] 2.2 `test/helpers/docs.ts`: remove the German DATEV terms and the rate tokens `7 %` and `19 %` from the forbidden list; add `GERMANY_FILES` (`docs/odoo-format.md`, `docs/odoo-import.md`; missing files skipped) with the checks of the requirement "German (Germany) files during the transition" (Swiss and Austrian terms, `«` `»`; "ß" and the Swiss rate notation not checked); keep the Swiss checks for every other German file
-- [ ] 2.3 Tests in `test/docs.test.ts` with fixture files in `test/fixtures/docs/` for the scenarios "Sharp s in an Odoo doc", "Swiss term in an Odoo doc", "Swiss doc keeps its checks", "German rate no longer forbidden", "Old binary in a doc" and "Stale Odoo config key"
+- [ ] 2.2 `test/helpers/docs.ts`: remove the "ß" ban, the Swiss rate-notation check, the German DATEV terms and the rate tokens `7 %` and `19 %` from the checks of every file; add no per-file list; keep every other check
+- [ ] 2.3 Tests in `test/docs.test.ts` with fixture files in `test/fixtures/docs/` for the scenarios "Sharp s in any doc", "German rate no longer forbidden", "No transition list", "Old binary in a doc" and "Stale Odoo config key"
 
 ## 3. Scope cut
 
-- [ ] 3.1 Remove the Abacus-only backlog items from `docs/maintainers.md` `## Später geplant` (Saldosteuersatz, Debitoren-Schnittstelle in Abacus, Sammelbuchung pro Tag); add "Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe" with the reasons of `openspec/research/o-target.md` §7; keep generic items (keep the file's Swiss spelling until o08)
+- [ ] 3.1 Remove the Abacus-only backlog items from `docs/maintainers.md` `## Später geplant` (Saldosteuersatz, Debitoren-Schnittstelle in Abacus, Sammelbuchung pro Tag); add "Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe" with the reasons of `openspec/research/o-target.md` §7; keep generic items; the lines this task writes are in German as used in Germany
 - [ ] 3.2 Leave `openspec/research/a-target.md` in place (removed in o04); `openspec/research/o-target.md` and `openspec/config.yaml` come from the planning PR
 - [ ] 3.3 `--help` summary and package description name Odoo, not Abacus
 - [ ] 3.4 `grep -rn "apaleo-abacus\|APALEO_ABACUS" --exclude-dir=node_modules --exclude-dir=openspec .` returns only README/README.en prose that o08 rewrites, `CHANGELOG.md` history and the `.gitignore` legacy names; no clone URL, `cd` line, badge, CI step, image tag or command line
@@ -26,3 +26,4 @@
 - [ ] 4.1 `pnpm typecheck`, `pnpm lint`, `pnpm test` (without `UPDATE_GOLDEN`), `pnpm build` green; every Abacus golden file byte-identical
 - [ ] 4.2 `node dist/cli/main.js --help` starts with `apaleo-odoo <command> [options]`; `node dist/cli/main.js export --month 2026-09 --demo --dry-run` exits 0
 - [ ] 4.3 `docker build -t apaleo-odoo-export:ci .` and `docker run --rm apaleo-odoo-export:ci --help` work with the new entry point
+- [ ] 4.4 `grep -n "Treuhänder\|MWST\|Rappen\|«\|»"` over the lines this slice wrote in `docs/maintainers.md` finds nothing

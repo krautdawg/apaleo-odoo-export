@@ -14,7 +14,7 @@
 
 ## 3. Docs
 
-- [ ] 3.1 Rewrite `docs/posting-rules.md` per "Posting rules doc for Odoo" and add it to `GERMANY_FILES`
+- [ ] 3.1 Rewrite `docs/posting-rules.md` per "Posting rules doc for Odoo"; the release check greps it for Swiss and Austrian practice terms and `«` `»` (the docs test checks them from o08 on)
 - [ ] 3.2 Complete the special-case sections of `docs/mapping-guide.md`; add `W-CITY-TAX-TAXED`, `W-FOOD-RATE` and `N-TEMPLATE-SUGGESTION` to `docs/troubleshooting.md`
 
 ## 4. Release check

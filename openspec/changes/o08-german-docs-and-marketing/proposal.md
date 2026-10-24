@@ -6,7 +6,7 @@ After o07 the tool works end to end for German hotels with Odoo, but the README,
 
 - README rewritten in German as used in Germany: H1 "apaleo Odoo Export – kostenlos und Open Source", tagline and intro with the search terms, disclaimer notice, `## Was es macht`, `## Für wen`, demo, quick start (five steps, SKR03/SKR04), Docker quick start, commands, `## Was es nicht macht`, `## Vergleich mit kostenpflichtigen Connectoren` (24-51 EUR per month, no vendor name), `## Häufige Fragen`, origin sentence linking apaleo-datev-export, apaleo-bmd-export and apaleo-abacus-export.
 - `README.en.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md` (official German Contributor Covenant 2.1, verbatim with "ß"), `DISCLAIMER.md` (Steuerberater, Odoo, no connection to apaleo GmbH or Odoo S.A.), `CHANGELOG.md`, issue forms, PR template, the remaining docs (`setup-apaleo.md`, `configuration.md`, `troubleshooting.md`, `architecture.md`, `maintainers.md`, `apaleo-source.md`) rewritten for Germany.
-- Docs test: one rule for every German file (German as used in Germany, "ß" allowed, Swiss and Austrian practice terms and `«` `»` refused, `Abacus` and `BMD` only in the origin places); `GERMANY_FILES` and the Swiss checks removed.
+- Docs test: one rule for every German file (German as used in Germany, "ß" allowed, Swiss and Austrian practice terms and `«` `»` refused, `Abacus` and `BMD` only in the origin places); the Swiss and Austrian term ban and the `«` `»` ban now apply to every German file.
 - GitHub description and topics for discoverability, visibility unchanged; `docs/maintainers.md` `## Vor der Veröffentlichung` with the first Odoo test import.
 
 ## Capabilities

@@ -14,7 +14,7 @@
 
 ## 3. Docs test
 
-- [ ] 3.1 `test/helpers/docs.ts`: one rule set per "Docs consistency test" for every German file; delete `GERMANY_FILES`, the Swiss spelling and rate-notation checks and the German DATEV term list; refuse Swiss and Austrian practice terms and `«` `»`; `Abacus` and `BMD` only in the origin places; `DATEV` allowed
+- [ ] 3.1 `test/helpers/docs.ts`: one rule set per "Docs consistency test" for every German file; add the German rate notation (decimal comma, space before `%`); refuse Swiss and Austrian practice terms and `«` `»`; `Abacus` and `BMD` only in the origin places; `DATEV` allowed
 - [ ] 3.2 Tests for every scenario of "Docs consistency test" and "German-first documentation" with fixture files in `test/fixtures/docs/`
 
 ## 4. GitHub metadata

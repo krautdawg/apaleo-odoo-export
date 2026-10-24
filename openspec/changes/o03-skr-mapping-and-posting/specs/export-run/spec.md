@@ -81,7 +81,7 @@ The repository SHALL contain recorded real apaleo responses in `test/fixtures/ap
 ## ADDED Requirements
 
 ### Requirement: Tax warnings for the rows a month uses
-For each property and month, the export and `schedule --once` SHALL report the `mapping check` warnings `W-TAX-RATE` and `W-TAX-UNCHECKED` for the mapping rows the month's ledger lines resolve to, one finding per warning naming every mapping line it concerns, in the dry run, the CLI output and the protocol, because scheduled runs never call `mapping check`. These warnings SHALL NOT block the file, and rows the month does not use SHALL NOT be reported.
+For each property and month, the export and `schedule --once` SHALL report the `mapping check` warnings `W-TAX-RATE`, `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the month's ledger lines resolve to, one finding per warning naming every mapping line it concerns, in the dry run, the CLI output and the protocol, because scheduled runs never call `mapping check`. These warnings SHALL NOT block the file, and rows the month does not use SHALL NOT be reported.
 
 #### Scenario: Swapped tax on a used row
 - **WHEN** the 7 % lodging row maps to `8300` with `tax_ust_19_skr03` at 7 and a month books lodging at 7 %
