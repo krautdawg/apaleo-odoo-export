@@ -107,7 +107,7 @@ export function generatedChartOf(account: string): GermanChart | undefined {
  * export's `W-FOOD-RATE` uses both: an account name matching the food pattern
  * and not the beverage pattern is food.
  */
-export const FOOD_NAME_PATTERN = /speise|food|frühstück|fruehstueck|breakfast|restaurant|\bessen\b|\bessens|abendessen|mittagessen|küche|kueche|kitchen|halbpension|vollpension|catering|bankett|banquet/iu;
+export const FOOD_NAME_PATTERN = /speise|food|frühstück|fruehstueck|breakfast|restaurant|(?<!m|inter)essen|küche|kueche|kitchen|halbpension|vollpension|catering|bankett|banquet/iu;
 export const BEVERAGE_NAME_PATTERN = /getränk|getraenk|beverage|drink|minibar|\bbar\b/iu;
 
 /** A period in which Speisen in restaurants and catering carry one German VAT rate: from `from` (inclusive) to `to` (inclusive, open when absent). */

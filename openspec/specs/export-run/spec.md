@@ -264,7 +264,7 @@ For each property and month, the export and `schedule --once` SHALL report `W-CI
 
 #### Scenario: Messen is not food
 - **WHEN** lines on 2026-09-14 credit apaleo accounts named "Zuschlag Messen" and "Interessentenpaket" at 19 %
-- **THEN** no `W-FOOD-RATE` is raised, while accounts named "Abendessen" or "Mittagessen" at 19 % raise it
+- **THEN** no `W-FOOD-RATE` is raised, while accounts named "Abendessen", "Mittagessen" or compounds such as "Firmenessen" or "Weihnachtsessen" at 19 % raise it
 
 #### Scenario: Kurtaxe on an any row
 - **WHEN** a CityTaxes account resolves to an `*any*` row with `tax_ust_7_skr03` and 7
