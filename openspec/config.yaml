@@ -1,105 +1,114 @@
 schema: spec-driven
 
 context: |
-  Project: apaleo-abacus-export. A free, MIT-licensed, open-source tool that exports
-  accounting data from the apaleo hotel PMS into Abacus import files: AbaConnect
-  "XML Buchungen" (Application FIBU, mapping AbaDefault, one Einzelbuchung per
-  booking with CollectiveInformation and SingleInformation, MWST in TaxData) that a
-  Swiss Treuhänder or Buchhaltung imports into Abacus Finanzbuchhaltung (F11 Buchen,
-  F5534 "Import/Export Buchungen AbaConnect" or F625 AbaConnect). Target is the
-  Abacus FIBU only, not AbaNinja and not other Abacus modules. It is a free
-  alternative to the paid Abacus connector in the apaleo Store (EUR 24-48 per month
-  and property). It is a gift to the community: no strings attached, no hosted
-  service, no warranty, no liability. "Just something that works."
+  Project: apaleo-odoo-export. A free, MIT-licensed, open-source tool that exports
+  accounting data from the apaleo hotel PMS into Odoo Accounting: one journal entry
+  (`account.move`, type "entry", draft) per property and business day, written as a
+  CSV file that the hotel or its Steuerberater imports with Odoo's standard import
+  (Accounting > Journal Entries > Import records) into a dedicated miscellaneous
+  journal. Target is Odoo 17.0, 18.0 and 19.0, Community and Enterprise, on Odoo
+  Online, Odoo.sh or self-hosted, with the German localisation (l10n_de, SKR03 or
+  SKR04); Austria (l10n_at) and Switzerland (l10n_ch) only through a hand-made
+  mapping. It is a free alternative to the paid apaleo Odoo connector in the apaleo
+  Store (EUR 24-51 per month and property). It is a gift to the community: no
+  strings attached, no hosted service, no warranty, no liability. "Just something
+  that works."
 
-  Origin: a copy of apaleo-bmd-export v0.1.0 (apaleo -> BMD, with the v0.1.1 live-data
-  fixes), itself built on apaleo-datev-export. Its apaleo source adapter, export
-  pipeline, TargetWriter boundary, plausibility checks, schedule mode and Docker
-  setup are reused as-is where possible; the BMD writer, EKR template, Austrian
-  Steuercode logic and BMD docs are replaced by an Abacus writer, a Swiss KMU hotel
-  template with MWST-Codes and Swiss posting rules, and then removed.
+  Origin: a copy of apaleo-abacus-export v0.1.0 (apaleo -> Abacus, with the v0.1.1
+  live-data fixes), itself built on apaleo-bmd-export and apaleo-datev-export. Its
+  apaleo source adapter, export pipeline, TargetWriter boundary (the writer names
+  its booking currency), plausibility checks, schedule mode and Docker setup are
+  reused as-is where possible; the Abacus writer, the KMU hotel template, the Swiss
+  MWST-Code logic and the Abacus docs are replaced by an Odoo journal-entry writer,
+  SKR03 and SKR04 hotel templates for Odoo (account codes plus the External ID of
+  the Odoo tax per row, reusing the DATEV SKR03/SKR04 hotel knowledge) and German
+  posting rules, and then removed.
 
-  Users: Swiss hotel back-office staff, small hotel groups, their Treuhänder /
-  Buchhaltung, and technical helpers. Each hotel runs its own copy against its own
-  apaleo account using an apaleo "custom app" (simple client, client credentials)
-  that the hotel admin registers under Apps > Connected apps. No apaleo Store
-  listing, no apaleo certification, no Abacus partnership: the file import needs
-  none. The Treuhänder needs an Abacus FIBU licence with the Buchungsschnittstellen
-  (documented in docs/abacus-import.md, open question until the first test import).
+  Users: hotel back-office staff and small hotel groups in Germany with apaleo and
+  Odoo, their Steuerberater or Buchhaltung, and technical helpers. Each hotel runs its
+  own copy against its own apaleo account using an apaleo "custom app" (simple
+  client, client credentials) that the hotel admin registers under Apps > Connected
+  apps. No apaleo Store listing, no apaleo certification, no Odoo partnership, no
+  Odoo App Store module: the file import needs none, and the tool needs no write
+  credentials to Odoo.
 
-  Scope: one-way apaleo -> Abacus FIBU booking file export. Bookings are in the
-  property currency, which must equal the Mandant's Leitwährung (`abacus.leitwaehrung`,
-  CHF by default, EUR allowed); no conversion, no foreign-currency bookings. Amounts
-  are exact to the Rappen; 5-Rappen rounding is a cash practice and never applied.
-  Out of scope: any AbaConnect web service or other push into Abacus, the Abacus
-  Debitorenbuchhaltung (DEBI) interface and customer master data, PDF documents,
-  hosted multi-tenant SaaS, web UI, archive with legal certification,
+  Scope: one-way apaleo -> Odoo journal-entry file export. Entries are in the Odoo
+  company currency (`odoo.currency`, EUR by default, CHF allowed), which must equal
+  the property currency; no conversion, no foreign-currency lines. Every base line
+  carries the Odoo tax by External ID (`account.<company>_<template id>`, e.g.
+  `account.1_tax_ust_19_skr03`) and its net amount; the file never contains tax lines
+  or tax tags: Odoo computes the VAT lines and report grids itself. The tool fits each
+  net base so that Odoo's own tax (per line or per tax, `odoo.taxRounding`) plus the
+  base equals apaleo's gross to the cent, so Odoo never adds an "Automatic Balancing
+  Line", and reports the cent difference to apaleo's VAT. Imported entries are drafts;
+  the tool never posts. Out of scope: any push into Odoo through the external API
+  (JSON-2 / XML-RPC; listed under "Später geplant"), customer invoices, partners and
+  per-partner receivables, payments and reconciliation, PDF documents, hosted
+  multi-tenant SaaS, web UI, an Odoo module, archive with legal certification,
   payment-provider (Adyen) settlement and fee postings, booking portal commissions,
-  the Saldosteuersatz- and Pauschalsteuersatzmethode in v1, other PMSs and other
-  target formats. Keep a clean SourceAdapter / TargetWriter boundary so Mews, Smoobu
-  or Stripe sources or Bexio / Banana / other targets can be added later by
-  contributors.
+  Austrian and Swiss templates in v1, other PMSs and other target formats. Keep a
+  clean SourceAdapter / TargetWriter boundary so Mews, Smoobu or Stripe sources or
+  other targets can be added later by contributors.
 
   Tech stack: TypeScript (strict), Node.js 24 LTS, pnpm, ESM. Minimal runtime
-  dependencies (no XML library: the writer escapes and indents itself). Vitest for
-  tests. CLI `apaleo-abacus` via a small arg parser. Config as a YAML or JSON file
+  dependencies (no CSV writer or XLSX library: the writer quotes CSV itself). Vitest
+  for tests. CLI `apaleo-odoo` via a small arg parser. Config as a YAML or JSON file
   plus environment variables for secrets. Account mapping as an editable CSV.
   Installed from source (git clone + pnpm build) and as a locally built Docker image;
   there is NO npm publish and NO registry image push in scope, so do not add publish
   or release tasks. Scheduling is `schedule --once` run from cron or a compose loop
-  (no in-process daemon). Delivery: local output folder only (no SMTP email, no S3 in
-  v1).
+  (no in-process daemon). Delivery: local output folder only (no SMTP email, no S3,
+  no upload to Odoo in v1).
 
   Domain sources of truth:
   - apaleo Finance API Swagger: https://api.apaleo.com/swagger/finance-v1/swagger.json
     (export-gross-daily, chart of accounts, aggregates) and the apaleo developer
     docs for custom apps and OAuth client types.
-  - Abacus AbaConnect documentation "Schnittstelle FIBU - XML Buchungen" (versions
-    2015.00 to 2024.00, field lengths, DebitCredit, TaxAccount, TaxData with
-    TaxIncluded, TaxType, UseCode, TaxCode) and Abacus "XML-AbaConnect Fibu
-    Buchungsschnittstelle (Version 2020)" (MWST berechnen, TaxAccount tables);
-    the Abacus KMU sample Mandant MWST-Codes (311/312/313). Where downloads.abacus.ch
-    is offline, the Internet Archive copy is cited.
-    openspec/research/a-target.md and later docs/abacus-format.md record what was
-    checked, the URLs and the date.
-  - MWSTG SR 641.20 (Art. 24, 25: 8.1 % Normalsatz, 2.6 % reduziert, 3.8 % Sondersatz
-    Beherbergung including breakfast; Art. 39/40: vereinbart vs vereinnahmt,
-    Vorauszahlungen taxed when received), ESTV MWST-Branchen-Info 08 Hotel- und
-    Gastgewerbe (Beherbergung, Halbpension, Minibar, Kurtaxen Ziff. 7.11 as
-    durchlaufende Posten / Ziffer 910, Annullierungen Ziff. 8.7 as Schadenersatz),
-    the Schweizer Kontenrahmen KMU and the Kontenrahmen für die Hotellerie und
-    Gastronomie for account classes, and the Gemeinde/Kanton rules for Kurtaxe,
-    Gästetaxe and Beherbergungsabgabe.
-  - docs/posting-rules.md for the posting logic (VAT side in SingleInformation with
-    the tax amount passed explicitly, Kurtaxe as durchlaufender Posten, payments to
-    clearing accounts, Anzahlungen and their MWST).
-  - Open-source cross-checks (read only, never copied): libracore/erpnextswiss
-    Abacus export (AGPL-3.0), phamos-eu/Swiss-Accounting-Integration (GPL-3.0).
+  - Odoo source at github.com/odoo/odoo, branches 17.0, 18.0 and 19.0: account.move
+    and account.move.line (auto tax mode of journal entries, base amounts excluded,
+    is_refund, automatic balancing line, readonly fields), account.tax rounding,
+    base_import and ir_fields (one2many rows, External IDs, empty cells), chart
+    templates (External IDs `account.<company>_<id>`), l10n_de SKR03/SKR04 taxes,
+    accounts and tax report tags, l10n_at and l10n_ch taxes; the Odoo documentation
+    "Export and import data", "External JSON-2 API", "Germany" and "Taxes".
+    openspec/research/o-target.md and later docs/odoo-format.md record what was
+    checked, the file paths, the URLs and the date.
+  - UStG (§ 10 Abs. 1 durchlaufende Posten, § 12 Abs. 2 Nr. 11 Beherbergung 7 %,
+    § 13 Abs. 1 Nr. 1 Buchst. a Anzahlungen, § 17 Forderungsausfall), the Speisen
+    rate of 7 % from 2026-01-01 (Steueränderungsgesetz 2025), UStVA Kennzahlen 81 and
+    86, and the DATEV SKR03/SKR04 hotel templates of apaleo-datev-export.
+  - docs/posting-rules.md for the posting logic (daily entries, net bases with the
+    Odoo tax, base fitting, Kurtaxe as durchlaufender Posten, payments to clearing
+    accounts, Anzahlungen with their VAT, Forderungsverluste with tax correction).
+  - Open-source cross-checks (read only, never copied): Odoo's own import templates
+    and tests (LGPL-3.0).
 
   Conventions: conventional commits; one OpenSpec change per vertical slice, named
-  a01-, a02-, ... in build order; every slice ships with tests and keeps
-  `pnpm test`, `pnpm lint`, `pnpm typecheck` green. No real Swiss apaleo property and
-  no Abacus installation exist yet: test against recorded/fabricated fixtures shaped
-  exactly like the apaleo Swagger schemas (the recorded BER/VIE days plus a
-  fabricated CHF month) and against golden Abacus XML files built from the
-  documented field rules; keep a live smoke-test command for when a Swiss developer
-  property exists, and a checklist for the first real Abacus test import with a
-  Treuhänder. Never commit secrets.
+  o01-, o02-, ... in build order; every slice ships with tests and keeps
+  `pnpm test`, `pnpm lint`, `pnpm typecheck` green. No real German apaleo property
+  with Odoo exists yet: test against recorded/fabricated fixtures shaped exactly like
+  the apaleo Swagger schemas (the recorded BER/VIE days plus a fabricated German EUR
+  month) and against golden Odoo import files built from the documented field rules
+  and a TypeScript model of Odoo's tax computation; keep a live smoke-test command
+  for apaleo, and a checklist for the first real Odoo test import (Odoo Online trial
+  for 19, a local Community 17 and 18) with a Steuerberater. Never commit secrets.
 
-  README and docs: Swiss Standard German first, for Switzerland. The audience is
-  Swiss hotels and their Treuhänder / Buchhaltung, so README.md and every doc (docs/,
-  CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, DISCLAIMER, CHANGELOG, GitHub templates,
-  comments in the example configs) are in Schweizer Hochdeutsch only: no "ß" (write
-  "ss"), address the reader with "du", and use Swiss accounting terms as
-  practitioners do (Treuhänder, Buchhaltung, Mandant, Kontenplan, KMU-Kontenrahmen,
-  Sachkonto, Gegenkonto, MWST, MWST-Code, MWST-Abrechnung, Ziffer, vereinbart /
-  vereinnahmt, Kurtaxe, Beherbergungsabgabe, Anzahlung, Belegnummer, Kostenstelle,
-  Geschäftsbereich, Rappen). One short README.en.md serves international
+  README and docs: German as written in Germany. The audience is German hotels and
+  their Steuerberater / Buchhaltung, so README.md and every doc (docs/, CONTRIBUTING,
+  SECURITY, CODE_OF_CONDUCT, DISCLAIMER, CHANGELOG, GitHub templates, comments in the
+  example configs and templates) are in German only: with "ß", German quotation
+  marks („…“), address the reader with "du", and use German accounting terms as
+  practitioners do (Steuerberater, Kanzlei, Buchhaltung, Buchungssatz, Journal,
+  Entwurf, buchen, Sachkonto, Gegenkonto, Umsatzsteuer, USt, Steuersatz, Kennzahl,
+  UStVA, Kontenrahmen SKR03/SKR04, Kostenstelle / Kostenrechnung, Anzahlung,
+  Kurtaxe, Beherbergungsteuer, durchlaufender Posten, Geldtransit,
+  Forderungsverlust). Odoo menu names are given in German with the English label in
+  parentheses where they differ. One short README.en.md serves international
   contributors; no topic is kept in two languages and there are no *.de.md files.
   Code, identifiers, CLI output and commit messages stay English. The README H1
-  keeps "apaleo Abacus Export" and "kostenlos" for search. Clear, plain language,
+  keeps "apaleo Odoo Export" and "kostenlos" for search. Clear, plain language,
   copy-paste setup steps, prominent "Keine Gewähr, keine Steuerberatung, lass deine
-  Kontenzuordnung von deinem Treuhänder prüfen" disclaimer.
+  Kontenzuordnung von deinem Steuerberater prüfen" disclaimer.
 
 rules:
   proposal:
