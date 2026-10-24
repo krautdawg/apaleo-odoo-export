@@ -14,7 +14,10 @@ import {
   checkLinks,
   checkPendingImport,
   checkPracticeTerms,
+  checkQuotationMarks,
+  checkRateNotation,
   configPaths,
+  COPIED_SETUP_SECTION,
   documentationFiles,
   findingCodes,
   functionWords,
@@ -38,9 +41,11 @@ import {
  * relative link and anchor must resolve, and the docs are German, with "du".
  * Since a08 (design decisions 1, 5 and 6) no German file uses terms of Austrian
  * BMD practice, BMD and DATEV are named only where they must be, and no tested
- * import is claimed before one is recorded. Since o01 (design decision 3) every
- * doc may be German as written in Germany: "ß", `19 %`, SKR03 and UStVA pass,
- * in every file, without a list of files.
+ * import is claimed before one is recorded. Since o08 (design decision 3) one
+ * rule holds for every German file, without a list of files: German as written
+ * in Germany ("ß", `19 %`, SKR03, UStVA and DATEV pass), no Swiss or Austrian
+ * practice terms, no « », rates with a decimal comma and a space before %, and
+ * Abacus and BMD only where a file points to the origin projects.
  */
 const FILES = documentationFiles();
 const GERMAN_FILES = FILES.filter((file) => file !== 'README.en.md');
@@ -100,8 +105,16 @@ describe('README and docs match the code', () => {
     expect(checkInformalAddress(file, germanPart(file))).toEqual([]);
   });
 
-  it.each(GERMAN_FILES)('%s: no Austrian BMD terms, BMD and DATEV only where allowed', (file) => {
+  it.each(GERMAN_FILES)('%s: no Swiss or Austrian practice terms, Abacus and BMD only where allowed', (file) => {
     expect(checkPracticeTerms(file, germanPart(file))).toEqual([]);
+  });
+
+  it.each(GERMAN_FILES)('%s: German quotation marks, never « or »', (file) => {
+    expect(checkQuotationMarks(file, germanPart(file))).toEqual([]);
+  });
+
+  it.each(GERMAN_FILES)('%s: writes rates with a decimal comma and a space before %%', (file) => {
+    expect(checkRateNotation(file, germanPart(file))).toEqual([]);
   });
 
   it('checks every German file, not a list of files', () => {
@@ -151,9 +164,9 @@ describe('README and docs match the code', () => {
 describe('the docs checks', () => {
   const sh = (...lines: string[]) => ['Some text.', '', '```sh', ...lines, '```', ''].join('\n');
 
-  it('names a stale flag, its command and the file', () => {
-    const problems = checkCommandLines('docs/odoo-import.md', sh('apaleo-odoo export --month 2026-10 --email'), COMMANDS);
-    expect(problems).toEqual(['docs/odoo-import.md: "apaleo-odoo export --month 2026-10 --email": --email is not an option of "export"']);
+  it('Stale flag: names --upload, the command and the file', () => {
+    const problems = checkCommandLines('docs/odoo-import.md', sh('apaleo-odoo export --month 2026-10 --upload'), COMMANDS);
+    expect(problems).toEqual(['docs/odoo-import.md: "apaleo-odoo export --month 2026-10 --upload": --upload is not an option of "export"']);
   });
 
   it('Old binary in a doc: names apaleo-abacus and the file, and passes once the line reads apaleo-odoo', () => {
@@ -336,9 +349,29 @@ describe('the language checks', () => {
 describe('the practice terms check', () => {
   const problemsOf = (file: string, text: string) => checkPracticeTerms(file, text);
 
+  it('Swiss paragraph copied: names the file and the terms Treuhänder and MWST-Code', () => {
+    const text = readRepoFile('test/fixtures/docs/swiss-paragraph.md');
+    const problems = problemsOf('docs/mapping-guide.md', text);
+    expect(problems).toEqual([
+      'docs/mapping-guide.md: "Dein Treuhänder prüft den MWST-Code jeder Zeile, bevor die Datei in die Buchhaltung geht. Das ist die Regel für jeden Monat und für jedes Hotel, und sie gilt auch für die Kurtaxe.": "Treuhänder" is a term of Swiss practice',
+      'docs/mapping-guide.md: "Dein Treuhänder prüft den MWST-Code jeder Zeile, bevor die Datei in die Buchhaltung geht. Das ist die Regel für jeden Monat und für jedes Hotel, und sie gilt auch für die Kurtaxe.": "MWST-Code" is a term of Swiss practice',
+    ]);
+    expect(problemsOf('docs/mapping-guide.md', text.replace('Treuhänder', 'Steuerberater').replace('MWST-Code', 'Steuersatz'))).toEqual([]);
+  });
+
+  it('names every Swiss practice term as a whole word, with its German endings, and nothing inside another word', () => {
+    for (const term of ['Treuhänder', 'MWST', 'MWST-Code', 'MWST-Abrechnung', 'Rappen', 'KMU-Kontenrahmen', 'Mandantennummer', 'Leitwährung']) {
+      expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([expect.stringContaining(`"${term}" is a term of Swiss practice`)]);
+    }
+    expect(problemsOf('docs/x.md', 'Den Treuhändern und die Mandantennummern.')).toHaveLength(2);
+    expect(problemsOf('docs/x.md', 'Ein MWST-Satz.')).toEqual([expect.stringContaining('"MWST" is a term')]);
+    expect(problemsOf('docs/x.md', 'Die Treuhänderschaft, der Rappenspalter, `MWST` im Code und die KMU-Vorlage sind keine Treffer.')).toEqual([]);
+  });
+
   it('Austrian paragraph copied: names the file and the term Buchungssymbol, not Kanzlei', () => {
-    expect(problemsOf('docs/mapping-guide.md', 'Die Kanzlei legt das Buchungssymbol an.')).toEqual([
-      'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an.": "Buchungssymbol" is a term of Austrian BMD practice',
+    const text = readRepoFile('test/fixtures/docs/austrian-paragraph.md');
+    expect(problemsOf('docs/mapping-guide.md', text)).toEqual([
+      'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an. Danach prüft die Buchhaltung die Datei und gibt sie frei, bevor du den nächsten Monat exportierst.": "Buchungssymbol" is a term of Austrian BMD practice',
     ]);
     for (const term of ['Steuercode', 'Einheitskontenrahmen', 'EKR', 'UVA', 'Ortstaxe', 'Nächtigungsabgabe', 'Personenkonto']) {
       expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([expect.stringContaining(`"${term}"`)]);
@@ -346,53 +379,49 @@ describe('the practice terms check', () => {
     expect(problemsOf('docs/x.md', 'Die Hauskanzlei, das BMDX-Feld, 2,0 % und 110 % sind keine Treffer. `BMD` und `Kanzlei` im Code auch nicht.')).toEqual([]);
   });
 
-  it('German rate no longer forbidden: 19 %, 7 % and the German accounting terms pass, 10 % is still reported', () => {
-    expect(problemsOf('docs/mapping-guide.md', 'Getränke mit 19 %.')).toEqual([]);
-    expect(problemsOf('docs/mapping-guide.md', 'Konten nach SKR03.')).toEqual([]);
-    for (const term of ['SKR03', 'SKR04', 'UStVA', 'Kennzahl', 'Kanzlei', 'Beherbergungsteuer', 'Übernachtungsteuer', '7 %', '19 %', '7%']) {
+  it('German rates and terms pass: 19 %, 7 %, SKR03 and the German accounting terms, while the Austrian rates are still reported', () => {
+    for (const term of ['SKR03', 'SKR04', 'UStVA', 'Kennzahl', 'Kanzlei', 'Steuerberater', 'Beherbergungsteuer', 'Übernachtungsteuer', 'Geldtransit', 'Forderungsverlust', '7 %', '19 %']) {
       expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([]);
     }
     expect(problemsOf('docs/posting-rules.md', 'Beherbergung mit 10 %.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"10 %"/)]);
-    for (const rate of ['13 %', '20 %', '20%']) expect(problemsOf('docs/x.md', `Logis mit ${rate}.`), rate).toHaveLength(1);
+    for (const rate of ['13 %', '20 %']) expect(problemsOf('docs/x.md', `Logis mit ${rate}.`), rate).toHaveLength(1);
     expect(problemsOf('docs/x.md', 'Nie 110 %, 120 % oder 2,0 %. `10 %` im Code.\n\n```text\nKurtaxe 10 %\n```\n')).toEqual([]);
   });
 
-  it('Bare target mention: names the file and the token BMD or DATEV', () => {
-    expect(problemsOf('docs/odoo-import.md', 'Das läuft wie beim BMD-Import.')).toEqual([
-      'docs/odoo-import.md: "Das läuft wie beim BMD-Import.": "BMD" is named outside a link to an origin project, the other target formats and the findings for a copied setup',
-    ]);
-    expect(problemsOf('docs/odoo-import.md', 'Das läuft wie beim DATEV-Import.')).toEqual([expect.stringContaining('"DATEV" is named outside')]);
+  it('DATEV is a German term: "Der DATEV-Export aus Odoo Enterprise bleibt davon unberührt" passes', () => {
+    expect(problemsOf('docs/odoo-import.md', readRepoFile('test/fixtures/docs/datev-term.md'))).toEqual([]);
   });
 
-  it('Allowed origin mention: the README origin sentence and the other target formats, the changelog and the copied-setup findings', () => {
-    const readme = [
-      'Das Tool baut auf [apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) und [apaleo-datev-export](https://github.com/krautdawg/apaleo-datev-export) auf; wer mit BMD oder DATEV bucht, nimmt eines davon.',
-      '',
-      '## Was es nicht macht',
-      '',
-      '- Nur apaleo und keine anderen Zielformate wie DATEV oder BMD.',
-    ].join('\n');
+  it('Bare Abacus mention: names the file and the token Abacus, and BMD the same way', () => {
+    expect(problemsOf('docs/odoo-import.md', readRepoFile('test/fixtures/docs/bare-abacus.md'))).toEqual([
+      'docs/odoo-import.md: "Die Datei importierst du wie beim Abacus-Import über das Menü der Buchhaltung, und danach prüfst du die Entwürfe.": "Abacus" is named outside a link to an origin project, the other target formats and the findings for a copied setup',
+    ]);
+    expect(problemsOf('docs/odoo-import.md', 'Das läuft wie beim BMD-Import.')).toEqual([expect.stringContaining('"BMD" is named outside')]);
+    expect(problemsOf('docs/x.md', '`apaleo-abacus-export` und apaleo-abacus-export sind Namen, keine Treffer.')).toEqual([]);
+  });
+
+  it('Allowed origin mention: the README origin sentence with three links and the other target formats pass, elsewhere they do not', () => {
+    const readme = readRepoFile('test/fixtures/docs/allowed-origin.md');
     expect(problemsOf('README.md', readme)).toEqual([]);
     expect(problemsOf('docs/x.md', readme)).toHaveLength(4);
-    expect(problemsOf('README.md', '## Was es macht\n\n- Keine anderen Zielformate wie DATEV.\n')).toHaveLength(1);
-    expect(problemsOf('CHANGELOG.md', 'Entfernt: der BMD-Writer, die EKR-Vorlage und die Steuercodes.')).toEqual([]);
-    const troubleshooting = `## Kontenzuordnung\n\nKein BMD hier.\n\n## Einrichtung aus Deutschland oder Österreich übernommen\n\nEine BMD-Zuordnung mit 10 % und Steuercode, eine DATEV-Zuordnung mit 7 % und BU-Schlüssel.\n`;
-    expect(problemsOf('docs/troubleshooting.md', troubleshooting)).toEqual([expect.stringContaining('"Kein BMD hier."')]);
+    expect(problemsOf('README.md', '## Was es macht\n\n- Keine anderen Zielformate wie Abacus.\n')).toHaveLength(1);
+    expect(problemsOf('README.md', '**Abacus?** Siehe [das Projekt](https://github.com/krautdawg/elsewhere).')).toHaveLength(1);
   });
 
-  it('FAQ answer on BMD and DATEV: passes in a line that links the origin projects, while "**DATEV?** Nein." is reported', () => {
-    const faq = [
-      '## Häufige Fragen',
-      '',
-      '**Gibt es das auch für BMD oder DATEV?** Ja: [apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) und [apaleo-datev-export](https://github.com/krautdawg/apaleo-datev-export/).',
-    ].join('\n');
+  it('the changelog and the copied-setup findings may name the origin projects and their terms', () => {
+    expect(problemsOf('CHANGELOG.md', 'Entfernt: der Abacus-Writer, die KMU-Vorlage, die MWST-Codes und die Steuercodes.')).toEqual([]);
+    const troubleshooting = `## Kontenzuordnung\n\nKein Abacus hier.\n\n## ${COPIED_SETUP_SECTION}\n\nEine Abacus-Zuordnung mit MWST-Code, eine BMD-Zuordnung mit 10 % und Steuercode.\n`;
+    expect(problemsOf('docs/troubleshooting.md', troubleshooting)).toEqual([expect.stringContaining('"Kein Abacus hier."')]);
+  });
+
+  it('FAQ answer on DATEV, BMD and Abacus: passes in a line that links the origin projects, while "**Abacus?** Nein." is reported', () => {
+    const faq = '## Häufige Fragen\n\n**Gibt es das auch für BMD oder Abacus?** Ja: [apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) und [apaleo-abacus-export](https://github.com/krautdawg/apaleo-abacus-export/).';
     expect(problemsOf('README.md', faq)).toEqual([]);
-    expect(problemsOf('README.md', '## Häufige Fragen\n\n**DATEV?** Nein.\n')).toEqual([expect.stringContaining('"DATEV" is named outside')]);
-    expect(problemsOf('README.md', '**BMD?** Siehe [das Projekt](https://github.com/krautdawg/elsewhere).')).toHaveLength(1);
+    expect(problemsOf('README.md', '## Häufige Fragen\n\n**Abacus?** Nein.\n')).toEqual([expect.stringContaining('"Abacus" is named outside')]);
   });
 });
 
-describe('spelling during the transition (o01)', () => {
+describe('German as written in Germany, one rule for every German file (o08)', () => {
   const germany = readRepoFile('test/fixtures/docs/germany-configuration.md');
   /** Every check the docs test runs on one German file. */
   const allChecks = (file: string, text: string) => [
@@ -402,21 +431,64 @@ describe('spelling during the transition (o01)', () => {
     ...checkGerman(file, text),
     ...checkInformalAddress(file, text),
     ...checkPracticeTerms(file, text),
+    ...checkQuotationMarks(file, text),
+    ...checkRateNotation(file, text),
     ...checkCompatibilityClaims(file, text, []),
   ];
 
-  it('Sharp s in any doc: "gemäß" and "Buchungssätze" pass in docs/configuration.md and every other file', () => {
-    expect(germany).toContain('Die Datei enthält die Buchungssätze eines Monats, gemäß der Kontenzuordnung');
-    for (const file of ['docs/configuration.md', 'docs/docker.md', 'README.md', 'CODE_OF_CONDUCT.md']) expect(allChecks(file, germany), file).toEqual([]);
+  it('Sharp s is German: "Schließe" and "gemäß" pass in docs/docker.md and every other file', () => {
+    expect(germany).toContain('Schließe die Datei erst');
+    expect(germany).toContain('gemäß der Kontenzuordnung');
+    for (const file of ['docs/docker.md', 'docs/configuration.md', 'README.md', 'CODE_OF_CONDUCT.md']) expect(allChecks(file, germany), file).toEqual([]);
+    expect(allChecks('docs/docker.md', `${germany}\nSchließe das Terminal, wenn der Lauf fertig ist.\n`)).toEqual([]);
   });
 
-  it('German rate no longer forbidden: "Getränke mit 19 %" and "SKR03" pass in docs/mapping-guide.md', () => {
-    expect(germany).toContain('Getränke mit 19 %');
-    expect(germany).toContain('SKR03');
-    expect(allChecks('docs/mapping-guide.md', germany)).toEqual([]);
+  it('refuses « and » in every German file, also in code, and names the file', () => {
+    expect(checkQuotationMarks('CHANGELOG.md', 'Die Datei «XML Buchungen».')).toEqual(['CHANGELOG.md: "Die Datei «XML Buchungen».": « and » are Swiss quotation marks; write „…“']);
+    expect(checkQuotationMarks('docs/x.md', '```text\n»\n```')).toHaveLength(1);
+    expect(checkQuotationMarks('docs/x.md', 'Die Datei „Buchungen“.')).toEqual([]);
   });
 
-  it('No transition list: a new docs/odoo-format.md is checked like every other doc, and no list names it', () => {
+  it('Decimal point in a German rate: names the file and the rate, passes with "7 %" and "19 %", and code spans pass', () => {
+    const text = readRepoFile('test/fixtures/docs/decimal-rate.md');
+    const line = 'Das Tool bucht die Beherbergung zu 7.0 % und die Getränke zu 19%. Die Steuer der Zeile steht im Code als  und in der Datei als .';
+    expect(checkRateNotation('docs/posting-rules.md', text)).toEqual([
+      `docs/posting-rules.md: "${line}": "7.0 %" has a decimal point; write a decimal comma`,
+      `docs/posting-rules.md: "${line}": "19%" needs a space before %`,
+    ]);
+    expect(checkRateNotation('docs/posting-rules.md', text.replace('7.0 %', '7 %').replace('19%', '19 %'))).toEqual([]);
+    expect(checkRateNotation('docs/x.md', 'Speisen zu 10,7 %, mit geschütztem Leerzeichen 7\u00a0%, `19.0` und `7%` im Code.\n\n```csv\nErlöse;19.0%\n```\n')).toEqual([]);
+    expect(checkRateNotation('docs/x.md', 'Ein Satz von 8,1%.')).toEqual([expect.stringContaining('"8,1%" needs a space')]);
+  });
+
+  it('Broken anchor after a rewrite: names the README, the link and the missing anchor', () => {
+    const root = mkdtempSync(join(tmpdir(), 'apaleo-odoo-docs-'));
+    try {
+      mkdirSync(join(root, 'docs'));
+      writeFileSync(join(root, 'docs', 'docker.md'), '# Docker\n\n### Demo im Image\n');
+      expect(checkLinks('README.md', 'Siehe [Demo](docs/docker.md#die-demo-im-image).', root)).toEqual([
+        'README.md: link "docs/docker.md#die-demo-im-image": #die-demo-im-image is not a heading of docs/docker.md',
+      ]);
+      expect(checkLinks('README.md', 'Siehe [Demo](docs/docker.md#demo-im-image).', root)).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('Guide in two languages is rejected: names docs/docker.de.md', () => {
+    const root = mkdtempSync(join(tmpdir(), 'apaleo-odoo-docs-'));
+    try {
+      mkdirSync(join(root, 'docs'));
+      writeFileSync(join(root, 'docs', 'docker.de.md'), germany);
+      mkdirSync(join(root, 'openspec'));
+      writeFileSync(join(root, 'openspec', 'notes.de.md'), germany);
+      expect(splitLanguageFiles(root)).toEqual(['docs/docker.de.md']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('One rule set: a new docs/odoo-format.md is checked like every other doc, and no list of files names it', () => {
     const root = mkdtempSync(join(tmpdir(), 'apaleo-odoo-docs-'));
     try {
       mkdirSync(join(root, 'docs'));
