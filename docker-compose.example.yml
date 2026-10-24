@@ -6,10 +6,11 @@
 #   docker compose -f docker-compose.example.yml up -d --build
 #
 # Das Image wird hier aus dem Quellcode gebaut (build: .); es gibt kein Image in
-# einer Registry. Die Schleife ruft stündlich "schedule --once" auf: Es exportiert,
+# einer Registry. Die Schleife ruft stündlich „schedule --once“ auf: Es exportiert,
 # was fällig ist, und überspringt, was schon in ./data liegt. Häufige Aufrufe
-# kosten also nichts. Die Abacus-Dateien für deinen Treuhänder liegen danach in
-# ./data/<Hotel>/<JJJJ-MM>/.
+# kosten also nichts. Die Odoo-Dateien (CSV mit Protokoll) für deine Kanzlei
+# liegen danach in ./data/<Hotel>/<JJJJ-MM>/; den Import in Odoo beschreibt
+# docs/odoo-import.md.
 #
 # Mit Argumenten führt der Dienst stattdessen genau diesen einen Befehl aus und
 # endet, zum Beispiel aus Cron auf dem Host oder für einen einmaligen Export:
@@ -21,13 +22,13 @@ services:
     build: .
     image: apaleo-odoo-export:local
     restart: unless-stopped
-    # tini als PID 1, damit "docker compose down" das sleep sofort beendet.
+    # tini als PID 1, damit „docker compose down“ das sleep sofort beendet.
     init: true
     env_file: .env
-    # "Heute" für den Zeitplan ist das Datum in dieser Zeitzone. Europe/Zurich ist
-    # der Standard; setz den Wert nur, wenn deine Hotels woanders stehen.
+    # „Heute“ für den Zeitplan ist das Datum in dieser Zeitzone. Europe/Berlin ist
+    # der Standard; setz den Wert nur, wenn deine Hotels in einer anderen Zeitzone stehen.
     # environment:
-    #   APALEO_ODOO_TIMEZONE: Europe/Zurich
+    #   APALEO_ODOO_TIMEZONE: Europe/Berlin
     volumes:
       - ./config:/config:ro
       - ./data:/data

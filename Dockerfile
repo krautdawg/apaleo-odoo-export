@@ -1,10 +1,10 @@
-# apaleo-odoo-export container image. Built locally only: there is no
-# registry image. See docs/docker.md.
+# Container-Image von apaleo-odoo-export. Es wird nur lokal gebaut: Es gibt
+# kein Image in einer Registry. Siehe docs/docker.md.
 #
 #   docker build -t apaleo-odoo-export:local .
 #   docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-odoo-export:local
 
-# --- build: compile TypeScript, then keep only the runtime dependencies ------
+# --- Build: TypeScript kompilieren, danach nur die Laufzeit-Abhängigkeiten behalten
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 RUN corepack enable
@@ -14,7 +14,7 @@ COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN pnpm build && pnpm prune --prod
 
-# --- runtime ------------------------------------------------------------------
+# --- Laufzeit -----------------------------------------------------------------
 FROM node:24-bookworm-slim
 LABEL org.opencontainers.image.title="apaleo-odoo-export" \
       org.opencontainers.image.description="apaleo -> Odoo Accounting export (journal entries import file)" \
@@ -31,8 +31,9 @@ COPY templates ./templates
 COPY examples/demo ./examples/demo
 COPY LICENSE DISCLAIMER.md README.md ./
 RUN mkdir -p /config /data && chown node:node /data
-# The config and mapping files live in /config (mounted read-only), and the
-# tool resolves the mapping paths in the config against the working directory.
+# Konfiguration und Kontenzuordnungen liegen in /config (nur lesbar eingebunden),
+# und das Tool löst die Pfade der Zuordnungen gegen das Arbeitsverzeichnis auf.
+# Die Odoo-Dateien schreibt es nach /data (APALEO_ODOO_OUTPUT_DIR).
 WORKDIR /config
 USER node
 VOLUME ["/config", "/data"]

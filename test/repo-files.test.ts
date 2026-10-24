@@ -98,6 +98,7 @@ describe('CI workflow', () => {
     expect(text).toContain('docker run --rm -w /data -v "$RUNNER_TEMP/demo-data:/data" apaleo-odoo-export:ci export --month 2026-09 --demo\n');
     expect(text).toContain('sudo chown 1000:1000 "$RUNNER_TEMP/demo-data"');
     expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv"');
+    expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.protokoll.txt"');
     for (const check of ["label description | grep -q 'apaleo'", "label description | grep -q 'Odoo'", "if label description | grep -q -e 'Abacus' -e 'BMD'; then exit 1; fi", 'test "$(label licenses)" = MIT']) {
       expect(text).toContain(check);
     }
@@ -177,9 +178,10 @@ describe('compose and env examples', () => {
     expect(script).toMatch(/while true; do\s+node \/app\/dist\/cli\/main\.js schedule --once\s+sleep \d+\s+done/);
   });
 
-  it('sets APALEO_ODOO_TIMEZONE only commented out, with the default Europe/Zurich', () => {
+  it('sets APALEO_ODOO_TIMEZONE only commented out, with the default Europe/Berlin', () => {
     const text = read('docker-compose.example.yml');
-    expect(text).toMatch(/^ {4}# {3}APALEO_ODOO_TIMEZONE: Europe\/Zurich$/m);
+    expect(text).toMatch(/^ {4}# {3}APALEO_ODOO_TIMEZONE: Europe\/Berlin$/m);
+    expect(text).not.toContain('Europe/Zurich');
     expect(text).toMatch(/^ {4}# environment:$/m);
     expect((compose.services['apaleo-odoo'] as Record<string, unknown>).environment).toBeUndefined();
   });
@@ -189,7 +191,21 @@ describe('compose and env examples', () => {
       const text = read(file);
       expect(text, file).not.toMatch(/\bBMD\b/);
     }
-    expect(read('docker-compose.example.yml')).toContain('Treuhänder');
+  });
+
+  it('comments the compose and env examples and the Dockerfile in German as used in Germany, pointing to the Odoo files and docs/odoo-import.md', () => {
+    const compose = read('docker-compose.example.yml');
+    expect(compose).toContain('Die Odoo-Dateien (CSV mit Protokoll) für deine Kanzlei');
+    expect(compose).toContain('docs/odoo-import.md');
+    expect(read('Dockerfile')).toContain('# Container-Image von apaleo-odoo-export. Es wird nur lokal gebaut');
+    for (const file of ['docker-compose.example.yml', '.env.example', 'Dockerfile']) {
+      const comments = read(file)
+        .split('\n')
+        .filter((line) => line.trimStart().startsWith('#'))
+        .join('\n');
+      for (const term of ['Treuhänder', 'Abacus', 'MWST', 'Mandant', '«', '»', 'Europe/Zurich']) expect(comments, `${file}: ${term}`).not.toContain(term);
+      expect(comments, file).not.toMatch(/\b(the|and|only|there is)\b/);
+    }
   });
 
   it('lists only variable names with empty values in .env.example, and .env is git-ignored', () => {
@@ -202,7 +218,8 @@ describe('compose and env examples', () => {
     const paths = [
       'config/apaleo-odoo.config.yaml',
       'config/mapping-BSP.csv',
-      'data/BSP/2026-10/ABACUS_Buchungen_20261001-20261031_BSP.xml',
+      'data/BSP/2026-10/ODOO_Buchungen_20261001-20261031_BSP.csv',
+      'data/BSP/2026-10/ODOO_Buchungen_20261001-20261031_BSP.protokoll.txt',
       'data/BSP/2026-10/manifest.json',
       'schedule.log',
       'apaleo-odoo.config.yaml',
