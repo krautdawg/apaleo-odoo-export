@@ -71,12 +71,22 @@ export function checkMapping(mapping: Mapping, options: CheckMappingOptions = {}
 export const USED_ROW_TAX_WARNINGS: ReadonlySet<string> = new Set(['W-TAX-RATE', 'W-TAX-UNCHECKED', 'W-TAX-KZ45']);
 
 /**
- * `W-TAX-RATE`, `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the lines of
- * a period actually resolve to, one finding per warning that names every row it
- * concerns (`lines 3, 6: ...`). The posting guard compares rates only, so a
- * swapped tax (`tax_ust_19_skr03` at 7 %) or a custom tax would reach the file
- * silently; the export and schedule runs never call `mapping check`, so they
- * report these warnings in the dry run and the protocol themselves.
+ * The export's error for a used row whose known l10n_de tax has another rate in
+ * Odoo than the row books (`W-TAX-RATE` in `mapping check`): the writer would fit
+ * the base for the row's rate while Odoo computes its own, so the VAT would be
+ * wrong and Odoo would add an "Automatic Balancing Line".
+ */
+export const USED_ROW_TAX_RATE_ERROR = 'E-TAX-RATE-WRONG';
+
+/**
+ * `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the lines of a period
+ * actually resolve to, and `E-TAX-RATE-WRONG` in place of `W-TAX-RATE`, one finding
+ * per code that names every row it concerns (`lines 3, 6: ...`). The posting guard
+ * compares rates only, so a swapped tax (`tax_ust_19_skr03` at 7 %) or a custom tax
+ * would reach the file silently; the export and schedule runs never call
+ * `mapping check`, so they report these findings in the dry run and the protocol
+ * themselves. A known tax at the wrong rate blocks the file: Odoo always computes
+ * the tax at its own rate.
  */
 export function checkUsedTaxes(mapping: Mapping, lines: readonly LedgerLine[], chart: ChartIndex | undefined, options: CoverageOptions): Finding[] {
   const used = new Map<number, MappingRow>();
@@ -92,9 +102,17 @@ export function checkUsedTaxes(mapping: Mapping, lines: readonly LedgerLine[], c
   for (const row of [...used.values()].sort((a, b) => a.line - b.line)) {
     for (const finding of checkRow(row, {})) {
       if (!USED_ROW_TAX_WARNINGS.has(finding.code)) continue;
-      const body = finding.message.slice(`line ${row.line}: `.length);
-      const key = `${finding.code}\u0000${body}`;
-      const entry = merged.get(key) ?? { finding: { ...finding, message: body }, lines: [] };
+      const wrongRate = finding.code === 'W-TAX-RATE';
+      const code = wrongRate ? USED_ROW_TAX_RATE_ERROR : finding.code;
+      const body = finding.message.slice(`line ${row.line}: `.length).replace(
+        /\. Check that the taxes are not swapped$/,
+        wrongRate
+          ? '. Odoo computes the tax at its own rate while the file fits the base for the row\'s rate, so the VAT would be wrong and Odoo would add an ' +
+              '"Automatic Balancing Line". Correct odoo_tax or tax_percent of the row (are the taxes swapped?), run mapping check and export again'
+          : '. Check that the taxes are not swapped',
+      );
+      const key = `${code}\u0000${body}`;
+      const entry = merged.get(key) ?? { finding: { ...finding, code, message: body }, lines: [] };
       entry.lines.push(row.line);
       merged.set(key, entry);
     }

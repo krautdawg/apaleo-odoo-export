@@ -162,7 +162,7 @@ Diese Fälle entscheidet deine Kanzlei, siehe [Was deine Kanzlei entscheiden mus
 | `E-TAX-MISSING` | `tax_percent` ist größer als 0, aber die Steuer fehlt. | Trag die Steuer dieses Satzes ein. |
 | `E-TAX-NOT-ALLOWED` | Eine Zeile für Zahlungen, Gästeforderungen oder Firmenrechnungen hat eine Steuer. | Lass Steuer und Satz dort leer; die Steuer gehört auf die Erlös- oder Anzahlungszeile. |
 | `W-TAX-UNCHECKED` | Die Steuer ist keine der Steuern von l10n_de, die das Tool kennt. | Lass dir von deiner Kanzlei bestätigen, dass sie eine Umsatzsteuer des Unternehmens mit diesem Satz ist. |
-| `W-TAX-RATE` | Eine bekannte Steuer steht mit einem anderen Satz als ihrem eigenen in der Zeile. | Prüfe, ob die Steuern vertauscht sind. |
+| `W-TAX-RATE` | Eine bekannte Steuer steht mit einem anderen Satz als ihrem eigenen in der Zeile. Nutzt ein Monat die Zeile, stoppt der Export mit `E-TAX-RATE-WRONG`. | Prüfe, ob die Steuern vertauscht sind. |
 | `W-TAX-KZ45` | Auf der Zeile steht die nicht steuerbare Steuer, die in Kennzahl 45 meldet. | Lass Steuer und Satz leer, außer die Leistung ist im Ausland steuerbar. |
 | `N-DEFAULT-TAX-ACCOUNT` | Eine Zeile ohne Steuer zeigt auf ein Konto mit Standardsteuer. | Nichts, wenn „ohne Steuer“ gemeint ist; bearbeite die Zeile in Odoo nicht von Hand. |
 | `N-GENERATED-ACCOUNT` | Eine Zahlungszeile zeigt auf Kasse oder Geldtransit, die Odoo beim Einrichten anlegt. | Vergleiche den Code mit dem Kontenplan. |

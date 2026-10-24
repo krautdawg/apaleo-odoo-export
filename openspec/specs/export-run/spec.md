@@ -210,11 +210,11 @@ The export SHALL ask the configured `TargetWriter` for the currency it books in 
 - **THEN** no `E-CURRENCY` is raised, the Odoo file is written and the protocol's import block names the currency CHF
 
 ### Requirement: Tax warnings for the rows a month uses
-For each property and month, the export and `schedule --once` SHALL report the `mapping check` warnings `W-TAX-RATE`, `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the month's ledger lines resolve to, one finding per warning naming every mapping line it concerns, in the dry run, the CLI output and the protocol, because scheduled runs never call `mapping check`. These warnings SHALL NOT block the file, and rows the month does not use SHALL NOT be reported.
+For each property and month, the export and `schedule --once` SHALL report the `mapping check` warnings `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the month's ledger lines resolve to, one finding per warning naming every mapping line it concerns, in the dry run, the CLI output and the protocol, because scheduled runs never call `mapping check`. These warnings SHALL NOT block the file. Where `mapping check` warns `W-TAX-RATE` (one of the six known l10n_de taxes used at another rate than its own), the export SHALL instead raise the error `E-TAX-RATE-WRONG` for the used rows, naming every mapping line, the tax and both rates, and SHALL write no file for that property-month, because Odoo computes the tax at its own rate while the writer fits the base for the row's rate, so the VAT would be wrong and Odoo would add an "Automatic Balancing Line". Rows the month does not use SHALL NOT be reported.
 
 #### Scenario: Swapped tax on a used row
 - **WHEN** the 7 % lodging row maps to `8300` with `tax_ust_19_skr03` at 7 and a month books lodging at 7 %
-- **THEN** the file is written, and the output and the protocol carry `W-TAX-RATE` naming the mapping line, the tax and both rates
+- **THEN** `E-TAX-RATE-WRONG` names the mapping line, the tax and both rates in the output, and no file is written (`mapping check` still warns `W-TAX-RATE` for the row)
 
 #### Scenario: Unused row with a custom tax
 - **WHEN** a row with a custom tax is not reached by any line of the month

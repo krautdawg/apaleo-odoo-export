@@ -84,20 +84,15 @@ describe('the period-part runner', () => {
     expect(csv).toContain(',2026-09-14,APB,');
   });
 
-  it('warns W-MANDANT-SHARED in the protocol of each property that shares an Abacus Mandant, while the abacus section stays', async () => {
-    const config = (...lines: string[]) => `apaleo:\n  clientId: ${CLIENT_ID}\n${ODOO_SECTION}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n${lines.map((l) => `${l}\n`).join('')}`;
-    const setup = (text: string) => exportSetup({ config: text, files: { 'mapping-BS2.csv': readMapping() }, data: (data) => addSecondProperty(data, 'BS2') });
-    const shared = setup(config());
+  it('ignores a leftover abacus section: two properties that share an Abacus Mandant get no W-MANDANT-SHARED in the Odoo protocol', async () => {
+    const config = `apaleo:\n  clientId: ${CLIENT_ID}\n${ODOO_SECTION}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n`;
+    const shared = exportSetup({ config, files: { 'mapping-BS2.csv': readMapping() }, data: (data) => addSecondProperty(data, 'BS2') });
     const both = await run(shared, { propertyIds: [BSP, 'BS2'] });
     expect(both.map((o) => [o.propertyId, o.status, withoutAustrianTaxes(o.findings).map((f) => f.code)])).toEqual([
-      [BSP, 'written', ['W-MANDANT-SHARED']],
-      ['BS2', 'written', ['W-MANDANT-SHARED']],
+      [BSP, 'written', []],
+      ['BS2', 'written', []],
     ]);
-    expect(readFileSync(join(exportsOf(shared), 'BS2', '2026-09', 'ODOO_Buchungen_20260901-20260930_BS2.protokoll.txt'), 'utf8')).toContain(
-      'the properties BSP, BS2 all book into the Abacus Mandant 1234, Geschäftsbereich 0',
-    );
-    const own = await run(setup(config('    geschaeftsbereich: 2')), { propertyIds: [BSP, 'BS2'] });
-    expect(own.map((o) => withoutAustrianTaxes(o.findings).map((f) => f.code))).toEqual([[], []]);
+    expect(readFileSync(join(exportsOf(shared), 'BS2', '2026-09', 'ODOO_Buchungen_20260901-20260930_BS2.protokoll.txt'), 'utf8')).not.toContain('Mandant');
   });
 
   it('stops a part on an E- finding of the coverage check or the posting rules, before writing', async () => {
@@ -215,20 +210,23 @@ describe('the period-part runner', () => {
     expect(dry?.summary).toContain('W-TAX-UNCHECKED');
   });
 
-  it('Swapped tax on a used row: the file is written, and the output and the protocol carry W-TAX-RATE naming the mapping line, the tax and both rates', async () => {
+  it('Swapped tax on a used row: E-TAX-RATE-WRONG names the mapping line, the tax and both rates, and no file is written', async () => {
     const swapped = DE_ROWS.map((row) => (row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00' ? { ...row, odooTax: 'tax_ust_19_skr03' } : row));
-    // Without the 19 % lines of the month, so tax_ust_19_skr03 has one rate in the file.
+    // Without the 19 % lines of the month, so tax_ust_19_skr03 has one rate in the file and only E-TAX-RATE-WRONG stops it.
     const withoutNineteen = (data: typeof DE_MONTH) => {
       Object.assign(data, structuredClone(DE_MONTH));
       data.ledger[BSP] = (data.ledger[BSP] ?? []).filter((line) => !line.taxes.some((tax) => tax.percent === 19));
     };
     const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], swapped)) }, data: withoutNineteen });
     const [outcome] = await run(setup);
-    expect(outcome?.status).toBe('written');
-    expect(outcome?.findings.filter((f) => !f.code.startsWith('N-')).map((f) => [f.code, f.value])).toEqual([['W-TAX-RATE', 'tax_ust_19_skr03']]);
+    expect(outcome?.status).toBe('failed');
+    expect(outcome?.findings.filter((f) => !f.code.startsWith('N-')).map((f) => [f.code, f.value])).toEqual([['E-TAX-RATE-WRONG', 'tax_ust_19_skr03']]);
     const line = swapped.findIndex((row) => row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00') + 2;
-    const protocol = readFileSync(join(exportsOf(setup), BSP, '2026-09', PROTOCOL), 'utf8');
-    expect(protocol).toContain(`line ${line} of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %`);
+    const finding = outcome?.findings.find((f) => f.code === 'E-TAX-RATE-WRONG');
+    expect(finding?.message).toContain(`line ${line} of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %`);
+    expect(finding?.message).toContain('Automatic Balancing Line');
+    expect(outcome?.summary).toContain('E-TAX-RATE-WRONG');
+    expect(existsSync(exportsOf(setup))).toBe(false);
   });
 
   it('Tax used at two rates: two rows with tax_ust_19_skr03 at 7 % and 19 % give E-TAX-RATES naming the tax, both rates and both rows, and no file', async () => {

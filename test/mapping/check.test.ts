@@ -401,10 +401,16 @@ describe('checkUsedTaxes', () => {
   const used = (rows: MappingRowValues[], ledger: LedgerLine[]) => checkUsedTaxes(mappingOf([RECEIVABLES, ...rows]), ledger, undefined, { rateOf: releaseRateOf(ledger, undefined) });
   const lodging = ledgerLine({ credit: { number: ACC7, name: 'Accommodation', type: 'Revenues' }, grossCents: 10_700, netCents: 10_000, taxes: t7(700) });
 
-  it('Swapped tax on a used row: tax_ust_19_skr03 on the 7 % lodging row warns W-TAX-RATE, although the posting guard passes it', () => {
+  it('Swapped tax on a used row: tax_ust_19_skr03 on the 7 % lodging row gives E-TAX-RATE-WRONG, although the posting guard passes it', () => {
     const findings = used([revenue({ odooTax: 'tax_ust_19_skr03' })], [lodging]);
-    expect(codes(findings)).toEqual(['W-TAX-RATE']);
-    expect(findings[0]?.message).toBe('line 3 of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %. Check that the taxes are not swapped');
+    expect(codes(findings)).toEqual(['E-TAX-RATE-WRONG']);
+    expect(findings[0]?.message).toBe(
+      'line 3 of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %. ' +
+        "Odoo computes the tax at its own rate while the file fits the base for the row's rate, so the VAT would be wrong and Odoo would add an " +
+        '"Automatic Balancing Line". Correct odoo_tax or tax_percent of the row (are the taxes swapped?), run mapping check and export again',
+    );
+    // mapping check itself keeps the warning.
+    expect(check([revenue({ odooTax: 'tax_ust_19_skr03' })]).map((f) => f.code)).toContain('W-TAX-RATE');
   });
 
   it('warns W-TAX-UNCHECKED and W-TAX-KZ45 for used rows, and reports nothing for a known tax at its own rate', () => {

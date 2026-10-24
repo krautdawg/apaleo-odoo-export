@@ -408,15 +408,13 @@ describe('warnings and notes on lines that did not fail', () => {
     ]);
   });
 
-  it('Swapped tax on a used row: warns W-TAX-RATE, which only mapping check reported before, and writes the file', async () => {
+  it('Swapped tax on a used row: fails with E-TAX-RATE-WRONG, which mapping check only warns about as W-TAX-RATE, and writes no file', async () => {
     const swapped = BEISPIEL_MAPPING_TEXT.replace('(10%);10;4010;account_tax_template_sales_10_code029;10;', '(10%);10;4010;tax_ust_19_skr03;10;');
     const setup = swissSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': swapped }, now: new Date('2026-10-03T05:30:00Z') });
-    expect(await runCli(ONCE, setup.ctx)).toBe(0);
+    expect(await runCli(ONCE, setup.ctx)).toBe(1);
     const out = setup.ctx.out().trimEnd().split('\n');
-    expect(out[0]).toBe(`2026-10-03T07:30:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE} W-TAX-RATE W-TAX-UNCHECKED`);
-    expect(out).toContain(
-      '  W-TAX-RATE (odoo_tax): line 3 of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 10 %. Check that the taxes are not swapped',
-    );
+    expect(out[0]).toBe('2026-10-03T07:30:00+02:00 BSP 2026-09 failed E-TAX-RATE-WRONG W-TAX-UNCHECKED');
+    expect(out.some((l) => l.startsWith('  E-TAX-RATE-WRONG (odoo_tax): line 3 of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 10 %.'))).toBe(true);
   });
 
   it('appends the codes to a no-bookings line but leaves out N-NO-BOOKINGS, which the result already says', async () => {
