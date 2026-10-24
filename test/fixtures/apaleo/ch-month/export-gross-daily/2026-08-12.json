@@ -1,0 +1,228 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-12T08:05:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1",
+        "number": "ENG-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (3.8%)",
+        "number": "RevenueAccommodation_Special:3.80",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 103.8,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 3.8
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0007",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:05:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1",
+        "number": "ENG-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (3.8%)",
+        "number": "RevenueAccommodation_Special:3.80",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 103.8,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 3.8
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0008",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:05:00.5Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1",
+        "number": "ENG-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "City Tax (no VAT)",
+        "number": "3501",
+        "parentNumber": "3500",
+        "type": "CityTaxes"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 8.4,
+      "netAmount": 8.4,
+      "taxes": [
+        {
+          "type": "Without",
+          "percent": 0,
+          "amount": 0
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0009",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:06:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1",
+        "number": "ENG-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation ENG-ALPHA-1 (3.8%)",
+        "number": "ENG-ALPHA-1_Liabilities/Special:3.80",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": -207.6,
+      "netAmount": -200,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": -7.6
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0010",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:07:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Twint Payment",
+        "number": "1114",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation ENG-ALPHA-1 (3.8%)",
+        "number": "ENG-ALPHA-1_Liabilities/Special:3.80",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "CHF",
+      "grossAmount": -103.8,
+      "netAmount": -100,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": -3.8
+        }
+      ],
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0002"
+      },
+      "sourceEntryNumber": "ENGE0011",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:08:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1 (Offset)",
+        "number": "ENG-ALPHA-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": 8.4,
+      "netAmount": 8.4,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0003"
+      },
+      "sourceEntryNumber": "ENGE0012",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-12T08:08:00Z",
+      "date": "2026-08-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1",
+        "number": "ENG-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-ALPHA-1 (Offset)",
+        "number": "ENG-ALPHA-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": -8.4,
+      "netAmount": -8.4,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0003"
+      },
+      "sourceEntryNumber": "ENGE0012",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

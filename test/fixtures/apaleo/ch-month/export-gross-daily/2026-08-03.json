@@ -1,0 +1,38 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-03T09:15:00Z",
+      "date": "2026-08-03",
+      "debitedAccount": {
+        "name": "Twint Payment",
+        "number": "1114",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation ENG-ALPHA-1 (3.8%)",
+        "number": "ENG-ALPHA-1_Liabilities/Special:3.80",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "CHF",
+      "grossAmount": 311.4,
+      "netAmount": 300,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 11.4
+        }
+      ],
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0001"
+      },
+      "sourceEntryNumber": "ENGE0001",
+      "reference": "ENG-ALPHA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

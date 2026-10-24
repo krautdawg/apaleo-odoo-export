@@ -1,0 +1,33 @@
+﻿# apaleo-abacus Kontenzuordnung für Hotel Beispiel (BSP), die Testdaten mit österreichischen Sätzen und Leitwährung EUR: die Sätze 10 und 20 % mit den Platzhalter-Codes V10 und V20, Kurtaxe als durchlaufender Posten auf 2210 ohne MWST-Code, Kostenstelle 20 auf Getränken.
+apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment
+RevenueAccommodation_VeryReduced:10.00;Revenues;Revenues Accommodation (10%);10;3400;V10;10;;Testzuordnung: Beherbergung mit dem Platzhalter-Code V10.
+RevenueAccommodation_Normal:20.00;Revenues;Revenues Accommodation (20%);20;3500;V20;20;;Testzuordnung: übrige Hotelleistungen mit dem Platzhalter-Code V20.
+RevenueAccommodation_Without:0.00;Revenues;Revenues Accommodation (no VAT);0;3600;;0;;Testzuordnung: Erlöse ohne MWST.
+RevenueFoodAndBeverages_VeryReduced:10.00;Revenues;Revenues Food and beverages (10%);10;3200;V10;10;;Testzuordnung: Küche und Speisen mit dem Platzhalter-Code V10.
+RevenueFoodAndBeverages_Normal:20.00;Revenues;Revenues Food and beverages (20%);20;3100;V20;20;20;Testzuordnung: Getränke mit dem Platzhalter-Code V20.
+RevenueOther_Normal:20.00;Revenues;Revenues Other (20%);20;3500;V20;20;;Testzuordnung: übrige Hotelleistungen mit dem Platzhalter-Code V20.
+RevenueOther_Without:0.00;Revenues;Revenues Other (no VAT);0;3600;;0;;archiviert. Testzuordnung: Erlöse ohne MWST.
+1102;Payments;Visa Credit Card Payment;;1090;;;;Testzuordnung: Transferkonto für unbare Zahlungen.
+1104;Payments;MasterCard Credit Card Payment;;1090;;;;Testzuordnung: Transferkonto für unbare Zahlungen.
+1106;Payments;Maestro Card Payment;;1090;;;;Testzuordnung: Transferkonto für unbare Zahlungen.
+1600;Payments;Cash Payment;;1000;;;;Testzuordnung: Kasse.
+*;Payments;;;1090;;;;Testzuordnung: Transferkonto für unbare Zahlungen.
+*;Liabilities;;10;2030;V10;10;;Testzuordnung: erhaltene Anzahlungen 10 % mit dem Platzhalter-Code V10.
+*;Liabilities;;13;2033;V13;13;;Testzuordnung: erhaltene Anzahlungen 13 % mit dem Platzhalter-Code V13.
+*;Liabilities;;20;2031;V20;20;;Testzuordnung: erhaltene Anzahlungen 20 % mit dem Platzhalter-Code V20.
+*;Liabilities;;0;2039;;0;;Testzuordnung: erhaltene Anzahlungen ohne MWST.
+*;Liabilities;;5;;;;;Testzuordnung: leer gelassen, bitte mit dem Treuhänder zuordnen.
+1200;Receivables;Receivables;;1101;;;;Testzuordnung: Gästeforderungen.
+*;Receivables;;;1101;;;;Testzuordnung: Gästeforderungen.
+Vat_Normal:20.00;Vat;VAT Normal (20%);20;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+Vat_Null:0.00;Vat;VAT Null (0%);0;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+Vat_VeryReduced:10.00;Vat;VAT Very Reduced (10%);10;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+9000;House;House Account;;;;;;Testzuordnung: leer gelassen, bitte mit dem Treuhänder zuordnen.
+CollectiveDebitor_AccountsReceivable;AccountsReceivable;AccountsReceivable for Reservations and Folios without company;;1102;;;;Testzuordnung: Debitoren apaleo.
+*;AccountsReceivable;;;1102;;;;Testzuordnung: Debitoren apaleo.
+3501;CityTaxes;City Tax (no VAT);0;2210;;;;Testzuordnung: Kurtaxe als durchlaufender Posten ohne MWST-Code.
+7000;TransitoryItems;Transitory Items;;;;;;Testzuordnung: leer gelassen, bitte mit dem Treuhänder zuordnen.
+LiabilitiesVat_Normal:20.00;VatOnLiabilities;LiabilitiesVat Normal (20%);20;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Null:0.00;VatOnLiabilities;LiabilitiesVat Null (0%);0;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_VeryReduced:10.00;VatOnLiabilities;LiabilitiesVat Very Reduced (10%);10;;;;;Testzuordnung: keine Zuordnung nötig, MWST-Buchungen aus apaleo werden übersprungen.
+CollectiveDebitor_LossOfAccountsReceivable;LossOfAccountsReceivable;LossOfAccountsReceivable for Reservations and Folios without company;;;;;;Testzuordnung: leer gelassen, bitte mit dem Treuhänder zuordnen.

@@ -1,0 +1,77 @@
+apaleo-abacus export protocol. No warranty, not tax advice: have your Treuhänder check the bookings.
+
+Property BSP, 2026-09-01 to 2026-09-30: 26 apaleo lines, 21 Abacus bookings
+
+Import into Abacus FIBU (compare with the Mandant before importing, see docs/abacus-format.md):
+  File: ABACUS_Buchungen_20260901-20260930_BSP.xml
+  Bookings: 21 Einzelbuchungen (one Transaction each)
+  Journal total: 2144.42 CHF (Soll and Haben of the imported Einzelbuchungen each, without the MWST bookings Abacus adds)
+  Program: F11 Buchen (drop the file into the booking window) or F5534 "Import/Export Buchungen AbaConnect" with import type "XML Buchungen"
+  Interface: FIBU / XML Buchungen / AbaDefault, version 2015.00
+  Mandant: 7777, Geschäftsbereich 0, Leitwährung CHF
+  Abrechnungsart: vereinbart (UseCode 0)
+  MWST-Codes: 311 (8.1 %; tax -6.48 CHF), 312 (2.6 %; tax -0.39 CHF), 313 (3.8 %; tax -20.14 CHF)
+  Account -> MWST-Code: 2030 -> 313, 3200 -> 311, 3260 -> 312, 3400 -> 313, 3500 -> 311, 3805 -> 313
+  TaxAccount: 2200 in CollectiveInformation (also on MWST-Codes at rate 0, TAX_ACCOUNT_AT_RATE_ZERO taxAccount), the Single account itself in SingleInformation, 0 on bookings without MWST
+  TaxData: TaxType 0, tax negative when the Single account is credited, AmountData/Amount 0.00 (TAX_AMOUNT_IN_KEY_CURRENCY zero), TaxIncluded I at rate 0 (TAX_INCLUDED_AT_RATE_ZERO), SINGLE_TAX_ACCOUNT account
+  Belegnummern: 0901000001 to 0901000021
+  Import with "MWST berechnen", as Abacus recommends. With it, Abacus may take the default MWST-Code of each account in F21
+  instead of the file's code: every account listed above must carry the listed MWST-Code in F21, or the MWST-Abrechnung is wrong.
+
+Totals per Abacus account (Collective account with the gross amount, Single account with the gross amount minus the MWST):
+  account    Soll   Haben  balance
+  1000     240.15    0.00   240.15
+  1090     399.80  103.80   296.00
+  1101     864.61  864.61     0.00
+  1102     208.46    0.00   208.46
+  2030     300.00  300.00     0.00
+  2210       0.00   12.60   -12.60
+  3200       0.00   70.00   -70.00
+  3260       0.00   15.00   -15.00
+  3400       0.00  645.61  -645.61
+  3500       0.00   10.00   -10.00
+  3680       0.00   80.00   -80.00
+  3805     115.61    0.00   115.61
+
+Revenue and MWST per MWST-Code and rate, with the Ziffer of the MWST-Abrechnung for each Swiss rate:
+  no MWST-Code 0 %: net 80.00, tax 0.00, gross 80.00, apaleo VAT 0.00, difference 0.00 (apaleo precise 0)
+  312 2.6 % (Ziffer 313): net 15.00, tax 0.39, gross 15.39, apaleo VAT 0.39, difference 0.00 (apaleo precise 0.39)
+  313 3.8 % (Ziffer 343): net 645.61, tax 24.53, gross 670.14, apaleo VAT 24.53, difference 0.00 (apaleo precise 24.53306358)
+  311 8.1 % (Ziffer 303): net 80.00, tax 6.48, gross 86.48, apaleo VAT 6.48, difference 0.00 (apaleo precise 6.48)
+
+Deposits and their MWST per MWST-Code and rate (received minus released):
+  313 3.8 % (Ziffer 343): net 0.00, tax 0.00, gross 0.00, apaleo VAT 0.00, difference 0.00 (apaleo precise 0)
+
+Written-off receivables (Debitorenverluste) and the MWST correction per MWST-Code and rate:
+  313 3.8 % (Ziffer 343): net 115.61, tax 4.39, gross 120.00, apaleo VAT 4.39, difference 0.00 (apaleo precise 4.39306358)
+
+Each booking carries apaleo's tax of its line, rounded to the Rappen, while apaleo rounds only the precise total of its lines per day, so a difference (apaleo VAT minus tax) of a few Rappen is this rounding, not an error.
+
+Kurtaxe and other guest levies per account (apaleo city tax, total 12.60):
+  2210 without MWST: 12.60
+
+Payments per clearing account:
+  account  amount
+  1000     240.15
+  1090     296.00
+
+Deposits (Anzahlungen) received, released and refunded:
+  received        311.40
+  released        311.40
+  of it refunded  103.80
+
+Accounts receivable (Debitoren, Soll positive): 208.46
+VAT rounding differences: 0.00
+
+Skipped lines:
+  reason                                 lines  gross (unsigned)
+  both sides on the same Abacus account      5            537.01
+
+Findings:
+  none
+
+File: ABACUS_Buchungen_20260901-20260930_BSP.xml
+SHA-256: 20992d81a76cf8a272facf2303062b6592bc045cc74275a3c4e78fcbfd68c587
+Mapping SHA-256: 9180aa66b7ba81e05263ec6ccc75fc2022c372ddc2a051db5b51c1a1bfde25fb
+Tool: apaleo-abacus 0.1.0
+Created: 2026-10-05T08:00:00.000Z

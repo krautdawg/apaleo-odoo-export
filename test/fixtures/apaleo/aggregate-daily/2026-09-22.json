@@ -1,0 +1,132 @@
+{
+  "aggregations": [
+    {
+      "account": {
+        "name": "Receivables",
+        "number": "1200",
+        "type": "Receivables"
+      },
+      "creditedAmount": {
+        "amount": 165,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 175,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 10,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "type": "Revenues"
+      },
+      "creditedAmount": {
+        "amount": 150,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -150,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "VAT Very Reduced (10%)",
+        "number": "Vat_VeryReduced:10.00",
+        "type": "Vat"
+      },
+      "creditedAmount": {
+        "amount": 15,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -15,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Liabilities",
+        "number": "3000",
+        "type": "Liabilities"
+      },
+      "creditedAmount": {
+        "amount": 10,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 160,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 150,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "LiabilitiesVat Very Reduced (10%)",
+        "number": "LiabilitiesVat_VeryReduced:10.00",
+        "type": "VatOnLiabilities"
+      },
+      "creditedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 15,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 15,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Maestro Card Payment",
+        "number": "1106",
+        "type": "Payments"
+      },
+      "creditedAmount": {
+        "amount": 10,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -10,
+        "currency": "EUR"
+      }
+    }
+  ],
+  "total": {
+    "creditedAmount": {
+      "amount": 350,
+      "currency": "EUR"
+    },
+    "debitedAmount": {
+      "amount": 350,
+      "currency": "EUR"
+    },
+    "balance": {
+      "amount": 0,
+      "currency": "EUR"
+    }
+  }
+}

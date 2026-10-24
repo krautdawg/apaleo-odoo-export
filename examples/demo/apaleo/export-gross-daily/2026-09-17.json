@@ -1,0 +1,92 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-17T12:30:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (2.6%)",
+        "number": "RevenueFoodAndBeverages_Reduced:2.60",
+        "parentNumber": "RevenueFoodAndBeverages",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 15.39,
+      "netAmount": 15,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 2.6,
+          "amount": 0.39
+        }
+      ],
+      "receipt": {
+        "type": "Custom",
+        "number": "TAKEAWAY-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0015",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-17T12:31:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Cash Payment",
+        "number": "1600",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": 15.39,
+      "netAmount": 15.39,
+      "receipt": {
+        "type": "Custom",
+        "number": "TAKEAWAY-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0016",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-17T12:31:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": -15.39,
+      "netAmount": -15.39,
+      "receipt": {
+        "type": "Custom",
+        "number": "TAKEAWAY-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0016",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    }
+  ]
+}

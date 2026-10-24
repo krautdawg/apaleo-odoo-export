@@ -1,0 +1,72 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-21T22:05:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-GHIJKL-1",
+        "number": "BSP-GHIJKL-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 220,
+      "netAmount": 200,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 20
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-GHIJKL-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0018",
+      "reference": "BSP-GHIJKL-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-21T22:05:00Z",
+      "date": "2026-09-21",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-GHIJKL-1",
+        "number": "BSP-GHIJKL-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-GHIJKL-1 (10%)",
+        "number": "BSP-GHIJKL-1_Liabilities/VeryReduced:10.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": -220,
+      "netAmount": -200,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": -20
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-GHIJKL-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0019",
+      "reference": "BSP-GHIJKL-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

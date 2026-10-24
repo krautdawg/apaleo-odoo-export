@@ -1,0 +1,126 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-20T08:10:00Z",
+      "date": "2026-08-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-DELTA-1",
+        "number": "ENG-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (3.8%)",
+        "number": "RevenueAccommodation_Special:3.80",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 186.84,
+      "netAmount": 180,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 6.84
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-DELTA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0018",
+      "reference": "ENG-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-20T08:10:00Z",
+      "date": "2026-08-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-DELTA-1",
+        "number": "ENG-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (8.1%)",
+        "number": "RevenueFoodAndBeverages_Normal:8.10",
+        "parentNumber": "RevenueFoodAndBeverages",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 21.62,
+      "netAmount": 20,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 8.1,
+          "amount": 1.62
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-DELTA-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0019",
+      "reference": "ENG-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-20T08:15:00Z",
+      "date": "2026-08-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-DELTA-1",
+        "number": "ENG-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation ENG-DELTA-1 (Offset)",
+        "number": "ENG-DELTA-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "CHF",
+      "grossAmount": -208.46,
+      "netAmount": -208.46,
+      "receipt": {
+        "type": "Invoice",
+        "number": "ENG-2026-0815"
+      },
+      "sourceEntryNumber": "ENGE0020",
+      "reference": "ENG-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-20T08:15:00Z",
+      "date": "2026-08-20",
+      "debitedAccount": {
+        "name": "AccountsReceivable for Reservation ENG-DELTA-1",
+        "number": "ENG-DELTA-1_AccountsReceivable",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation ENG-DELTA-1 (Offset)",
+        "number": "ENG-DELTA-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "CHF",
+      "grossAmount": 208.46,
+      "netAmount": 208.46,
+      "receipt": {
+        "type": "Invoice",
+        "number": "ENG-2026-0815"
+      },
+      "sourceEntryNumber": "ENGE0020",
+      "reference": "ENG-DELTA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

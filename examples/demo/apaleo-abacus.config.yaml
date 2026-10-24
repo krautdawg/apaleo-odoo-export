@@ -1,0 +1,11 @@
+# Konfiguration von "apaleo-abacus export --demo". Die Demo liest nur diese
+# Datei, nie deine eigene Konfiguration oder Umgebung. Das Hotel ist erfunden:
+# importiere eine Demo-Datei nie in einen echten Abacus-Mandanten.
+abacus:
+  # 7777 ist die Nummer des Mustermandanten in den Beispielen von AbaConnect.
+  mandant: 7777
+  leitwaehrung: CHF
+properties:
+  - id: BSP
+    # Relativ zu diesem Ordner (examples/demo/).
+    mapping: mapping-BSP.csv

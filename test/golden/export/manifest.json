@@ -1,0 +1,31 @@
+{
+  "files": [
+    {
+      "file": "ABACUS_Buchungen_20260901-20260930_BSP.xml",
+      "status": "current",
+      "sha256": "9a9ebb5a9a95f9362a19242b1ad9bca4fa9c704363098c84f5a138731a0bb84c",
+      "from": "2026-09-01",
+      "to": "2026-09-30",
+      "bookings": 24,
+      "journalTotalCents": 182840,
+      "currency": "EUR",
+      "taxByMwstCode": [
+        {
+          "mwstCode": "V10",
+          "ratePercent": 10,
+          "taxCents": 5848
+        },
+        {
+          "mwstCode": "V20",
+          "ratePercent": 20,
+          "taxCents": 767
+        }
+      ],
+      "mandant": "1234",
+      "geschaeftsbereich": 0,
+      "mappingSha256": "96a03d3ece665c808b85746c7322ec23dea6789e8b70ce19adb05178859acdaa",
+      "toolVersion": "0.1.0",
+      "createdAt": "2026-10-20T08:00:00.000Z"
+    }
+  ]
+}

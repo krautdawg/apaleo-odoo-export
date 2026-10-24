@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AbaConnectContainer>
+  <TaskCount>1</TaskCount>
+  <Task>
+    <Parameter>
+      <Application>FIBU</Application>
+      <Id>XML Buchungen</Id>
+      <MapId>AbaDefault</MapId>
+      <Version>2015.00</Version>
+      <Mandant>1234</Mandant>
+    </Parameter>
+    <Transaction id='1'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>1090</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Visa</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Visa</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='2'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>30.00</Amount>
+          </AmountData>
+          <KeyAmount>30.00</KeyAmount>
+          <Account>1000</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung bar</Text1>
+          <Text2>BSP-2026-0043</Text2>
+          <DocumentNumber>1001000002</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>30.00</Amount>
+          </AmountData>
+          <KeyAmount>30.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung bar</Text1>
+          <Text2>BSP-2026-0043</Text2>
+          <DocumentNumber>1001000002</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+  </Task>
+</AbaConnectContainer>

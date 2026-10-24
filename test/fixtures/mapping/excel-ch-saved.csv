@@ -1,0 +1,11 @@
+# Hand-built to the rules of Excel (CH) 'CSV (Trennzeichen-getrennt)': the written original (test/helpers/mapping.ts EXCEL_ORIGINAL_ROWS) opened with default column formats and saved again: Windows-1252 without BOM, semicolons, CRLF, the rates 3.8, 8.1 and 2.6 written with a decimal comma, the MWST-Codes as plain numbers, quotes only around cells with a separator or a quote. Not produced in a real Excel installation.
+apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment
+RevenueAccommodation_Special:3.80;Revenues;Revenues Accommodation (3.8%);3,8;3400;313;3,8;;Vorschlag (ungeprüft): Beherbergung 3,8 %
+RevenueFoodAndBeverages_Normal:8.10;Revenues;Frühstück Speisen (8.1%);8,1;3200;311;8,1;;"Speisen; eigenes Konto mit dem Treuhänder klären"
+RevenueBeverages_Normal:8.10;Revenues;Getränke (8.1%);8,1;3100;311;8,1;20;
+RevenueOther_Reduced:2.60;Revenues;Revenues Other (2.6%);2,6;3260;312;2,6;;Take-away 2,6 %
+1102;Payments;Visa Credit Card Payment;;1090;;;;"Karte ""Visa"" über das Transferkonto"
+9000;House;House Account;;;;;;Testwert – Hauskonto noch offen
+*;Liabilities;;3,8;2030;313;3,8;;Anzahlungen 3,8 %
+*;AccountsReceivable;;;1102;;;;Debitoren apaleo
+3501;CityTaxes;City Tax (no VAT);0;;;;;Gast schuldet: Gemeinde 2210 ohne MWST-Code – mit dem Treuhänder entscheiden.

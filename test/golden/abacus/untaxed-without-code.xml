@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AbaConnectContainer>
+  <TaskCount>1</TaskCount>
+  <Task>
+    <Parameter>
+      <Application>FIBU</Application>
+      <Id>XML Buchungen</Id>
+      <MapId>AbaDefault</MapId>
+      <Version>2015.00</Version>
+      <Mandant>1234</Mandant>
+    </Parameter>
+    <Transaction id='1'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>150.00</Amount>
+          </AmountData>
+          <KeyAmount>150.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>No-Show (Schadenersatz)</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>150.00</Amount>
+          </AmountData>
+          <KeyAmount>150.00</KeyAmount>
+          <Account>3680</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>No-Show (Schadenersatz)</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+  </Task>
+</AbaConnectContainer>

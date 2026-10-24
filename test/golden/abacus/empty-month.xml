@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AbaConnectContainer>
+  <TaskCount>1</TaskCount>
+  <Task>
+    <Parameter>
+      <Application>FIBU</Application>
+      <Id>XML Buchungen</Id>
+      <MapId>AbaDefault</MapId>
+      <Version>2015.00</Version>
+      <Mandant>1234</Mandant>
+    </Parameter>
+  </Task>
+</AbaConnectContainer>

@@ -1,0 +1,32 @@
+name: Funktionswunsch
+description: Schlag eine Verbesserung für den bestehenden Export von apaleo nach Abacus vor.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Schau bitte zuerst in «Was es nicht macht» im README und in «Später geplant» in docs/maintainers.md.
+        Ein neues PMS oder Zielformat hat ein eigenes Formular. Füge nie Secrets oder Gästedaten ein.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Was brauchst du, dein Backoffice oder dein Treuhänder in Abacus, das das Tool heute nicht kann?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Vorschlag
+      description: Wie könnte das Tool es lösen? Befehle, Konfigurationsschlüssel, ein Beispiel für die Abacus-Buchung (Konto, Gegenkonto, MWST-Code, Betrag), die du erwartest.
+  - type: textarea
+    id: accounting
+    attributes:
+      label: Buchhalterischer Hintergrund
+      description: Wenn sich Buchungen ändern, was sagt dein Treuhänder dazu? Welcher Kontenplan (KMU-Kontenrahmen oder ein eigener), welche Konten und MWST-Codes, welche Ziffer der MWST-Abrechnung, vereinbart oder vereinnahmt?
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Mitarbeit
+      options:
+        - label: Ich würde gern bei der Umsetzung helfen (siehe CONTRIBUTING.md).

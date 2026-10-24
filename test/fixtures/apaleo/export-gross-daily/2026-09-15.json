@@ -1,0 +1,276 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-15T09:02:11Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-MNOPQR-1 (10%)",
+        "number": "BSP-MNOPQR-1_Liabilities/VeryReduced:10.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "EUR",
+      "grossAmount": 165,
+      "netAmount": 150,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 15
+        }
+      ],
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-8823410002"
+      },
+      "sourceEntryNumber": "BSPE0006",
+      "reference": "BSP-MNOPQR-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T15:40:00Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 98,
+      "netAmount": 89.09090909,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 8.90909091
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0007",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T15:40:00.5Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (10%)",
+        "number": "RevenueFoodAndBeverages_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 13.2,
+      "netAmount": 12,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 1.2
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0008",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T15:40:00.5Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (20%)",
+        "number": "RevenueFoodAndBeverages_Normal:20.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 3.6,
+      "netAmount": 3,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 20,
+          "amount": 0.6
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0008",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T15:40:01Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "City Tax (no VAT)",
+        "number": "3501",
+        "parentNumber": "3500",
+        "type": "CityTaxes"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 3.2,
+      "netAmount": 3.2,
+      "taxes": [
+        {
+          "type": "Without",
+          "percent": 0,
+          "amount": 0
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0009",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T18:30:00Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": -11,
+      "netAmount": -10,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": -1
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0010",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-15T19:45:10Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Müller, Hans",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (10%)",
+        "number": "RevenueFoodAndBeverages_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 46.9,
+      "netAmount": 42.63636364,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 4.26363636
+        }
+      ],
+      "receipt": {
+        "type": "Custom",
+        "number": "REST-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0011",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-15T19:45:10Z",
+      "date": "2026-09-15",
+      "debitedAccount": {
+        "name": "Müller, Hans",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (20%)",
+        "number": "RevenueFoodAndBeverages_Normal:20.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 14.8,
+      "netAmount": 12.33333333,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 20,
+          "amount": 2.46666667
+        }
+      ],
+      "receipt": {
+        "type": "Custom",
+        "number": "REST-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0012",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    }
+  ]
+}

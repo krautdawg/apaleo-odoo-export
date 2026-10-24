@@ -1,0 +1,38 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-28T14:00:00Z",
+      "date": "2026-08-28",
+      "debitedAccount": {
+        "name": "LossOfAccountsReceivable for Reservation ENG-FOXTROT-1",
+        "number": "ENG-FOXTROT-1_LossOfAccountsReceivable",
+        "parentNumber": "6900",
+        "type": "LossOfAccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-FOXTROT-1",
+        "number": "ENG-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostToLossOfAccountsReceivables",
+      "currency": "CHF",
+      "grossAmount": 120,
+      "netAmount": 115.60693642,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 4.39306358
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-FOXTROT-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0021",
+      "reference": "ENG-FOXTROT-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

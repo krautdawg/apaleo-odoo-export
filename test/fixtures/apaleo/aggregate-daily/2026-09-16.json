@@ -1,0 +1,113 @@
+{
+  "aggregations": [
+    {
+      "account": {
+        "name": "Receivables",
+        "number": "1200",
+        "type": "Receivables"
+      },
+      "creditedAmount": {
+        "amount": 531.4,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 210.7,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -320.7,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "type": "Payments"
+      },
+      "creditedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 120,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 120,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Cash Payment",
+        "number": "1600",
+        "type": "Payments"
+      },
+      "creditedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 24,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 24,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Accounts Receivable",
+        "number": "9999",
+        "type": "AccountsReceivable"
+      },
+      "creditedAmount": {
+        "amount": 115,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 230,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 115,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "type": "Payments"
+      },
+      "creditedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 61.7,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 61.7,
+        "currency": "EUR"
+      }
+    }
+  ],
+  "total": {
+    "creditedAmount": {
+      "amount": 646.4,
+      "currency": "EUR"
+    },
+    "debitedAmount": {
+      "amount": 646.4,
+      "currency": "EUR"
+    },
+    "balance": {
+      "amount": 0,
+      "currency": "EUR"
+    }
+  }
+}

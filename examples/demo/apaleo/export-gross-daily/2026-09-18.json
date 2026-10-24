@@ -1,0 +1,38 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-18T21:30:00Z",
+      "date": "2026-09-18",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1",
+        "number": "BSP-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (3.8%)",
+        "number": "RevenueAccommodation_Special:3.80",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 120,
+      "netAmount": 115.60693642,
+      "taxes": [
+        {
+          "type": "Special",
+          "percent": 3.8,
+          "amount": 4.39306358
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-FOXTROT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0017",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

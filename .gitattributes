@@ -1,0 +1,15 @@
+# Golden files (BMD: Windows-1252 with CRLF, Abacus: UTF-8 with LF) are compared byte
+# for byte: never convert their line ends or encoding.
+test/golden/** -text
+# The Excel round-trip fixture is Windows-1252 with CRLF, like a file Excel (DE) saves.
+test/fixtures/mapping/** -text
+# The templates are written with CRLF so Excel opens them like a mapping file.
+templates/*.csv -text
+# The examples and the demo data are copies of the golden file and the fixtures
+# above, kept byte-identical by test/examples.test.ts.
+docs/examples/*.csv -text
+docs/examples/*.txt -text
+docs/examples/*.xml -text
+examples/demo/** -text
+# Mapping files beside the live recordings keep the BOM and CRLF that init-mapping writes.
+test/fixtures/apaleo/live/**/*.csv -text

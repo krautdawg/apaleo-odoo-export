@@ -1,0 +1,126 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-22T22:05:00Z",
+      "date": "2026-09-22",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-MNOPQR-1",
+        "number": "BSP-MNOPQR-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "parentNumber": "5000",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 165,
+      "netAmount": 150,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": 15
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-MNOPQR-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0020",
+      "reference": "BSP-MNOPQR-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-22T22:05:00Z",
+      "date": "2026-09-22",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-MNOPQR-1",
+        "number": "BSP-MNOPQR-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-MNOPQR-1 (10%)",
+        "number": "BSP-MNOPQR-1_Liabilities/VeryReduced:10.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": -165,
+      "netAmount": -150,
+      "taxes": [
+        {
+          "type": "VeryReduced",
+          "percent": 10,
+          "amount": -15
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-MNOPQR-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0021",
+      "reference": "BSP-MNOPQR-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-22T22:06:00Z",
+      "date": "2026-09-22",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-MNOPQR-1",
+        "number": "BSP-MNOPQR-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-MNOPQR-1 (0%)",
+        "number": "BSP-MNOPQR-1_Liabilities/Null:0.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 10,
+      "netAmount": 10,
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-MNOPQR-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0022",
+      "reference": "BSP-MNOPQR-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-22T22:07:00Z",
+      "date": "2026-09-22",
+      "debitedAccount": {
+        "name": "Maestro Card Payment",
+        "number": "1106",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-MNOPQR-1 (0%)",
+        "number": "BSP-MNOPQR-1_Liabilities/Null:0.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "EUR",
+      "grossAmount": -10,
+      "netAmount": -10,
+      "receipt": {
+        "type": "Custom",
+        "number": "REF-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0023",
+      "reference": "BSP-MNOPQR-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

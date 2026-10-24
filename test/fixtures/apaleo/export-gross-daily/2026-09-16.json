@@ -1,0 +1,247 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-16T10:01:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-STUVWX-1",
+        "number": "BSP-STUVWX-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "MoveLineItem",
+      "currency": "EUR",
+      "grossAmount": 5,
+      "netAmount": 5,
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ABCDEF-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0013",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:05:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 120,
+      "netAmount": 120,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-8823410003"
+      },
+      "sourceEntryNumber": "BSPE0014",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:05:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -120,
+      "netAmount": -120,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-8823410003"
+      },
+      "sourceEntryNumber": "BSPE0014",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:06:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Cash Payment",
+        "number": "1600",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 24,
+      "netAmount": 24,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSA-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0015",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:06:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -24,
+      "netAmount": -24,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSA-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0015",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:07:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": -115,
+      "netAmount": -115,
+      "receipt": {
+        "type": "Invoice",
+        "number": "BSP-2026-0042"
+      },
+      "sourceEntryNumber": "BSPE0016",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T10:07:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-ABCDEF-1",
+        "number": "BSP-ABCDEF-1_AccountsReceivable",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-ABCDEF-1 (Offset)",
+        "number": "BSP-ABCDEF-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": 115,
+      "netAmount": 115,
+      "receipt": {
+        "type": "Invoice",
+        "number": "BSP-2026-0042"
+      },
+      "sourceEntryNumber": "BSPE0016",
+      "reference": "BSP-ABCDEF-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-16T11:20:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 61.7,
+      "netAmount": 61.7,
+      "receipt": {
+        "type": "Custom",
+        "number": "REST-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0017",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-16T11:20:00Z",
+      "date": "2026-09-16",
+      "debitedAccount": {
+        "name": "Müller, Hans",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -61.7,
+      "netAmount": -61.7,
+      "receipt": {
+        "type": "Custom",
+        "number": "REST-BSP-1"
+      },
+      "sourceEntryNumber": "BSPE0017",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    }
+  ]
+}

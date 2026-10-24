@@ -1,0 +1,1048 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AbaConnectContainer>
+  <TaskCount>1</TaskCount>
+  <Task>
+    <Parameter>
+      <Application>FIBU</Application>
+      <Id>XML Buchungen</Id>
+      <MapId>AbaDefault</MapId>
+      <Version>2015.00</Version>
+      <Mandant>1234</Mandant>
+    </Parameter>
+    <Transaction id='1'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-03</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>311.40</Amount>
+          </AmountData>
+          <KeyAmount>311.40</KeyAmount>
+          <Account>1090</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Anzahlung 3,8 %</Text1>
+          <Text2>PSP-ENG-0001</Text2>
+          <DocumentNumber>0801000001</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-03</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>311.40</Amount>
+          </AmountData>
+          <KeyAmount>311.40</KeyAmount>
+          <Account>2030</Account>
+          <TaxAccount>2030</TaxAccount>
+          <Text1>Anzahlung 3,8 %</Text1>
+          <Text2>PSP-ENG-0001</Text2>
+          <DocumentNumber>0801000001</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-11.40</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='2'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>155.70</Amount>
+          </AmountData>
+          <KeyAmount>155.70</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000002</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>155.70</Amount>
+          </AmountData>
+          <KeyAmount>155.70</KeyAmount>
+          <Account>3400</Account>
+          <TaxAccount>3400</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000002</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-5.70</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='3'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>54.05</Amount>
+          </AmountData>
+          <KeyAmount>54.05</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 8,1 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000003</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>54.05</Amount>
+          </AmountData>
+          <KeyAmount>54.05</KeyAmount>
+          <Account>3200</Account>
+          <TaxAccount>3200</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 8,1 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000003</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-4.05</KeyAmount>
+            <TaxRate>8.1</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>311</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='4'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>4.20</Amount>
+          </AmountData>
+          <KeyAmount>4.20</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Kurtaxe</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000004</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>4.20</Amount>
+          </AmountData>
+          <KeyAmount>4.20</KeyAmount>
+          <Account>2210</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Kurtaxe</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000004</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='5'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>10.81</Amount>
+          </AmountData>
+          <KeyAmount>10.81</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Übrige Erlöse 8,1 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000005</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-10</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>10.81</Amount>
+          </AmountData>
+          <KeyAmount>10.81</KeyAmount>
+          <Account>3500</Account>
+          <TaxAccount>3500</TaxAccount>
+          <Text1>Erlös Übrige Erlöse 8,1 %</Text1>
+          <Text2>ENG-BRAVO-1-V1</Text2>
+          <DocumentNumber>0801000005</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-0.81</KeyAmount>
+            <TaxRate>8.1</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>311</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='6'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-11</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>224.76</Amount>
+          </AmountData>
+          <KeyAmount>224.76</KeyAmount>
+          <Account>1000</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Bar</Text1>
+          <Text2>KASSE-ENG-1</Text2>
+          <DocumentNumber>0801000006</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-11</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>224.76</Amount>
+          </AmountData>
+          <KeyAmount>224.76</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Bar</Text1>
+          <Text2>KASSE-ENG-1</Text2>
+          <DocumentNumber>0801000006</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='7'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000007</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>3400</Account>
+          <TaxAccount>3400</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000007</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-3.80</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='8'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000008</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>3400</Account>
+          <TaxAccount>3400</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000008</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-3.80</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='9'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>8.40</Amount>
+          </AmountData>
+          <KeyAmount>8.40</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Kurtaxe</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000009</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>8.40</Amount>
+          </AmountData>
+          <KeyAmount>8.40</KeyAmount>
+          <Account>2210</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Kurtaxe</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000009</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='10'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>207.60</Amount>
+          </AmountData>
+          <KeyAmount>207.60</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Auflösung Anzahlung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000010</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>207.60</Amount>
+          </AmountData>
+          <KeyAmount>207.60</KeyAmount>
+          <Account>2030</Account>
+          <TaxAccount>2030</TaxAccount>
+          <Text1>Auflösung Anzahlung 3,8 %</Text1>
+          <Text2>ENG-ALPHA-1-V1</Text2>
+          <DocumentNumber>0801000010</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>7.60</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='11'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>1090</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Rückzahlung Anzahlung 3,8 %</Text1>
+          <Text2>PSP-ENG-0002</Text2>
+          <DocumentNumber>0801000011</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>103.80</Amount>
+          </AmountData>
+          <KeyAmount>103.80</KeyAmount>
+          <Account>2030</Account>
+          <TaxAccount>2030</TaxAccount>
+          <Text1>Rückzahlung Anzahlung 3,8 %</Text1>
+          <Text2>PSP-ENG-0002</Text2>
+          <DocumentNumber>0801000011</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>3.80</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='12'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>8.40</Amount>
+          </AmountData>
+          <KeyAmount>8.40</KeyAmount>
+          <Account>1090</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Mastercard</Text1>
+          <Text2>PSP-ENG-0003</Text2>
+          <DocumentNumber>0801000012</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-12</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>8.40</Amount>
+          </AmountData>
+          <KeyAmount>8.40</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Mastercard</Text1>
+          <Text2>PSP-ENG-0003</Text2>
+          <DocumentNumber>0801000012</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='13'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>80.00</Amount>
+          </AmountData>
+          <KeyAmount>80.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Erlös Annullation 0 %</Text1>
+          <Text2>ENG-CHARLIE-1-V1</Text2>
+          <DocumentNumber>0801000013</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>80.00</Amount>
+          </AmountData>
+          <KeyAmount>80.00</KeyAmount>
+          <Account>3680</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Erlös Annullation 0 %</Text1>
+          <Text2>ENG-CHARLIE-1-V1</Text2>
+          <DocumentNumber>0801000013</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='14'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>80.00</Amount>
+          </AmountData>
+          <KeyAmount>80.00</KeyAmount>
+          <Account>1090</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Mastercard</Text1>
+          <Text2>PSP-ENG-0004</Text2>
+          <DocumentNumber>0801000014</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>80.00</Amount>
+          </AmountData>
+          <KeyAmount>80.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Mastercard</Text1>
+          <Text2>PSP-ENG-0004</Text2>
+          <DocumentNumber>0801000014</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='15'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-17</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>15.39</Amount>
+          </AmountData>
+          <KeyAmount>15.39</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 2,6 %</Text1>
+          <Text2>TAKEAWAY-ENG-1</Text2>
+          <DocumentNumber>0801000015</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-17</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>15.39</Amount>
+          </AmountData>
+          <KeyAmount>15.39</KeyAmount>
+          <Account>3260</Account>
+          <TaxAccount>3260</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 2,6 %</Text1>
+          <Text2>TAKEAWAY-ENG-1</Text2>
+          <DocumentNumber>0801000015</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-0.39</KeyAmount>
+            <TaxRate>2.6</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>312</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='16'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-17</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>15.39</Amount>
+          </AmountData>
+          <KeyAmount>15.39</KeyAmount>
+          <Account>1000</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Bar</Text1>
+          <Text2>TAKEAWAY-ENG-1</Text2>
+          <DocumentNumber>0801000016</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-17</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>15.39</Amount>
+          </AmountData>
+          <KeyAmount>15.39</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Zahlung Bar</Text1>
+          <Text2>TAKEAWAY-ENG-1</Text2>
+          <DocumentNumber>0801000016</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='17'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-18</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-FOXTROT-1-V1</Text2>
+          <DocumentNumber>0801000017</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-18</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>3400</Account>
+          <TaxAccount>3400</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-FOXTROT-1-V1</Text2>
+          <DocumentNumber>0801000017</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-4.39</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='18'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>186.84</Amount>
+          </AmountData>
+          <KeyAmount>186.84</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-DELTA-1-V1</Text2>
+          <DocumentNumber>0801000018</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>186.84</Amount>
+          </AmountData>
+          <KeyAmount>186.84</KeyAmount>
+          <Account>3400</Account>
+          <TaxAccount>3400</TaxAccount>
+          <Text1>Erlös Beherbergung 3,8 %</Text1>
+          <Text2>ENG-DELTA-1-V1</Text2>
+          <DocumentNumber>0801000018</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-6.84</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='19'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>21.62</Amount>
+          </AmountData>
+          <KeyAmount>21.62</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 8,1 %</Text1>
+          <Text2>ENG-DELTA-1-V1</Text2>
+          <DocumentNumber>0801000019</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>21.62</Amount>
+          </AmountData>
+          <KeyAmount>21.62</KeyAmount>
+          <Account>3200</Account>
+          <TaxAccount>3200</TaxAccount>
+          <Text1>Erlös Speisen und Getränke 8,1 %</Text1>
+          <Text2>ENG-DELTA-1-V1</Text2>
+          <DocumentNumber>0801000019</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>-1.62</KeyAmount>
+            <TaxRate>8.1</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>311</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='20'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>208.46</Amount>
+          </AmountData>
+          <KeyAmount>208.46</KeyAmount>
+          <Account>1102</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Forderung an Debitor</Text1>
+          <Text2>ENG-2026-0815</Text2>
+          <DocumentNumber>0801000020</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-08-20</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>208.46</Amount>
+          </AmountData>
+          <KeyAmount>208.46</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>0</TaxAccount>
+          <Text1>Forderung an Debitor</Text1>
+          <Text2>ENG-2026-0815</Text2>
+          <DocumentNumber>0801000020</DocumentNumber>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+    <Transaction id='21'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-08-28</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Debitorenverlust 3,8 %</Text1>
+          <Text2>ENG-FOXTROT-1-V1</Text2>
+          <DocumentNumber>0801000021</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>C</DebitCredit>
+          <EntryDate>2026-08-28</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>120.00</Amount>
+          </AmountData>
+          <KeyAmount>120.00</KeyAmount>
+          <Account>3805</Account>
+          <TaxAccount>3805</TaxAccount>
+          <Text1>Debitorenverlust 3,8 %</Text1>
+          <Text2>ENG-FOXTROT-1-V1</Text2>
+          <DocumentNumber>0801000021</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>4.39</KeyAmount>
+            <TaxRate>3.8</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>313</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+  </Task>
+</AbaConnectContainer>

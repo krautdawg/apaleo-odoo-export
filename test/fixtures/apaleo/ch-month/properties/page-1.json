@@ -1,0 +1,30 @@
+{
+  "properties": [
+    {
+      "id": "ENG",
+      "code": "ENG",
+      "isTemplate": false,
+      "name": "Hotel Beispiel Engelberg",
+      "description": "Hotel Beispiel Engelberg, a fabricated 30-room hotel in Switzerland for the Swiss fixture month",
+      "companyName": "Beispiel Hotel AG",
+      "commercialRegisterEntry": "CHE-000.000.000 (fictitious)",
+      "taxId": "CHE-000.000.000 MWST",
+      "location": {
+        "addressLine1": "Beispielstrasse 1",
+        "postalCode": "6390",
+        "city": "Engelberg",
+        "countryCode": "CH"
+      },
+      "paymentTerms": {
+        "de": "Zahlbar bei Anreise",
+        "en": "Payment on arrival"
+      },
+      "timeZone": "Europe/Zurich",
+      "currencyCode": "CHF",
+      "created": "2026-01-05T09:00:00Z",
+      "status": "Live",
+      "isArchived": false
+    }
+  ],
+  "count": 1
+}

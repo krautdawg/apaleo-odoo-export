@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<AbaConnectContainer>
+  <TaskCount>1</TaskCount>
+  <Task>
+    <Parameter>
+      <Application>FIBU</Application>
+      <Id>XML Buchungen</Id>
+      <MapId>AbaDefault</MapId>
+      <Version>2015.00</Version>
+      <Mandant>1234</Mandant>
+    </Parameter>
+    <Transaction id='1'>
+      <Entry mode='SAVE'>
+        <CollectiveInformation mode='SAVE'>
+          <EntryLevel>A</EntryLevel>
+          <EntryType>S</EntryType>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <Client>1234</Client>
+          <Division>0</Division>
+          <KeyCurrency>CHF</KeyCurrency>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>10.00</Amount>
+          </AmountData>
+          <KeyAmount>10.00</KeyAmount>
+          <Account>1101</Account>
+          <TaxAccount>2200</TaxAccount>
+          <Text1>Kurtaxe 2 Nächte</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+          <SingleCount>0</SingleCount>
+        </CollectiveInformation>
+        <SingleInformation mode='SAVE'>
+          <Type>Normal</Type>
+          <DebitCredit>D</DebitCredit>
+          <EntryDate>2026-10-14</EntryDate>
+          <AmountData mode='SAVE'>
+            <Currency>CHF</Currency>
+            <Amount>10.00</Amount>
+          </AmountData>
+          <KeyAmount>10.00</KeyAmount>
+          <Account>2210</Account>
+          <TaxAccount>2210</TaxAccount>
+          <Text1>Kurtaxe 2 Nächte</Text1>
+          <Text2>BSP-2026-0042</Text2>
+          <DocumentNumber>1001000001</DocumentNumber>
+          <TaxData mode='SAVE'>
+            <TaxIncluded>I</TaxIncluded>
+            <TaxType>0</TaxType>
+            <UseCode>0</UseCode>
+            <AmountData mode='SAVE'>
+              <Currency>CHF</Currency>
+              <Amount>0.00</Amount>
+            </AmountData>
+            <KeyAmount>0.00</KeyAmount>
+            <TaxRate>0</TaxRate>
+            <TaxCoefficient>100</TaxCoefficient>
+            <Country>CH</Country>
+            <TaxCode>491</TaxCode>
+            <FlatRate>0</FlatRate>
+          </TaxData>
+        </SingleInformation>
+      </Entry>
+    </Transaction>
+  </Task>
+</AbaConnectContainer>

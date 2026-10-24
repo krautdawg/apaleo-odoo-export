@@ -1,0 +1,85 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-14T10:00:00Z",
+      "date": "2026-08-14",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-CHARLIE-1",
+        "number": "ENG-CHARLIE-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Cancellation fees (no VAT)",
+        "number": "RevenueCancellationFees_Without:0.00",
+        "parentNumber": "RevenueCancellationFees",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "CHF",
+      "grossAmount": 80.0,
+      "netAmount": 80.0,
+      "receipt": {
+        "type": "Reservation",
+        "number": "ENG-CHARLIE-1-V1"
+      },
+      "sourceEntryNumber": "ENGE0013",
+      "reference": "ENG-CHARLIE-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-14T10:01:00Z",
+      "date": "2026-08-14",
+      "debitedAccount": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-CHARLIE-1 (Offset)",
+        "number": "ENG-CHARLIE-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": 80.0,
+      "netAmount": 80.0,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0004"
+      },
+      "sourceEntryNumber": "ENGE0014",
+      "reference": "ENG-CHARLIE-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-14T10:01:00Z",
+      "date": "2026-08-14",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-CHARLIE-1",
+        "number": "ENG-CHARLIE-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-CHARLIE-1 (Offset)",
+        "number": "ENG-CHARLIE-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": -80.0,
+      "netAmount": -80.0,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-ENG-0004"
+      },
+      "sourceEntryNumber": "ENGE0014",
+      "reference": "ENG-CHARLIE-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

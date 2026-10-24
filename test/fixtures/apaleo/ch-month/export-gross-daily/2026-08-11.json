@@ -1,0 +1,58 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-08-11T08:20:00Z",
+      "date": "2026-08-11",
+      "debitedAccount": {
+        "name": "Cash Payment",
+        "number": "1600",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-BRAVO-1 (Offset)",
+        "number": "ENG-BRAVO-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": 224.76,
+      "netAmount": 224.76,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSE-ENG-1"
+      },
+      "sourceEntryNumber": "ENGE0006",
+      "reference": "ENG-BRAVO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-08-11T08:20:00Z",
+      "date": "2026-08-11",
+      "debitedAccount": {
+        "name": "Receivables for Reservation ENG-BRAVO-1",
+        "number": "ENG-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation ENG-BRAVO-1 (Offset)",
+        "number": "ENG-BRAVO-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "CHF",
+      "grossAmount": -224.76,
+      "netAmount": -224.76,
+      "receipt": {
+        "type": "Custom",
+        "number": "KASSE-ENG-1"
+      },
+      "sourceEntryNumber": "ENGE0006",
+      "reference": "ENG-BRAVO-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

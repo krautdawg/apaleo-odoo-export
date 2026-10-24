@@ -1,0 +1,108 @@
+schema: spec-driven
+
+context: |
+  Project: apaleo-abacus-export. A free, MIT-licensed, open-source tool that exports
+  accounting data from the apaleo hotel PMS into Abacus import files: AbaConnect
+  "XML Buchungen" (Application FIBU, mapping AbaDefault, one Einzelbuchung per
+  booking with CollectiveInformation and SingleInformation, MWST in TaxData) that a
+  Swiss Treuhänder or Buchhaltung imports into Abacus Finanzbuchhaltung (F11 Buchen,
+  F5534 "Import/Export Buchungen AbaConnect" or F625 AbaConnect). Target is the
+  Abacus FIBU only, not AbaNinja and not other Abacus modules. It is a free
+  alternative to the paid Abacus connector in the apaleo Store (EUR 24-48 per month
+  and property). It is a gift to the community: no strings attached, no hosted
+  service, no warranty, no liability. "Just something that works."
+
+  Origin: a copy of apaleo-bmd-export v0.1.0 (apaleo -> BMD, with the v0.1.1 live-data
+  fixes), itself built on apaleo-datev-export. Its apaleo source adapter, export
+  pipeline, TargetWriter boundary, plausibility checks, schedule mode and Docker
+  setup are reused as-is where possible; the BMD writer, EKR template, Austrian
+  Steuercode logic and BMD docs are replaced by an Abacus writer, a Swiss KMU hotel
+  template with MWST-Codes and Swiss posting rules, and then removed.
+
+  Users: Swiss hotel back-office staff, small hotel groups, their Treuhänder /
+  Buchhaltung, and technical helpers. Each hotel runs its own copy against its own
+  apaleo account using an apaleo "custom app" (simple client, client credentials)
+  that the hotel admin registers under Apps > Connected apps. No apaleo Store
+  listing, no apaleo certification, no Abacus partnership: the file import needs
+  none. The Treuhänder needs an Abacus FIBU licence with the Buchungsschnittstellen
+  (documented in docs/abacus-import.md, open question until the first test import).
+
+  Scope: one-way apaleo -> Abacus FIBU booking file export. Bookings are in the
+  property currency, which must equal the Mandant's Leitwährung (`abacus.leitwaehrung`,
+  CHF by default, EUR allowed); no conversion, no foreign-currency bookings. Amounts
+  are exact to the Rappen; 5-Rappen rounding is a cash practice and never applied.
+  Out of scope: any AbaConnect web service or other push into Abacus, the Abacus
+  Debitorenbuchhaltung (DEBI) interface and customer master data, PDF documents,
+  hosted multi-tenant SaaS, web UI, archive with legal certification,
+  payment-provider (Adyen) settlement and fee postings, booking portal commissions,
+  the Saldosteuersatz- and Pauschalsteuersatzmethode in v1, other PMSs and other
+  target formats. Keep a clean SourceAdapter / TargetWriter boundary so Mews, Smoobu
+  or Stripe sources or Bexio / Banana / other targets can be added later by
+  contributors.
+
+  Tech stack: TypeScript (strict), Node.js 24 LTS, pnpm, ESM. Minimal runtime
+  dependencies (no XML library: the writer escapes and indents itself). Vitest for
+  tests. CLI `apaleo-abacus` via a small arg parser. Config as a YAML or JSON file
+  plus environment variables for secrets. Account mapping as an editable CSV.
+  Installed from source (git clone + pnpm build) and as a locally built Docker image;
+  there is NO npm publish and NO registry image push in scope, so do not add publish
+  or release tasks. Scheduling is `schedule --once` run from cron or a compose loop
+  (no in-process daemon). Delivery: local output folder only (no SMTP email, no S3 in
+  v1).
+
+  Domain sources of truth:
+  - apaleo Finance API Swagger: https://api.apaleo.com/swagger/finance-v1/swagger.json
+    (export-gross-daily, chart of accounts, aggregates) and the apaleo developer
+    docs for custom apps and OAuth client types.
+  - Abacus AbaConnect documentation "Schnittstelle FIBU - XML Buchungen" (versions
+    2015.00 to 2024.00, field lengths, DebitCredit, TaxAccount, TaxData with
+    TaxIncluded, TaxType, UseCode, TaxCode) and Abacus "XML-AbaConnect Fibu
+    Buchungsschnittstelle (Version 2020)" (MWST berechnen, TaxAccount tables);
+    the Abacus KMU sample Mandant MWST-Codes (311/312/313). Where downloads.abacus.ch
+    is offline, the Internet Archive copy is cited.
+    openspec/research/a-target.md and later docs/abacus-format.md record what was
+    checked, the URLs and the date.
+  - MWSTG SR 641.20 (Art. 24, 25: 8.1 % Normalsatz, 2.6 % reduziert, 3.8 % Sondersatz
+    Beherbergung including breakfast; Art. 39/40: vereinbart vs vereinnahmt,
+    Vorauszahlungen taxed when received), ESTV MWST-Branchen-Info 08 Hotel- und
+    Gastgewerbe (Beherbergung, Halbpension, Minibar, Kurtaxen Ziff. 7.11 as
+    durchlaufende Posten / Ziffer 910, Annullierungen Ziff. 8.7 as Schadenersatz),
+    the Schweizer Kontenrahmen KMU and the Kontenrahmen für die Hotellerie und
+    Gastronomie for account classes, and the Gemeinde/Kanton rules for Kurtaxe,
+    Gästetaxe and Beherbergungsabgabe.
+  - docs/posting-rules.md for the posting logic (VAT side in SingleInformation with
+    the tax amount passed explicitly, Kurtaxe as durchlaufender Posten, payments to
+    clearing accounts, Anzahlungen and their MWST).
+  - Open-source cross-checks (read only, never copied): libracore/erpnextswiss
+    Abacus export (AGPL-3.0), phamos-eu/Swiss-Accounting-Integration (GPL-3.0).
+
+  Conventions: conventional commits; one OpenSpec change per vertical slice, named
+  a01-, a02-, ... in build order; every slice ships with tests and keeps
+  `pnpm test`, `pnpm lint`, `pnpm typecheck` green. No real Swiss apaleo property and
+  no Abacus installation exist yet: test against recorded/fabricated fixtures shaped
+  exactly like the apaleo Swagger schemas (the recorded BER/VIE days plus a
+  fabricated CHF month) and against golden Abacus XML files built from the
+  documented field rules; keep a live smoke-test command for when a Swiss developer
+  property exists, and a checklist for the first real Abacus test import with a
+  Treuhänder. Never commit secrets.
+
+  README and docs: Swiss Standard German first, for Switzerland. The audience is
+  Swiss hotels and their Treuhänder / Buchhaltung, so README.md and every doc (docs/,
+  CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, DISCLAIMER, CHANGELOG, GitHub templates,
+  comments in the example configs) are in Schweizer Hochdeutsch only: no "ß" (write
+  "ss"), address the reader with "du", and use Swiss accounting terms as
+  practitioners do (Treuhänder, Buchhaltung, Mandant, Kontenplan, KMU-Kontenrahmen,
+  Sachkonto, Gegenkonto, MWST, MWST-Code, MWST-Abrechnung, Ziffer, vereinbart /
+  vereinnahmt, Kurtaxe, Beherbergungsabgabe, Anzahlung, Belegnummer, Kostenstelle,
+  Geschäftsbereich, Rappen). One short README.en.md serves international
+  contributors; no topic is kept in two languages and there are no *.de.md files.
+  Code, identifiers, CLI output and commit messages stay English. The README H1
+  keeps "apaleo Abacus Export" and "kostenlos" for search. Clear, plain language,
+  copy-paste setup steps, prominent "Keine Gewähr, keine Steuerberatung, lass deine
+  Kontenzuordnung von deinem Treuhänder prüfen" disclaimer.
+
+rules:
+  proposal:
+    - Keep proposals under 400 words and include a Non-goals section
+  tasks:
+    - Tasks must be small, checkable, and each slice must end green (tests, lint, typecheck) and internally consistent; the repository is publishable only after the final docs slice

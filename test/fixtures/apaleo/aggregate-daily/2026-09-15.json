@@ -1,0 +1,208 @@
+{
+  "aggregations": [
+    {
+      "account": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "type": "Payments"
+      },
+      "creditedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 165,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 165,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Liabilities",
+        "number": "3000",
+        "type": "Liabilities"
+      },
+      "creditedAmount": {
+        "amount": 150,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -150,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "LiabilitiesVat Very Reduced (10%)",
+        "number": "LiabilitiesVat_VeryReduced:10.00",
+        "type": "VatOnLiabilities"
+      },
+      "creditedAmount": {
+        "amount": 15,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -15,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Receivables",
+        "number": "1200",
+        "type": "Receivables"
+      },
+      "creditedAmount": {
+        "amount": 11,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 179.7,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": 168.7,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Revenues Accommodation (10%)",
+        "number": "RevenueAccommodation_VeryReduced:10.00",
+        "type": "Revenues"
+      },
+      "creditedAmount": {
+        "amount": 89.09090909,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 10,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -79.09090909,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "VAT Very Reduced (10%)",
+        "number": "Vat_VeryReduced:10.00",
+        "type": "Vat"
+      },
+      "creditedAmount": {
+        "amount": 14.37272727,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 1,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -13.37272727,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Revenues Food and beverages (10%)",
+        "number": "RevenueFoodAndBeverages_VeryReduced:10.00",
+        "type": "Revenues"
+      },
+      "creditedAmount": {
+        "amount": 54.63636364,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -54.63636364,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "Revenues Food and beverages (20%)",
+        "number": "RevenueFoodAndBeverages_Normal:20.00",
+        "type": "Revenues"
+      },
+      "creditedAmount": {
+        "amount": 15.33333333,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -15.33333333,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "VAT Normal (20%)",
+        "number": "Vat_Normal:20.00",
+        "type": "Vat"
+      },
+      "creditedAmount": {
+        "amount": 3.06666667,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -3.06666667,
+        "currency": "EUR"
+      }
+    },
+    {
+      "account": {
+        "name": "City Tax (no VAT)",
+        "number": "3501",
+        "type": "CityTaxes"
+      },
+      "creditedAmount": {
+        "amount": 3.2,
+        "currency": "EUR"
+      },
+      "debitedAmount": {
+        "amount": 0,
+        "currency": "EUR"
+      },
+      "balance": {
+        "amount": -3.2,
+        "currency": "EUR"
+      }
+    }
+  ],
+  "total": {
+    "creditedAmount": {
+      "amount": 355.7,
+      "currency": "EUR"
+    },
+    "debitedAmount": {
+      "amount": 355.7,
+      "currency": "EUR"
+    },
+    "balance": {
+      "amount": 0,
+      "currency": "EUR"
+    }
+  }
+}
