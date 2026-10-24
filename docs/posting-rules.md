@@ -1,157 +1,181 @@
-# Buchungsregeln: von apaleo-Zeilen zu Abacus-Buchungen
+# Buchungsregeln: von apaleo-Zeilen zu Odoo-Buchungssätzen
 
-`buildBookings(lines, mapping, chart, options)` in `src/posting` macht aus den Zeilen von `export-gross-daily` in apaleo die Einzelbuchungen einer Abacus-Datei (AbaConnect «XML Buchungen»). Die Funktion ist rein: Dieselben Zeilen und dieselbe Kontenzuordnung ergeben immer dasselbe Ergebnis. Jede apaleo-Zeile landet an genau einer von drei Stellen: in einer Buchung, in der Liste der übersprungenen Zeilen (mit Grund und Betrag) oder in einem Befund mit `E-`, der den Export blockiert.
+`buildBookings(lines, mapping, chart, options)` in `src/posting` macht aus den Zeilen von `export-gross-daily` in apaleo die Buchungen, aus denen der Writer in `src/odoo` die Importdatei für Odoo schreibt. Die Funktion ist rein: Dieselben Zeilen und dieselbe Kontenzuordnung ergeben immer dasselbe Ergebnis. Jede apaleo-Zeile landet an genau einer von drei Stellen: in einer Buchung, in der Liste der übersprungenen Zeilen (mit Grund und Betrag) oder in einem Befund mit `E-`, der den Export blockiert.
 
-Keine Gewähr, keine Steuerberatung: Die steuerlichen Entscheidungen stecken in der Kontenzuordnung, und die muss dein Treuhänder freigeben. Die Regeln unten stellen nur sicher, dass Abacus die MWST bucht, die apaleo berechnet hat. Das Tool entscheidet keine Steuerfrage und ändert die MWST von apaleo nie.
+Keine Gewähr, keine Steuerberatung: Die steuerlichen Entscheidungen stecken in der Kontenzuordnung, und die muss dein Steuerberater freigeben. Die Regeln unten stellen nur sicher, dass Odoo die Umsatzsteuer bucht, die apaleo berechnet hat. Das Tool entscheidet keine Steuerfrage und ändert den Steuersatz von apaleo nie.
 
-## Eine Buchung pro Zeile
+Die Beispiele stammen aus dem deutschen Testmonat des Tools: erfundenes „Hotel Beispiel Berlin“ (`BSP`), September 2026, EUR, in `test/fixtures/apaleo/de-month/`, gebucht mit der Kontenzuordnung `test/fixtures/mapping/skr03-de-month.csv` (die SKR03-Vorlage, Kurtaxe und Übernachtungsteuer so ausgefüllt, wie es eine Kanzlei entscheiden würde). Jede Zeile der Tabellen steht so in `test/golden/odoo/de-month.per-line.csv`; die Tests vergleichen jeden Betrag mit von Hand gerechneten Werten.
 
-In dieser Version wird nichts verdichtet: Jede apaleo-Zeile wird eine Einzelbuchung mit dem Geschäftstag als Buchungsdatum und der `sourceEntryNumber` aus apaleo, damit sich jede Buchung zurückverfolgen lässt. Ein Hotel mit 40 Zimmern erzeugt ein paar tausend Buchungen im Monat; Abacus importiert das, und die Prüfung der MWST bleibt pro Zeile genau.
+## Ein Buchungssatz pro Tag und Hotel
 
-## Die Seite mit MWST-Code kommt in SingleInformation
+Jede apaleo-Zeile wird eine Buchung mit Soll- und Habenkonto, dem Bruttobetrag und gegebenenfalls der Odoo-Steuer. Der Writer fasst alle Buchungen eines Geschäftstags und eines Hotels zu **einem Buchungssatz** (`account.move`, Typ „entry“, Entwurf) zusammen und verrechnet dabei Soll und Haben pro Sachkonto, Steuer und Bezeichnung: Eine Zeile der Datei zeigt die Veränderung des Tages auf diesem Konto. Die Gästeforderungen `1410` eines Tages, an dem alle Gäste bezahlt haben, ergeben deshalb keine Zeile. Zahlarten bleiben getrennt, weil ihre Bezeichnungen verschieden sind (`Zahlung Visa`, `Zahlung Mastercard`). Welche apaleo-Zeilen hinter einer Zeile der Datei stehen, steht im Protokoll, mit Belegnummer aus apaleo. Format, External IDs und Reihenfolge der Zeilen: [odoo-format.md](odoo-format.md).
 
-Jede Abacus-Buchung hat ein Konto in `CollectiveInformation` und eines in `SingleInformation`; nur `SingleInformation` trägt die MWST (`TaxData`). Beide Seiten der apaleo-Zeile werden über die Kontenzuordnung aufgelöst (siehe [mapping-guide.md](mapping-guide.md)); die Seite, deren Zeile einen MWST-Code hat, ist die MWST-Seite. Deshalb gilt:
+Importiert werden die Buchungssätze als Entwürfe in ein eigenes Journal (`odoo.journal`); das Tool bucht nie selbst.
 
-| Fall | `CollectiveInformation` | `SingleInformation` | `DebitCredit` | MWST in `TaxData` |
-|---|---|---|---|---|
-| MWST-Seite im Haben (Leistung, erhaltene Anzahlung) | andere Seite | MWST-Seite | `D` | negativ |
-| MWST-Seite im Soll (Erlösminderung, Auflösung oder Rückzahlung einer Anzahlung, Debitorenverlust) | andere Seite | MWST-Seite | `C` | positiv |
-| keine MWST-Seite, eine Seite ist Erlös oder Debitorenverlust (Erlöse ohne MWST-Code, Annullationen) | andere Seite | Erlös- oder Verlustkonto | nach Seite | keine |
-| keine MWST-Seite sonst (Zahlungen, Kurtaxe ohne MWST-Code, Debitoren) | belastetes Konto | entlastetes Konto | `D` | keine |
-| beide Seiten mit MWST-Code (Umbuchung zwischen zwei Erlöskonten) | Fehler `E-TWO-VAT-SIDES`, keine Buchung | | | |
+## Die Seite mit Steuer trägt den Nettobetrag
 
-- `DebitCredit` ist die Seite des Kontos in `CollectiveInformation`: `D`, wenn die apaleo-Zeile es belastet, `C`, wenn sie es entlastet. Ein negativer Bruttobetrag (eine negative Belastung, eine Rückzahlung) tauscht die Seiten.
-- Der Betrag ist der Bruttobetrag ohne Vorzeichen. Die MWST ist die genaue Steuer von apaleo, kaufmännisch auf den Rappen gerundet (bei ,5 weg von null), negativ, wenn das Konto der `SingleInformation` im Haben steht, positiv, wenn es im Soll steht. Auf 5 Rappen wird nie gerundet: Das ist eine Praxis der Kasse.
-- MWST-Code und Satz kommen aus der Zeile der MWST-Seite. Eine Zeile mit MWST-Code und 0 % (zum Beispiel ein Code für Ziffer 910) ist erlaubt und bucht die MWST 0.00.
-- Ein Erlös ohne MWST-Code steht in `SingleInformation`, damit die Kostenstelle (`kost`) auf der Leistung und auf ihrer Erlösminderung steht.
-- Ein MWST-Code auf einer Zahlung, einer Gästeforderung oder einem Debitor stoppt die Zeile (`E-MWST-CODE-NOT-ALLOWED`): Sonst bucht Abacus die MWST auf das Geld- oder Forderungskonto.
+Beide Seiten der apaleo-Zeile werden über die Kontenzuordnung aufgelöst (siehe [mapping-guide.md](mapping-guide.md)). Die Seite, deren Zeile eine Odoo-Steuer hat (`odoo_tax`), ist die **Steuerseite**:
 
-## Prüfung der MWST pro Zeile
+- Die Buchung bekommt diese Steuer, den Satz der Zeile (`tax_percent`), den Bruttobetrag ohne Vorzeichen und die Steuer von apaleo, kaufmännisch auf den Cent gerundet (bei ,5 weg von null).
+- Soll und Haben sind die Konten der apaleo-Zeile. Ein negativer Bruttobetrag (eine negative Belastung, eine Rückzahlung) tauscht sie.
+- In der Datei steht die Steuerseite mit dem **Nettobetrag** und der Odoo-Steuer als External ID (`account.1_tax_ust_7_skr03`), die andere Seite mit dem Bruttobetrag.
+- **Die Datei enthält keine Steuerzeilen.** Odoo legt die Steuerzeilen beim Import selbst an, auf dem Steuerkonto der Steuer (SKR03 `1771` für 7 %, `1776` für 19 %) und mit den Kennzeichen der UStVA-Kennzahlen 86 und 81. Eine Steuerzeile in der Datei wäre für Odoo eine zweite Umsatzsteuer ohne Kennzeichen.
+- Steht die Steuerseite im **Haben** (Umsatz, erhaltene Anzahlung), ist das für Odoo die Rechnungsseite: Die Kennzahl steigt. Steht sie im **Soll** (Nachlass, Auflösung oder Rückzahlung einer Anzahlung, Forderungsverlust), ist das die Gutschriftseite: Odoo rechnet eine negative Steuer, und die Kennzahl sinkt.
+- Eine Zeile ohne Steuerseite (Zahlungen, Kurtaxe ohne Steuer, Firmenrechnungen) bucht beide Seiten mit dem Bruttobetrag; ihre Steuerzelle bleibt leer, damit Odoo auch auf einem Konto mit Standardsteuer keine Steuer setzt.
+- Eine Steuer auf einer Zeile für Zahlungen, Gästeforderungen oder Firmenrechnungen stoppt die Zeile (`E-TAX-NOT-ALLOWED`): Odoo würde sonst Umsatzsteuer auf das Geld oder die Forderung rechnen. Haben beide Seiten eine Steuer (eine Umbuchung zwischen zwei Erlöskonten), stoppt die Zeile mit `E-TWO-VAT-SIDES`.
 
-Zuerst werden die `taxes[]` der Zeile bereinigt: Einträge mit Satz 0 und Betrag 0 (zum Beispiel `Without` bei der Kurtaxe) fallen weg. Dass Netto plus Steuer den Bruttobetrag ergibt, prüft schon das Lesen der apaleo-Daten auf den halben Rappen genau. Dann prüft das Tool:
+## Basisanpassung und Rundungsausgleich
+
+Odoo rechnet die Umsatzsteuer aus dem Nettobetrag, apaleo hat sie aus dem Bruttobetrag gerechnet. Der Writer wählt deshalb jeden Nettobetrag so, dass Nettobetrag plus Odoos Steuer genau den Bruttobetrag aus apaleo ergibt, sonst legte Odoo eine „Automatische Ausgleichszeile“ an. Wie Odoo rundet, stellst du mit `odoo.taxRounding` ein:
+
+- `per_line` (Rundung pro Zeile, Standard in Odoo 17 und 18): Odoo rundet die Steuer jeder Zeile. Gibt es keinen passenden Nettobetrag, schreibt der Writer eine zweite Zeile über 0,01 € mit derselben Steuer und „(Rundungsausgleich)“ in der Bezeichnung. Im Testmonat: Frühstück 95,00 € am 09-10 (`8300` Haben 88,78 € und 0,01 €), die Stornogebühr 100,04 € am 09-14 und die Minibar 4,98 € am 09-28.
+- `per_tax` (Rundung pro Steuer, Standard in Odoo 19): Odoo rundet die Steuer einer Gruppe aus Steuer und Seite einmal. Ein fehlender Cent geht ohne Steuer auf `odoo.roundingAccount`, zum Beispiel SKR03 `2700` mit „Rundungsausgleich USt 7 %“. Im Testmonat zwei solche Zeilen (09-14 und 09-28); am 09-10 rundet Odoo die Steuer von Logis und Frühstück einmal und kommt auf 14,07 € statt apaleos 14,06 €.
+
+Jede solche Zeile meldet `N-ODOO-ROUNDING-LINE`. Das Protokoll zeigt pro Steuer die Basis in der Datei, Odoos Steuer und apaleos Steuer mit dem Unterschied. Einzelheiten und Beispiele: [odoo-format.md](odoo-format.md#basisanpassung-warum-manche-nettobeträge-um-einen-cent-abweichen).
+
+## Prüfung der Steuer pro Zeile
+
+Zuerst werden die `taxes[]` der Zeile bereinigt: Einträge mit Satz 0 und Betrag 0 (zum Beispiel `Without` bei der Kurtaxe) fallen weg. Dass Nettobetrag plus Steuer den Bruttobetrag ergibt, prüft schon das Lesen der apaleo-Daten auf den halben Cent genau. Dann prüft das Tool:
 
 | Code | Bedeutung |
 |---|---|
-| `W-VAT-ROUNDING` | Die Kontrolle von Abacus, die MWST, die im Bruttobetrag steckt (`round(Brutto × Satz / (100 + Satz))`), weicht um einen Rappen von der Steuer ab (zum Beispiel 46.80 brutto zu 8,1 %, Steuer 3.50, Kontrolle 3.51). Gebucht mit der Steuer von apaleo; die Differenz geht in die Rundungssumme der Übersicht. |
-| `E-VAT-AMOUNT` | Die Abweichung ist grösser als ein Rappen. |
-| `E-VAT-RATE` | Der Satz von apaleo weicht von `mwst_percent` der MWST-Seite ab. |
-| `E-VAT-MISSING` | apaleo hat MWST berechnet, aber keine der beiden Seiten hat einen MWST-Code. |
-| `E-VAT-UNEXPECTED` | apaleo hat keine MWST berechnet, aber die MWST-Seite bucht einen Satz über 0 %. |
-| `E-VAT-MIXED` | Eine Zeile hat mehr als einen MWST-Satz. |
-| `E-VAT-SIGN` | MWST und Bruttobetrag haben verschiedene Vorzeichen. |
-| `E-VAT-RATE-MISSING` | Die Zeile der Kontenzuordnung hat einen MWST-Code, aber keinen gültigen Satz. |
-| `E-UNMAPPED` | Ein Konto hat keine Zeile mit Abacus-Konto; einmal pro Konto, wie bei `mapping check --from --to`. |
+| `E-VAT-RATE` | Der Satz von apaleo weicht von `tax_percent` der Steuerseite ab. |
+| `E-VAT-MISSING` | apaleo hat Umsatzsteuer berechnet, aber keine der beiden Seiten hat eine Odoo-Steuer. |
+| `E-VAT-UNEXPECTED` | apaleo hat keine Umsatzsteuer berechnet, aber die Steuerseite bucht einen Satz über 0 %. Eine Steuer mit 0 % ist erlaubt und bucht die Steuer 0,00. |
+| `E-VAT-MIXED` | Eine Zeile hat mehr als einen Steuersatz; eine Basiszeile in Odoo trägt genau eine Steuer. |
+| `E-VAT-SIGN` | Steuer und Bruttobetrag haben verschiedene Vorzeichen. |
+| `E-VAT-RATE-MISSING` | Die Zeile der Kontenzuordnung hat eine Odoo-Steuer, aber keinen gültigen Satz. |
+| `E-TAX-NOT-ALLOWED` | Eine Zeile für Zahlungen, Gästeforderungen oder Firmenrechnungen hat eine Odoo-Steuer. |
+| `E-TWO-VAT-SIDES` | Beide Seiten haben eine Odoo-Steuer. |
+| `E-UNMAPPED` | Ein Konto hat keine Zeile mit Odoo-Konto; einmal pro Konto, wie bei `mapping check --from --to`. |
 
-Die Meldungen nennen die Buchungsnummer aus apaleo, beide Konten mit Nummer und Typ (nie mit Namen, weil Gastfolios Gästenamen tragen) und die Zeile der Kontenzuordnung, die du ändern musst.
+Die Meldungen nennen die Belegnummer aus apaleo, beide Konten mit Nummer und Typ (nie mit Namen, weil Gastfolios Gästenamen tragen) und die Zeile der Kontenzuordnung, die du ändern musst. Die Cent-Unterschiede zwischen Odoos und apaleos Steuer kommen allein aus Odoos Rundung; sie sind kein Fehler und stehen im Protokoll. Zusätzlich warnt der Export für die Zeilen, die ein Monat nutzt, mit `W-TAX-UNCHECKED`, `W-TAX-KZ45` und `W-CITY-TAX-TAXED` und für Speisenkonten mit `W-FOOD-RATE`; alle Codes: [troubleshooting.md](troubleshooting.md).
 
-## Schweizer Sonderfälle
+## Deutsche Sonderfälle
 
-Die Fälle, in denen das Schweizer MWST-Recht von einem einfachen Verkauf abweicht. Die Buchungsregeln bleiben dieselben; was sich unterscheidet, steht in der Kontenzuordnung ([mapping-guide.md](mapping-guide.md)). Die Beispiele stammen aus dem Schweizer Testmonat des Tools (erfundenes Hotel Beispiel Engelberg, August 2026, CHF, `test/fixtures/apaleo/ch-month/`), gebucht mit der KMU-Vorlage. Jede Zeile der Tabellen ist eine Buchung der Datei `test/golden/abacus/ch-month.xml`.
+In diesen Fällen weicht das Umsatzsteuerrecht von einem einfachen Verkauf ab. Die Buchungsregeln bleiben dieselben; was sich unterscheidet, steht in der Kontenzuordnung ([mapping-guide.md](mapping-guide.md#sonderfälle-in-deutschland)). Die Tabellen zeigen jede Buchung des Testmonats vor dem Verrechnen; „Zeile in der Datei“ ist der Anteil dieser Buchung an der Zeile des Tages.
 
-**Steuersätze.** Jede Buchung trägt den Satz, den apaleo hat: Beherbergung mit Frühstück 3,8 % (MWSTG Art. 25 Abs. 4), Speisen, Getränke und Minibar 8,1 %, Take-away 2,6 %. Die Liste steht im [Leitfaden zur Kontenzuordnung](mapping-guide.md#steuer-und-steuersatz).
+### Kurtaxe und Übernachtungsteuer
 
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Logis mit Frühstück | `1101` | `3400` | `D` | 155.70 | −5.70 | `313` | Erlös Beherbergung 3,8 % |
-| Nacht, MWST aus apaleo 4.39306358, auf den Rappen gerundet | `1101` | `3400` | `D` | 120.00 | −4.39 | `313` | Erlös Beherbergung 3,8 % |
-| Abendessen | `1101` | `3200` | `D` | 54.05 | −4.05 | `311` | Erlös Speisen und Getränke 8,1 % |
-| Minibar | `1101` | `3500` | `D` | 10.81 | −0.81 | `311` | Erlös Übrige Erlöse 8,1 % |
-| Take-away | `1101` | `3260` | `D` | 15.39 | −0.39 | `312` | Erlös Speisen und Getränke 2,6 % |
+Die Zeilen der Abgaben (CityTaxes, SecondCityTax, GuestLevies) laufen durch ihre Zeile der Kontenzuordnung wie jede andere Zeile, unter derselben Prüfung der Steuer. Eine Kurtaxe, die der Gast schuldet, ist ein durchlaufender Posten (§ 10 Abs. 1 UStG) ohne Steuer; eine Übernachtungsteuer, die der Betrieb schuldet und weitergibt, ist Teil des Entgelts und geht mit der Steuer zu 7 % auf ein Erlöskonto. Hat apaleo eine Abgabe besteuert und ihre Zeile keine Steuer, stoppt der Export mit `E-VAT-MISSING`; trägt eine Zeile der Abgaben eine Steuer, warnt er mit `W-CITY-TAX-TAXED`, schreibt die Datei aber.
 
-**Kurtaxe, Gästetaxe, Beherbergungsabgabe.** Die Zeilen der Kurtaxe (CityTaxes, SecondCityTax, GuestLevies) laufen durch ihre Zeile der Kontenzuordnung wie jede andere Zeile, unter derselben Prüfung der MWST. Eine Kurtaxe, die der Gast schuldet, auf einer Verbindlichkeit ohne MWST-Code ist ein durchlaufender Posten ohne `TaxData`; mit einem Code für Ziffer 910 und Satz 0 trägt sie die MWST 0.00. Eine Abgabe, die apaleo besteuert (eine Beherbergungsabgabe, die das Hotel selbst schuldet, oder eine Kurtaxe, die nicht separat verrechnet wird), geht mit dem MWST-Code der Beherbergung auf ihr Konto; hat ihre Zeile keinen MWST-Code, stoppt der Export mit `E-VAT-MISSING`. Die Übersicht zeigt die Abgaben pro Abacus-Konto, mit oder ohne MWST.
+| Fall (2026-09-20) | Soll | Haben | Brutto | Steuer apaleo | Zeile in der Datei |
+|---|---|---|---|---|---|
+| Kurtaxe des Gastes (`3501`, BSPE0020) | `1410` Gästeforderungen | `1590` Kurtaxe | 5,00 € | keine | `1590` Haben 5,00 €, Steuerzelle leer, keine Kennzahl |
+| Übernachtungsteuer des Betriebs (`3502`, BSPE0021) | `1410` Gästeforderungen | `8300` Kurtaxe 7 % | 10,70 € | 0,70 € zu 7 % | `8300` Haben 10,00 € mit `account.1_tax_ust_7_skr03`; Odoo bucht 0,70 € auf `1771`, Kz 86 steigt um 10,00 € |
 
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Kurtaxe des Gastes, durchlaufender Posten | `1101` | `2210` | `D` | 4.20 | keine | | Kurtaxe |
+Die Übersicht zeigt die Abgaben pro Odoo-Konto: 5,00 € auf `1590` ohne Steuer und 10,70 € auf `8300` mit `tax_ust_7_skr03` (Kz 86), Steuer 0,70 €.
 
-**Anzahlung, erhalten, aufgelöst und zurückbezahlt.** Die erhaltene Anzahlung trägt die MWST bei Erhalt, bei vereinbarten wie bei vereinnahmten Entgelten (MWSTG Art. 40 Abs. 1 Bst. c und Abs. 2), mit dem MWST-Code ihres Satzes. apaleo bucht die Auflösung als negative Belastung auf derselben Anzahlung und die Rückzahlung als negative Anzahlung; beide buchen die MWST zurück, mit `C` und positiver MWST auf dem Anzahlungskonto. Eine Liabilities-Seite zählt als Zugang, wenn sie mit einem positiven Betrag entlastet oder mit einem negativen belastet wird, sonst als Abgang; ein Abgang gegen eine Zahlung ist eine Rückzahlung. Eine Überzahlung, die apaleo mit 0 % parkt, geht ohne MWST auf `2039`.
+### Anzahlungen
 
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Anzahlung per Twint | `1090` | `2030` | `D` | 311.40 | −11.40 | `313` | Anzahlung 3,8 % |
-| Auflösung beim Check-out | `1101` | `2030` | `C` | 207.60 | 7.60 | `313` | Auflösung Anzahlung 3,8 % |
-| Rückzahlung per Twint | `1090` | `2030` | `C` | 103.80 | 3.80 | `313` | Rückzahlung Anzahlung 3,8 % |
+Eine erhaltene Anzahlung trägt die Umsatzsteuer ihres Satzes schon bei Erhalt (§ 13 Abs. 1 Nr. 1 Buchst. a Satz 4 UStG). apaleo bucht sie auf das Konto `<Reservierung>_Liabilities/<Satz>` des Gastes; die `*`-Zeilen der Vorlage legen sie zu 7 % auf `1711` mit `tax_ust_7_skr03`. apaleo bucht die Auflösung beim Check-out als negative Belastung auf derselben Anzahlung und eine Rückzahlung als negative Anzahlung. Eine Liabilities-Seite zählt als Zugang, wenn sie mit einem positiven Betrag im Haben oder mit einem negativen im Soll steht, sonst als Abgang; ein Abgang gegen eine Zahlung ist eine Rückzahlung.
 
-**Rechnung an eine Firma.** Der Check-out auf die Debitoren bucht vom Gästefolio auf die Debitoren apaleo, mit der Rechnungsnummer in `Text2`:
-
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | `Text2` | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Halbpension 186.84 und Getränke 21.62 auf Rechnung | `1102` | `1101` | `D` | 208.46 | keine | ENG-2026-0815 | Forderung an Debitor |
-
-Die Halbpension selbst ist eine Zeile auf dem Beherbergungskonto zu 3,8 %, weil der Beherbergungsanteil mindestens 70 % ausmacht; wie ein Paket aufgeteilt wird, entscheidet das Hotel in apaleo (siehe [mapping-guide.md](mapping-guide.md#steuersätze-nach-leistungsdatum)).
-
-**Debitorenverlust mit MWST-Korrektur.** apaleo belastet den Debitorenverlust und entlastet die Gästeforderung, mit der MWST der Forderung. Mit dem MWST-Code des Satzes steht das Verlustkonto in `SingleInformation` im Soll (`C`), und die MWST ist positiv: Sie mindert die Umsatzsteuer als Entgeltsminderung (MWSTG Art. 41). Ohne `taxes[]` geht der Verlust auf das Verlustkonto ohne MWST-Code (`3808`), ohne `TaxData`. Die Übersicht zeigt die abgeschriebenen Forderungen pro Satz.
-
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Nicht bezahlte Nacht abgeschrieben (MWST aus apaleo 4.39306358) | `1101` | `3805` | `C` | 120.00 | 4.39 | `313` | Debitorenverlust 3,8 % |
-
-**Annullationen und No-Shows.** Sie laufen wie jeder Erlös durch ihre Zeile und die Prüfung der MWST, mit dem Satz, den apaleo berechnet hat. Ohne MWST sind sie Schadenersatz (ESTV MBI 08 Ziff. 8.7) und gehen ohne `TaxData` auf `3680`. Hat apaleo eine Annullation besteuert und die Zeile keinen MWST-Code, stoppt der Export mit `E-VAT-MISSING`; lässt die Vorlage die Zeile leer (eine Annullation mit MWST), mit `E-UNMAPPED`.
-
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
-|---|---|---|---|---|---|---|---|
-| Annullation ohne MWST | `1101` | `3680` | `D` | 80.00 | keine | | Erlös Annullation 0 % |
-
-**Zahlungen.** Eine Zahlung bucht vom Transferkonto oder der Kasse auf die Gästeforderung, ohne MWST. Die zweite Zeile, die apaleo mit jeder Zahlung schreibt (`<Folio>_Receivables` an `<Folio>_Receivables/Offset`), liegt auf demselben Abacus-Konto und wird übersprungen.
-
-| Fall | Collective | Single | `DebitCredit` | Betrag | MWST | `Text1` |
+| Fall | Soll | Haben | Brutto | Steuer apaleo | Zeile in der Datei | Kz 86 |
 |---|---|---|---|---|---|---|
-| Barzahlung beim Check-out | `1000` | `1101` | `D` | 224.76 | keine | Zahlung Bar |
-| Kartenzahlung | `1090` | `1101` | `D` | 8.40 | keine | Zahlung Mastercard |
+| Anzahlung per Visa (09-03, BSPE0001) | `1360` Zahlung Visa | `1711` Anzahlungen 7 % | 321,00 € | 21,00 € | `1711` Haben 300,00 € mit `account.1_tax_ust_7_skr03` (Rechnungsseite) | +300,00 € |
+| Zwei Nächte Logis (09-12, BSPE0007 und BSPE0008) | `1410` Gästeforderungen | `8300` Erlöse Beherbergung 7 % | 214,00 € | 14,00 € | `8300` Haben 200,00 € | +200,00 € |
+| Auflösung beim Check-out, negative Belastung (09-12, BSPE0009) | `1711` Anzahlungen 7 % | `1410` Gästeforderungen | 214,00 € | 14,00 € | `1711` Soll 200,00 € mit `account.1_tax_ust_7_skr03` (Gutschriftseite) | −200,00 € |
+| Rückzahlung per Visa, negative Anzahlung (09-12, BSPE0010) | `1711` Anzahlungen 7 % | `1360` Zahlung Visa | 107,00 € | 7,00 € | `1711` Soll 100,00 € mit `account.1_tax_ust_7_skr03` (Gutschriftseite) | −100,00 € |
+| Überzahlung, die apaleo mit 0 % parkt (09-20, BSPE0023) | `1410` Gästeforderungen | `1719` Anzahlungen ohne USt | 10,00 € | keine | `1719` Haben 10,00 €, Steuerzelle leer | – |
+| Rückzahlung der Überzahlung (09-22, BSPE0028) | `1719` Anzahlungen ohne USt | `1360` Zahlung Visa | 10,00 € | keine | `1719` Soll 10,00 € | – |
 
-So sieht die Anzahlung per Twint in der Datei aus (gekürzt):
+Die Auflösung mindert Kennzahl 86 um die Anzahlung, und die Erlöszeile der Schlussrechnung erhöht sie wieder: Über den Aufenthalt bleibt der Umsatz (+300,00 − 200,00 − 100,00 + 200,00 = +200,00 €). Am 09-12 verrechnet der Writer Auflösung und Rückzahlung zu einer Zeile `1711` im Soll über 300,00 €. Odoo bucht die Steuer der Anzahlung auf dasselbe Steuerkonto `1771` wie die Steuer der Umsätze; die Übersicht im Protokoll zeigt die Anzahlungen deshalb pro Steuer und Satz getrennt: zu 7 % erhalten 321,00 € (Steuer 21,00 €), aufgelöst 321,00 € (Steuer 21,00 €), davon zurückgezahlt 107,00 € (Steuer 7,00 €); ohne Steuer erhalten, aufgelöst und zurückgezahlt je 10,00 €.
 
-```xml
-<CollectiveInformation mode='SAVE'>
-  <DebitCredit>D</DebitCredit>
-  <KeyCurrency>CHF</KeyCurrency>
-  <KeyAmount>311.40</KeyAmount>
-  <Account>1090</Account>
-  <TaxAccount>2200</TaxAccount>
-  <Text1>Anzahlung 3,8 %</Text1>
-</CollectiveInformation>
-<SingleInformation mode='SAVE'>
-  <KeyAmount>311.40</KeyAmount>
-  <Account>2030</Account>
-  <TaxData mode='SAVE'>
-    <TaxIncluded>I</TaxIncluded>
-    <UseCode>0</UseCode>
-    <KeyAmount>-11.40</KeyAmount>
-    <TaxRate>3.8</TaxRate>
-    <TaxCode>313</TaxCode>
-  </TaxData>
-</SingleInformation>
+Kommt eine Auflösung ohne `taxes[]` (ältere Daten, andere Quellen), ermittelt das Tool ihren Satz und nimmt nie 0 % an:
+
+1. aus der oder den `PostPrepaymentVat`-Zeilen desselben Geschäftstags und derselben Referenz, mit deren Steuerbetrag; die berechnete Steuer muss bis auf einen Cent der Steuer auf diesen Zeilen entsprechen (sonst `E-VAT-AMOUNT`);
+2. sonst aus dem Steuersatz des Kontos `Liabilities` oder seines Elternkontos im Kontenplan von apaleo, mit der aus dem Bruttobetrag berechneten Steuer und der Warnung `W-VAT-INFERRED`;
+3. sonst stoppt der Export mit `E-VAT-RATE-UNKNOWN`, statt die Auflösung ohne Steuer zu buchen.
+
+Eine erhaltene oder zurückgezahlte Anzahlung ohne `taxes[]` nimmt den Satz einer `PostPrepaymentVat`-Zeile desselben Tages und derselben Referenz; ohne eine solche Zeile bleibt es bei 0 %. `mapping check --from --to` nutzt dieselbe Ermittlung.
+
+### Rechnungen an Firmen
+
+Der Check-out auf eine Firmenrechnung bucht vom Gästefolio auf die Forderungen. apaleo schreibt dazu eine zweite Zeile auf das `/Offset`-Konto, die auf demselben Odoo-Konto liegt und übersprungen wird. Die Rechnungsnummer steht nicht in der Datei, aber im Protokoll bei der Zeile des Tages.
+
+| Fall (2026-09-18) | Soll | Haben | Brutto | Steuer | Protokoll |
+|---|---|---|---|---|---|
+| Firmenaufenthalt auf Rechnung (BSPE0017) | `1401` Forderungen Firmenrechnungen | `1410` Gästeforderungen | 185,50 € | keine | `2026-09-18 1401 Forderungen Firmenrechnungen debit 185.50: BSPE0017 (BSP-2026-0815)` |
+
+### Forderungsverluste
+
+apaleo bucht einen Forderungsverlust im Soll auf `<Reservierung>_LossOfAccountsReceivable` und im Haben auf die Gästeforderung, mit der Steuer der ausgefallenen Leistung. Mit der Steuer ihres Satzes steht die Verlustzeile im Soll auf der Gutschriftseite: Odoo rechnet eine negative Steuer und mindert die Kennzahl und die Umsatzsteuer um die Steuer der Forderung. Das ist die Berichtigung nach § 17 Abs. 2 Nr. 1 UStG, so wie Odoos eigene Abgleichsmodelle für SKR03 und SKR04 einen Forderungsverlust buchen. Ohne `taxes[]` geht der Verlust ohne Steuer auf `2400`.
+
+| Fall (2026-09-30) | Soll | Haben | Brutto | Steuer apaleo | Zeile in der Datei | Wirkung |
+|---|---|---|---|---|---|---|
+| Nicht bezahlte No-Show-Gebühr (BSPE0029) | `2401` Forderungsverluste 7 % | `1410` Gästeforderungen | 107,00 € | 7,00 € | `2401` Soll 100,00 € mit `account.1_tax_ust_7_skr03` | Kz 86 −100,00 €, USt −7,00 € |
+| Nicht bezahlte sonstige Leistung (BSPE0030) | `2406` Forderungsverluste 19 % | `1410` Gästeforderungen | 119,00 € | 19,00 € | `2406` Soll 100,00 € mit `account.1_tax_ust_19_skr03` | Kz 81 −100,00 €, USt −19,00 € |
+| Rest einer Stornogebühr ohne Umsatzsteuer (BSPE0031) | `2400` Forderungsverluste ohne USt | `1410` Gästeforderungen | 30,00 € | keine | `2400` Soll 30,00 €, Steuerzelle leer | keine |
+
+Die Übersicht zeigt die abgeschriebenen Forderungen pro Satz, zum Beispiel „tax_ust_19_skr03 19 % (lowers Kz 81): net 100.00, apaleo per line 19.00, gross 119.00, …, VAT in the return -19.00“.
+
+### Storno- und No-Show-Gebühren
+
+Sie laufen wie jeder Erlös durch ihre Zeile und die Prüfung der Steuer, mit dem Satz, den apaleo berechnet hat; das Tool ändert ihn nie. Ob eine Gebühr Entgelt oder Schadenersatz ist, entscheidet die Kanzlei, und eine Änderung gehört in die Umsatzsteuer-Einstellung von apaleo. Hat apaleo eine Gebühr besteuert und ihre Zeile keine Steuer, stoppt der Export mit `E-VAT-MISSING`.
+
+| Fall | Soll | Haben | Brutto | Steuer apaleo | Zeile in der Datei |
+|---|---|---|---|---|---|
+| Stornogebühr zu 7 % (09-14, BSPE0011) | `1410` Gästeforderungen | `8300` Erlöse Stornogebühren 7 % | 100,04 € | 6,54 € | `8300` Haben 93,49 € und 0,01 € Rundungsausgleich, beide mit `account.1_tax_ust_7_skr03` |
+| No-Show-Gebühr zu 7 % (09-21, BSPE0024) | `1410` Gästeforderungen | `8300` Erlöse No-Show 7 % | 107,00 € | 7,00 € | `8300` Haben 100,00 € mit `account.1_tax_ust_7_skr03` |
+| Stornogebühr ohne Umsatzsteuer (09-21, BSPE0026) | `1410` Gästeforderungen | `8200` Erlöse ohne USt | 80,00 € | keine | `8200` Haben 80,00 €, Steuerzelle leer |
+
+### Zahlungen und die `/Offset`-Zeilen
+
+Eine Zahlung bucht von der Kasse oder dem Geldtransitkonto auf die Gästeforderung, ohne Steuer. Die zweite Zeile, die apaleo mit jeder Zahlung schreibt (`<Folio>_Receivables` an `<Folio>_Receivables/Offset`), liegt auf demselben Odoo-Konto `1410` und wird als `SAME_ACCOUNT` übersprungen.
+
+| Fall | Soll | Haben | Brutto |
+|---|---|---|---|
+| Barzahlung beim Check-out (09-11, BSPE0006) | `1001` Zahlung bar | `1410` Gästeforderungen | 250,70 € |
+| Kartenzahlung (09-14, BSPE0012) | `1360` Zahlung Mastercard | `1410` Gästeforderungen | 100,04 € |
+| Kartenzahlung mit 10,00 € zu viel (09-20, BSPE0022) | `1360` Zahlung Visa | `1410` Gästeforderungen | 25,70 € |
+| Teilzahlung bar (09-21, BSPE0027) | `1001` Zahlung bar | `1410` Gästeforderungen | 50,00 € |
+
+Im Monat sind das auf der Kasse `1001` 300,70 € und auf dem Geldtransitkonto `1360` 414,72 € (Visa- und Mastercard-Zahlungen abzüglich der Rückzahlungen 107,00 € und 10,00 €). Die sieben `/Offset`-Zeilen über zusammen 696,92 € stehen in der Übersicht als übersprungen.
+
+## So sieht ein Tag in der Datei aus
+
+Der 2026-09-20 mit Kurtaxe, Übernachtungsteuer, der Kartenzahlung und der geparkten Überzahlung (die Gästeforderungen gleichen sich aus und ergeben keine Zeile):
+
+```csv
+id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/debit,line_ids/credit,line_ids/tax_ids/id
+apaleo_c1_BSP_20260920,apaleo BSP 2026-09-20,2026-09-20,APA,apaleo_c1_BSP_20260920_0001,1360,Zahlung Visa,25.70,0.00,
+,,,,apaleo_c1_BSP_20260920_0002,1590,Kurtaxe,0.00,5.00,
+,,,,apaleo_c1_BSP_20260920_0003,1719,Anzahlungen ohne USt,0.00,10.00,
+,,,,apaleo_c1_BSP_20260920_0004,8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03
 ```
 
-## Anzahlungen ohne MWST-Betrag
-
-In echten apaleo-Daten kommt jede Anzahlung, ihre Auflösung und ihre Rückzahlung mit `taxes[]` oder mit 0 %, und es gibt keine `PostPrepaymentVat`-Zeilen. Für ältere Daten und andere Quellen gilt: Die Auflösung (Soll auf dem Konto `Liabilities` des Gastes, Haben auf seinem Konto `Receivables`) muss den Satz der Anzahlung tragen. Schickt apaleo sie ohne `taxes[]`, wird der Satz ermittelt, nie mit 0 % angenommen:
-
-1. aus der oder den `PostPrepaymentVat`-Zeilen desselben Geschäftstags und derselben Referenz (ihr Steuersatz, oder der bekannte Satz, dessen MWST auf der Auflösung ihrem Betrag entspricht). Die Steuer ist dann der Betrag dieser Zeile (bei mehreren Auflösungen die aus dem Bruttobetrag berechnete Steuer jeder Auflösung), und die berechnete Steuer muss bis auf einen Rappen der MWST auf diesen Zeilen entsprechen;
-2. sonst aus dem MWST-Satz des Kontos `Liabilities` oder seines Elternkontos im Kontenplan von apaleo, mit der Steuer `round(|Brutto| × Satz / (100 + Satz))` und der Warnung `W-VAT-INFERRED` (immer, auch wenn dieser Satz 0 % ist);
-3. sonst stoppt der Export mit `E-VAT-RATE-UNKNOWN`, statt die Auflösung ohne MWST zu buchen.
-
-Eine erhaltene oder zurückbezahlte Anzahlung ohne `taxes[]` nimmt den Satz einer `PostPrepaymentVat`-Zeile desselben Geschäftstags und derselben Referenz, die MWST in ihrer Richtung bucht (Eingang) oder zurückbucht (Rückzahlung), mit derselben Prüfung des Betrags. Ohne eine solche Zeile bleibt es bei 0 % (ohne Rückgriff auf den Kontenplan). `mapping check --from --to` nutzt dieselbe Ermittlung.
+Odoo legt beim Import die Steuerzeile 0,70 € auf `1771` an; damit ist der Buchungssatz ausgeglichen (25,70 € Soll gegen 5,00 + 10,00 + 10,00 + 0,70 € Haben).
 
 ## Übersprungene Zeilen
 
 | Grund | Zeilen |
 |---|---|
-| `VAT_ACCOUNT_LINE` | Jede Zeile, die ein apaleo-Konto `Vat` oder `VatOnLiabilities` berührt, auch `PostPrepaymentVat`. Abacus bucht die MWST aus den `TaxData` der Erlös- oder Anzahlungsbuchung; würden die MWST-Zeilen von apaleo zusätzlich gebucht, stünde die MWST doppelt in der MWST-Abrechnung. Diese Konten brauchen keine Zeile in der Kontenzuordnung. |
+| `VAT_ACCOUNT_LINE` | Jede Zeile, die ein apaleo-Konto `Vat` oder `VatOnLiabilities` berührt, auch `PostPrepaymentVat`. Odoo bucht die Umsatzsteuer aus der Steuer der Erlös- oder Anzahlungszeile; würden die Steuerzeilen von apaleo zusätzlich gebucht, stünde die Steuer doppelt in der UStVA. Diese Konten brauchen keine Zeile in der Kontenzuordnung. |
 | `ZERO_AMOUNT` | Bruttobetrag 0. |
-| `SAME_ACCOUNT` | Beide Seiten sind demselben Abacus-Konto zugeordnet, zum Beispiel eine Umbuchung zwischen zwei Gastfolios auf `1101`, oder die zweite Zeile einer Zahlung (`<Folio>_Receivables` an `<Folio>_Receivables/Offset`). |
+| `SAME_ACCOUNT` | Beide Seiten sind demselben Odoo-Konto zugeordnet, zum Beispiel eine Umbuchung zwischen zwei Gastfolios auf `1410` oder die `/Offset`-Zeile einer Zahlung oder Firmenrechnung. |
 
 Übersprungene Zeilen behalten ihre Anzahl und ihre Bruttosumme ohne Vorzeichen in der Übersicht, es verschwindet also nichts.
 
-## Felder
+## Bezeichnungen
 
-- **Text1**: eine Bezeichnung in Schweizer Hochdeutsch ohne Gästenamen, gekürzt auf 80 Zeichen: `Erlös Beherbergung 3,8 %` oder `Erlösminderung …` nach Seite und Vorzeichen, `Anzahlung 3,8 %`, `Umbuchung Anzahlung`, `Auflösung Anzahlung 8,1 %`, `Rückzahlung Anzahlung`, `Zahlung Visa` oder `Rückzahlung …` (englische Namen der Zahlungsarten übersetzt oder weggelassen), `Forderung an Debitor`, `Debitorenverlust 3,8 %`, `Kurtaxe`. Konten vom Typ Receivables, AccountsReceivable und Liabilities ausserhalb des globalen Buchungsjournals nutzen den Namen ihres globalen Elternkontos oder eine feste Bezeichnung (`Gästeforderung`, `Debitor`, `Anzahlung Gast`), nie ihren eigenen Namen, denn der kann der eines Gastes sein.
-- **Text2**: die Belegnummer aus apaleo (Rechnung, Referenz des Zahlungsanbieters, …), wenn `posting.text2` auf `receipt` steht (Standard) und es eine gibt, sonst die Reservationsreferenz. Nie ein Gastname.
-- **DocumentNumber**: die Belegnummer, die das Tool bildet (Monat und Tag des ersten Tags der Datei und ein Zähler).
-- **Kostenstelle** (`BookingLevel1`): nur aus der Zeile des Kontos in `SingleInformation`, und nur, wenn das eine Erlös- oder Debitorenverlustzeile ist. Auf Zahlungen, Debitoren, Anzahlungen, Kurtaxe und Transferkonten bleibt sie leer, denn Abacus nimmt eine Kostenstelle nur auf Erfolgskonten an.
+Die Bezeichnung einer Zeile (`line_ids/name`) hängt nur vom Konto und vom Satz ab, nie vom Gast, damit der Writer alle Buchungen eines Kontos zu einer Zeile pro Tag verrechnen kann:
+
+- Erlöse nach apaleos Gruppe und Satz: `Erlöse Beherbergung 7 %`, `Erlöse Speisen 7 %`, `Erlöse Getränke 19 %`, `Erlöse No-Show 7 %`, `Erlöse Stornogebühren 7 %`, `Erlöse sonstige 19 %`, `Erlöse ohne USt`; andere Erlöskonten mit ihrem Namen ohne das englische „Revenues“;
+- `Zahlung bar`, `Zahlung Visa`, `Zahlung Mastercard`, `Zahlung Überweisung` (englische Namen der Zahlarten übersetzt, Kartenmarken behalten);
+- `Gästeforderungen`, `Forderungen Firmenrechnungen`, `Anzahlungen 7 %`, `Anzahlungen ohne USt`, `Forderungsverluste 19 %`, `Kurtaxe` (mit Steuer `Kurtaxe 7 %`), `Kurtaxe 2`, `Gästeabgabe`, `Hauskonto`, `Durchlaufende Posten`;
+- Zeilen der Basisanpassung: `… (Rundungsausgleich)` bei Rundung pro Zeile, `Rundungsausgleich USt 7 %` bei Rundung pro Steuer.
+
+Die Belegnummer aus apaleo (Rechnung, Referenz des Zahlungsanbieters) steht im Protokoll bei jeder Zeile, wenn `posting.text2` auf `receipt` steht (Standard), sonst die Referenz der Reservierung.
 
 ## Übersicht
 
-Alles in Rappen: Soll, Haben und Saldo pro Abacus-Konto nach dem Bewegungsmodell (das Konto der `CollectiveInformation` mit dem Bruttobetrag, das Konto der `SingleInformation` mit dem Bruttobetrag minus der MWST); Erlöse, Anzahlungen und abgeschriebene Forderungen (Debitorenverluste mit der MWST-Korrektur) pro MWST-Code und Satz mit Netto, MWST und Brutto, wie sie an Abacus gehen, daneben die genaue MWST von apaleo auf denselben Zeilen; Kurtaxe und andere Abgaben, gesamt und pro Abacus-Konto mit oder ohne MWST; Zahlungen pro Konto; erhaltene, aufgelöste und zurückbezahlte Anzahlungen; die Bewegung auf den Debitoren; übersprungene Zeilen pro Grund; die Rundungssumme; Befunde pro Code.
+Das Protokoll und der Probelauf (`--dry-run`) zeigen nach dem Block für den Import in Odoo (Basis, Odoos Steuer und apaleos Steuer pro Steuer, Anzahl der Buchungssätze, Zeilen und Rundungszeilen):
 
-Im Schweizer Testmonat sind das zum Beispiel: Beherbergung `313` netto 645.61, MWST 24.53 (genau aus apaleo 24.53306358), brutto 670.14; Normalsatz `311` netto 80.00, MWST 6.48; reduzierter Satz `312` netto 15.00, MWST 0.39; Annullation ohne MWST-Code 80.00; Kurtaxe 12.60 auf `2210` ohne MWST; Anzahlungen erhalten 311.40, aufgelöst 311.40, davon zurückbezahlt 103.80, MWST der Anzahlungen 0.00; Debitorenverlust `313` 120.00 mit der MWST-Korrektur 4.39; Kasse `1000` 240.15, Transferkonto `1090` 296.00, Debitoren `1102` 208.46. Die Salden aller Konten ergeben zusammen die MWST, die Abacus bucht: 24.53 + 6.48 + 0.39 − 4.39 = 27.01.
+- Soll, Haben und Saldo pro Odoo-Konto vor der Basisanpassung (die Seite ohne Steuer mit dem Bruttobetrag, die Steuerseite mit dem Bruttobetrag ohne apaleos Steuer);
+- Erlöse, Anzahlungen und Forderungsverluste pro Odoo-Steuer und Satz mit Kennzahl: Netto, apaleos Steuer pro Zeile gerundet, Brutto, apaleos genaue Steuer und die Rundungsdifferenz; bei Forderungsverlusten mit der Minderung der Kennzahl;
+- Kurtaxe und andere Abgaben pro Odoo-Konto, ohne oder mit Steuer;
+- Zahlungen pro Kasse und Geldtransitkonto;
+- erhaltene, aufgelöste und davon zurückgezahlte Anzahlungen, gesamt und pro Steuer und Satz mit ihrer Steuer;
+- die Veränderung der Firmenrechnungen, übersprungene Zeilen pro Grund und alle Befunde.
+
+Im deutschen Testmonat sind das zum Beispiel: Erlöse 7 % brutto 785,84 €, apaleos Steuer 51,40 € (genau 51,41009346 €); Erlöse 19 % brutto 195,38 €, Steuer 31,20 €; Erlöse ohne Umsatzsteuer 160,00 €; Abgaben 5,00 € auf `1590` und 10,70 € auf `8300`; Forderungsverluste 107,00 € zu 7 %, 119,00 € zu 19 % und 30,00 € ohne Steuer; Kasse 300,70 €, Geldtransit 414,72 €, Firmenrechnungen 185,50 €. Die Salden aller Konten ergeben zusammen die Steuer, die die Buchungen tragen: 51,40 + 0,70 + 31,20 − 7,00 − 19,00 = 57,30 €. Odoos eigene Steuer: bei Rundung pro Zeile 45,10 € zu 7 % und 12,19 € zu 19 % (ein Cent unter apaleo), bei Rundung pro Steuer 45,11 € und 12,19 €.
