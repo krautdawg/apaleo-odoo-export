@@ -78,13 +78,15 @@ Was ein zweiter Import derselben Datei bewirkt (so im lokalen Testimport beobach
 
 Ändert sich ein Monat nach dem Export (zum Beispiel durch eine späte Buchung in apaleo), schreibt das Tool mit `--overwrite` eine neue Datei. Diese Datei ist die nächste **Revision**: Revision 2 trägt `apaleo_c1_BSP_20260914_r2`, ihre Zeilen `apaleo_c1_BSP_20260914_r2_0001` und so weiter, und die Referenz `apaleo BSP 2026-09-14 (Korrektur 2)`. Die erste Datei eines Zeitraums ist Revision 1 und hat keinen Zusatz.
 
+> **Noch nicht umgesetzt:** Der Writer kann Revisionen schreiben, aber der Export wählt sie erst mit dem OpenSpec-Change o06. Bis dahin schreibt `--overwrite` Revision 1, also dieselben External IDs wie die erste Datei. Was das für einen schon importierten Monat heißt, steht in [odoo-import.md](odoo-import.md#einen-monat-ersetzen).
+
 Warum neue IDs: Mit l10n_de ist in Odoo meist das Prüfprotokoll (GoBD) eingeschaltet (im lokalen Testimport mit Odoo 17 und SKR04 war es aus). Ein gebuchter Buchungssatz lässt sich dann nicht löschen, nur stornieren, und die Stornierung gibt seine External ID nicht frei. Eine korrigierte Datei mit den alten IDs würde den gebuchten Buchungssatz ändern wollen: Odoo 18 und 19 lehnen die ganze Datei ab, Odoo 17 nimmt sie an und lässt den gebuchten Buchungssatz, wie er war. Über einem Entwurf würde sie zwar importiert, aber Zeilen, die in der neuen Datei fehlen, blieben stehen. Mit neuen IDs legt die korrigierte Datei immer neue Buchungssätze an; der lokale Testimport hat das in allen drei Versionen bestätigt, nach dem Löschen der Entwürfe und nach dem Stornieren.
 
 So ersetzt du einen Monat:
 
 1. Filtere in Odoo die Buchungssätze der früheren Revision nach der Referenz (zum Beispiel `apaleo BSP`) und dem Zeitraum.
 2. Lösche ihre **Entwürfe**.
-3. **Storniere** ihre gebuchten Buchungssätze (Gutschrift bzw. Stornobuchung in Odoo).
+3. **Storniere** ihre gebuchten Buchungssätze (Stornobuchung in Odoo), mit dem Datum des ursprünglichen Buchungssatzes als „Stornodatum“ (Reversal Date) statt des heutigen Datums, das Odoo vorschlägt, damit sich der Monat in seinem eigenen Zeitraum aufhebt ([odoo-import.md](odoo-import.md#einen-monat-ersetzen)).
 4. Importiere die neue Datei. Die Buchungssätze der neuen Datei kommen als neue Entwürfe an.
 
 Das Tool liest die Revision einer vorhandenen Datei aus der External ID ihres ersten Buchungssatzes. Welche Revision eine neue Datei bekommt, entscheidet der Export.

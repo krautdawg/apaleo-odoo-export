@@ -71,18 +71,22 @@ Importiere eine Datei aber nie über **gebuchte** Buchungssätze: Odoo 18 und 19
 
 Kommt nach dem Export eine Nachbuchung in apaleo, schreibt das Tool den Monat mit `export --overwrite` neu ([export.md](export.md#noch-einmal-exportieren)). Die neue Datei ist die nächste **Revision**: Die Buchungssätze darin haben neue External IDs mit `_r2`, `_r3` und so weiter (zum Beispiel `apaleo_c1_BSP_20260914_r2`) und die Referenz mit dem Zusatz „(Korrektur N)“, zum Beispiel `apaleo BSP 2026-09-14 (Korrektur 2)`. Einzelheiten: [odoo-format.md](odoo-format.md#korrekturen-revisionen-korrektur-n).
 
+> **Noch nicht umgesetzt:** Die Revision kommt mit einem der nächsten Ausbauschritte des Exports (OpenSpec-Change o06). Bis dahin schreibt `--overwrite` dieselben External IDs und dieselben Referenzen wie die erste Datei. Das reicht nur, solange von der früheren Datei ausschließlich **Entwürfe** in Odoo stehen: Lösch die Entwürfe (Schritt 2), dann importiere die neue Datei. Ist auch nur ein Buchungssatz der früheren Datei gebucht, lehnt Odoo die neue Datei nach dem Stornieren ganz ab, weil sie dieselben External IDs trägt; es geht nichts verloren, aber du ersetzt einen gebuchten Monat erst mit der Revision.
+
 So ersetzt du den Monat:
 
 1. Filtere die Buchungssätze der früheren Revision nach ihrer Referenz (zum Beispiel `apaleo BSP`) und dem Zeitraum. Die früheren haben keinen Zusatz oder eine kleinere Korrektur-Nummer als die neue Datei.
 2. **Lösche** ihre Entwürfe.
-3. **Storniere** ihre gebuchten Buchungssätze (Stornobuchung, in Odoo „Umkehren“, Reverse). Löschen geht nicht: l10n_de schaltet das Prüfprotokoll nach GoBD ein, und dann lässt sich ein gebuchter Buchungssatz nicht mehr löschen. Die Stornierung behält die External IDs der alten Revision; deshalb trägt die neue Datei neue.
+3. **Storniere** ihre gebuchten Buchungssätze (Schaltfläche „Stornobuchung“, Reverse Entry, im Fenster dann „Stornieren“, Reverse). Löschen geht nicht: l10n_de schaltet das Prüfprotokoll nach GoBD ein, und dann lässt sich ein gebuchter Buchungssatz nicht mehr löschen. Die Stornierung behält die External IDs der alten Revision; deshalb trägt die neue Datei neue.
+
+   **Setz das „Stornodatum“ (Reversal Date) auf das Datum des ursprünglichen Buchungssatzes.** Odoo schlägt das heutige Datum vor. Stornierst du im Oktober einen gebuchten September mit diesem Vorschlag, landet die Stornierung im Oktober, die neue Datei aber mit den Geschäftstagen im September: Der September enthält dann beide Revisionen, seine Umsätze und seine Umsatzsteuer (Kz 81 und 86) zählen doppelt, und der Oktober hat eine negative Kopie. Odoo meldet dabei keinen Fehler und legt keine Ausgleichszeile an. Markierst du mehrere Buchungssätze auf einmal, gilt ein Stornodatum für alle; storniere deshalb jeden Tag einzeln mit seinem Datum, oder entscheide mit deiner Kanzlei, ob ein Datum im selben Monat genügt, damit sich der Monat in seinem eigenen Zeitraum aufhebt. Ist die UStVA für diesen Monat schon abgegeben oder der Zeitraum gesperrt, entscheidet deine Kanzlei über das Datum und eine berichtigte UStVA.
 4. Importiere die neue Datei wie oben. Die Buchungssätze darin kommen als neue Entwürfe an, neben den stornierten der früheren Revision.
 
 Importiere die neue Datei nie, bevor die Buchungssätze der früheren Revision gelöscht oder storniert sind, sonst stehen die Umsätze des Monats doppelt in Odoo.
 
 ## Eine Datei rückgängig machen
 
-Filtere nach der Referenz der Datei (`apaleo <Hotel>` und der Zeitraum, bei einer Revision mit „(Korrektur N)“). Lösche die Entwürfe; nie gebuchte Entwürfe lassen sich auch mit Prüfprotokoll löschen. Storniere die gebuchten Buchungssätze.
+Filtere nach der Referenz der Datei (`apaleo <Hotel>` und der Zeitraum, bei einer Revision mit „(Korrektur N)“). Lösche die Entwürfe; nie gebuchte Entwürfe lassen sich auch mit Prüfprotokoll löschen. Storniere die gebuchten Buchungssätze, jeden mit dem Datum des ursprünglichen Buchungssatzes als „Stornodatum“ (Reversal Date), nicht mit dem heutigen Datum, das Odoo vorschlägt; sonst steht die Stornierung in einem anderen Monat und einer anderen UStVA als der Umsatz ([Einen Monat ersetzen](#einen-monat-ersetzen), Schritt 3). Ist die UStVA des Monats schon abgegeben, entscheidet deine Kanzlei über das Datum und eine berichtigte UStVA.
 
 ## Fragen für die Kanzlei
 
@@ -101,6 +105,7 @@ Diese Fragen aus der Recherche beantwortet der erste Testimport mit einer Kanzle
 - [ ] Findet jede Kontonummer genau ein Konto, auch wenn es Unterkonten gibt (zum Beispiel `84001` neben `8400`)?
 - [ ] Stimmen Menü und Schaltflächen dieser Anleitung mit der Oberfläche überein?
 - [ ] Lassen sich nie gebuchte Entwürfe mit eingeschaltetem Prüfprotokoll löschen?
+- [ ] Trägt die Stornobuchung das „Stornodatum“ des ursprünglichen Buchungssatzes, sodass sich der Monat mit der Revision in seinem eigenen Zeitraum und in seiner UStVA (Kz 81 und 86) aufhebt?
 - [ ] Welche Nummern haben Kasse und Geldtransit in der Datenbank der Kanzlei?
 - [ ] Heißen die Steuerarten von apaleo beim Hotel so wie in der Kontenzuordnung, und stimmen die Konten für Speisen zu 7 % an einem Tag 2026?
 - [ ] Landen Konten, Journal und Buchungssätze bei mehreren Unternehmen im Zielunternehmen, und importiert eine Niederlassung mit den Steuer-IDs des Hauptunternehmens?
