@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { checkPracticeTermLines, checkQuotationMarks } from './helpers/docs.js';
 
 const read = (file: string) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 const exists = (file: string) => existsSync(new URL(`../${file}`, import.meta.url));
@@ -20,19 +21,19 @@ describe('licence and disclaimer', () => {
     expect(readme).toContain('](DISCLAIMER.md)');
   });
 
-  it('DISCLAIMER.md is German and binding first, then a non-binding English translation, both covering warranty, liability, advice, the Treuhänder and the Abacus imports', () => {
+  it('Licence and disclaimer are checked by a test: DISCLAIMER.md is German and binding first, then a non-binding English translation, both covering warranty, liability, advice, the Steuerberater and the Odoo imports', () => {
     const text = read('DISCLAIMER.md');
     expect(text.startsWith('# Haftungsausschluss\n')).toBe(true);
     expect(text).toContain('Verbindlich ist die deutsche Fassung.');
     const [german = '', english = ''] = text.split('\n## English (non-binding translation)\n');
     expect(english).not.toBe('');
-    for (const phrase of ['ohne ausdrückliche oder stillschweigende Gewährleistung', 'haften', 'keine Steuerberatung', 'Kontenzuordnung', 'Treuhänder', 'Abacus', 'MWST-Codes', 'Abacus Research AG', 'apaleo GmbH']) {
+    for (const phrase of ['ohne ausdrückliche oder stillschweigende Gewährleistung', 'haften', 'keine Steuerberatung', 'Kontenzuordnung', 'Steuerberater', 'Odoo', 'ersten Importe in Odoo', 'keiner Verbindung zur apaleo GmbH oder zur Odoo S.A.']) {
       expect(german).toContain(phrase);
     }
-    for (const phrase of ['without warranty', 'not liable', 'not tax advice', 'must review the account mapping', 'Treuhänder', 'first Abacus imports', 'Abacus Research AG']) {
+    for (const phrase of ['without warranty', 'not liable', 'not tax advice', 'must review the account mapping', 'Steuerberater', 'first Odoo imports', 'apaleo GmbH or Odoo S.A.']) {
       expect(english).toContain(phrase);
     }
-    expect(text).not.toMatch(/\bBMD\b|Steuerberater|Kanzlei|\bUVA\b|\bBAO\b/);
+    expect(text).not.toMatch(/Abacus|\bBMD\b|Treuhänder|MWST|\bUVA\b|\bBAO\b|«|»/);
   });
 });
 
@@ -186,10 +187,13 @@ describe('compose and env examples', () => {
     expect((compose.services['apaleo-odoo'] as Record<string, unknown>).environment).toBeUndefined();
   });
 
-  it('comments the compose, env and config examples in German, without BMD', () => {
-    for (const file of ['docker-compose.example.yml', '.env.example', 'apaleo-odoo.config.example.yaml']) {
+  it('comments the compose, env and config examples and the templates in German as used in Germany, without Abacus, BMD, Swiss or Austrian terms', () => {
+    for (const file of ['docker-compose.example.yml', '.env.example', 'apaleo-odoo.config.example.yaml', 'Dockerfile', 'templates/skr03-hotel.rules.csv', 'templates/skr04-hotel.rules.csv']) {
       const text = read(file);
-      expect(text, file).not.toMatch(/\bBMD\b/);
+      // Every line, comments and values: the shared Swiss and Austrian term rules of the docs (o08 design decision 3) and German quotation marks.
+      expect(checkPracticeTermLines(file, text)).toEqual([]);
+      expect(checkQuotationMarks(file, text)).toEqual([]);
+      expect(text, file).not.toMatch(/\bBMD\b|Abacus|Mandant|standardmässig|schliesst|ausserhalb|grösser/i);
     }
   });
 
@@ -203,7 +207,9 @@ describe('compose and env examples', () => {
         .split('\n')
         .filter((line) => line.trimStart().startsWith('#'))
         .join('\n');
-      for (const term of ['Treuhänder', 'Abacus', 'MWST', 'Mandant', '«', '»', 'Europe/Zurich']) expect(comments, `${file}: ${term}`).not.toContain(term);
+      for (const term of ['Abacus', 'Mandant', 'Europe/Zurich']) expect(comments, `${file}: ${term}`).not.toContain(term);
+      // A rough guard against comments left in English from the origin projects: these words are common in English
+      // and do not occur in German. checkGerman needs prose paragraphs, which a few comment lines are not.
       expect(comments, file).not.toMatch(/\b(the|and|only|there is)\b/);
     }
   });

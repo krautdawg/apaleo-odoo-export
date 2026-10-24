@@ -32,7 +32,7 @@ Der Pfad der Datei kann in der Konfiguration stehen (`properties[].mapping`), so
 | `tax_percent` | der Satz der Steuer, wie ihn deine Kanzlei bestätigt, zum Beispiel `7` oder `19`. Mit Steuer Pflicht (auch `0`), ohne Steuer leer oder `0`. Das Tool kann den Satz der Steuer in Odoo nicht lesen und vergleicht diesen Wert mit dem Satz von apaleo |
 | `comment` | Freitext, zum Beispiel die Begründung deiner Kanzlei |
 
-Sätze darfst du mit Komma oder Punkt schreiben (`19,0` oder `19`). Eine Zuordnung von apaleo-abacus-export (Spalten `abacus_account`, `mwst_code`), apaleo-bmd-export (`bmd_account`, `steuercode`) oder apaleo-datev-export (`datev_account`, `bu_key`) liest das Tool nicht; es nennt dann `init-mapping --template skr03-hotel` ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)).
+Sätze darfst du mit Komma oder Punkt schreiben (`19,0` oder `19`). Eine Zuordnung von apaleo-abacus-export (Spalten `abacus_account`, `mwst_code`), apaleo-bmd-export (`bmd_account`, `steuercode`) oder apaleo-datev-export (`datev_account`, `bu_key`) liest das Tool nicht; es nennt dann `init-mapping --template skr03-hotel` ([troubleshooting.md](troubleshooting.md#einrichtung-aus-einem-vorgängerprojekt-übernommen)).
 
 ### Kontonummern und Steuern
 

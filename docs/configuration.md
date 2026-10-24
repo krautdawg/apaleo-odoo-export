@@ -8,7 +8,7 @@ Das Tool liest eine Konfigurationsdatei im Format YAML oder JSON und dazu ein pa
 2. die Umgebungsvariable `APALEO_ODOO_CONFIG`, sonst
 3. `./apaleo-odoo.config.yaml` im Arbeitsverzeichnis.
 
-Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`journal:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `abacus`, `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `odoo`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
+Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`journal:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `abacus`, `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `odoo`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-einem-vorgängerprojekt-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
 
 ## Secrets
 
@@ -69,11 +69,11 @@ odoo:
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `posting.text2` | `receipt` | Was in `Text2` jeder Buchung steht: `receipt` nimmt den Beleg aus apaleo (Rechnungs- oder Zahlungsreferenz) und sonst die Reservationsreferenz; `reference` nimmt immer die Reservationsreferenz. Nie ein Gastname. Die Belegnummer (`DocumentNumber`) bildet das Tool selbst. |
+| `posting.text2` | `receipt` | Welchen Beleg das Protokoll neben jeder apaleo-Buchung nennt (in der Odoo-Datei steht er nie): `receipt` nimmt den Beleg aus apaleo (Rechnungs- oder Zahlungsreferenz) und sonst die Reservierungsreferenz; `reference` nimmt immer die Reservierungsreferenz. Nie ein Gastname. Referenz und External ID der Buchungssätze bildet das Tool selbst. |
 
 ### `properties`
 
-Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` exportieren jedes hier eingetragene Hotel, ausser du gibst `--property` an. Die IDs, die die Custom App lesen darf, listet `apaleo-odoo properties`.
+Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` exportieren jedes hier eingetragene Hotel, außer du gibst `--property` an. Die IDs, die die Custom App lesen darf, listet `apaleo-odoo properties`.
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
@@ -109,7 +109,7 @@ Nur für `schedule --once`. Was jede Einstellung bewirkt, mit Beispielen: [docke
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `schedule.timezone` | `Europe/Berlin` | „Heute“ ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in Deutschland passt der Standard; setz den Schlüssel nur, wenn dein Rechner und deine Hotels in einer anderen Zeitzone stehen; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
+| `schedule.timezone` | `Europe/Berlin` | „Heute“ ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in Deutschland passt der Standard; setz den Schlüssel nur, wenn deine Hotels in einer anderen Zeitzone stehen; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
 | `schedule.cadence` | `monthly` | `monthly` (eine Datei pro Monat) oder `daily` (eine Datei pro Tag). Ein Rhythmus pro Installation. |
 | `schedule.monthly` | | Einstellungen für `cadence: monthly`. |
 | `schedule.monthly.dayOfMonth` | `3` | Ein Monat ist ab diesem Tag des Folgemonats fällig, 1 bis 5. |

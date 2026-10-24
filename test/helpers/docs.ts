@@ -8,8 +8,8 @@ import { configSchema } from '../../src/core/config.js';
 /**
  * The docs consistency rules (s08 design decision 5, extended in s09 design
  * decision 7, b08 design decisions 1 and 4, a08 design decisions 1, 5 and 6,
- * and o01 design decision 3: the Swiss spelling checks are gone, so every doc
- * may be German as written in Germany). Each check takes
+ * o01 design decision 3 and o08 design decision 3: one rule for every German
+ * file, German as written in Germany). Each check takes
  * the text of one Markdown file and returns one problem per stale mention,
  * naming the file, so a failing test says exactly what to fix.
  */
@@ -349,50 +349,81 @@ export function checkInformalAddress(file: string, markdown: string): string[] {
   return problems;
 }
 
-// --- Practice terms --------------------------------------------------------------
+// --- German as written in Germany ----------------------------------------------
 
 /**
- * Terms of Austrian BMD practice that have no place in these docs. The terms of
- * German practice (`SKR03`, `UStVA`, `Kanzlei`, `7 %`, `19 %`) are allowed since
- * o01 design decision 3: the product is German now. o08 adds the Swiss practice
- * terms and the ban on « and » for every German file once the Abacus-era docs
- * are rewritten.
+ * Terms of Swiss practice that have no place in a German file (o08 design
+ * decision 3): the product is German, so its docs speak of the Steuerberater,
+ * the USt and the Cent.
  */
-export const AUSTRIAN_PRACTICE_TERMS = [
-  'Steuercode',
-  'Buchungssymbol',
-  'Einheitskontenrahmen',
-  'EKR',
-  'UVA',
-  'Ortstaxe',
-  'Nächtigungsabgabe',
-  'Personenkonto',
-  '10 %',
-  '13 %',
-  '20 %',
-] as const;
+export const SWISS_PRACTICE_TERMS = ['Treuhänder', 'MWST', 'MWST-Code', 'MWST-Abrechnung', 'Rappen', 'KMU-Kontenrahmen', 'Mandantennummer', 'Leitwährung'] as const;
 
-/** The target formats of the origin projects, named only where a doc must (a08 design decision 1). */
-export const ORIGIN_TARGETS = ['BMD', 'DATEV'] as const;
+/**
+ * Terms of Austrian BMD practice that have no place in a German file. The terms
+ * of German practice (`SKR03`, `UStVA`, `Kanzlei`, `Personenkonto`, `7 %`,
+ * `19 %`, `DATEV`) are allowed.
+ */
+export const AUSTRIAN_PRACTICE_TERMS = ['Steuercode', 'Buchungssymbol', 'Einheitskontenrahmen', 'EKR', 'UVA', 'Ortstaxe', 'Nächtigungsabgabe'] as const;
 
-/** A link to one of the origin projects; a README line with one may name BMD and DATEV. */
-const ORIGIN_LINK = /\]\(https:\/\/github\.com\/krautdawg\/apaleo-(?:bmd|datev)-export\/?\)/;
-/** The section of `docs/troubleshooting.md` with the findings that detect a copied German or Austrian setup. */
-export const COPIED_SETUP_SECTION = 'Einrichtung aus Deutschland oder Österreich übernommen';
+/**
+ * The Austrian VAT rates. A bare `20 %` is often no VAT rate at all (a deposit,
+ * a discount), so a rate counts only next to a VAT word (`USt`, `Umsatzsteuer`,
+ * `Steuersatz` …): "Logis mit 10 % USt" is reported, "20 % Anzahlung" is not.
+ */
+export const AUSTRIAN_VAT_RATES = ['10 %', '13 %', '20 %'] as const;
+
+/**
+ * The target formats of the origin projects, named only where a doc must (o08
+ * design decision 3). `DATEV` is not one of them: Odoo's German localisation and
+ * SKR03/SKR04 are DATEV terms a Kanzlei uses.
+ */
+export const ORIGIN_TARGETS = ['Abacus', 'BMD'] as const;
+
+/** A link to one of the origin projects; a README line with one may name Abacus and BMD. */
+const ORIGIN_LINK = /\]\(https:\/\/github\.com\/krautdawg\/apaleo-(?:abacus|bmd|datev)-export\/?\)/;
+/** The section of `docs/troubleshooting.md` with the findings that detect a setup copied from an origin project. */
+export const COPIED_SETUP_SECTION = 'Einrichtung aus einem Vorgängerprojekt übernommen';
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const WORD_START = String.raw`(?<![\p{L}\p{N}])`;
+const WORD_END = String.raw`(?![\p{L}\p{N}])`;
+/** German inflection endings, so `Treuhändern` and `Mandantennummern` count as the term. */
+const INFLECTION = '(?:e|en|n|s|es|in|innen)?';
 
 /**
- * A rate (`7 %`) is a rate token not preceded by a digit or a decimal sign, so
- * `110 %`, `7,7 %` and `7.7 %` do not count; a word must start a word, its
- * plural is caught too; a target token (`BMD`) must be a whole word, so `BMDX` does not count.
+ * A term or a token is a whole word, with its German endings for a term, so
+ * `Hauskanzlei` and `BMDX` do not count.
  */
-const termPattern = (term: string) =>
-  /^\d/.test(term) ? new RegExp(`(?<![\\d,.])${escapeRegExp(term).replace(' ', '\\s?')}`, 'u') : new RegExp(`${WORD_START}${escapeRegExp(term)}`, 'u');
+const termPattern = (term: string) => new RegExp(`${WORD_START}${escapeRegExp(term)}${INFLECTION}${WORD_END}`, 'gu');
 
-const PRACTICE_PATTERNS = AUSTRIAN_PRACTICE_TERMS.map((term) => ({ term, pattern: termPattern(term) }));
-const TARGET_PATTERNS = ORIGIN_TARGETS.map((token) => ({ token, pattern: new RegExp(`${WORD_START}${token}(?![\\p{L}\\p{N}])`, 'u') }));
+/** A word that makes a rate next to it a VAT rate; `MwSt` is German, the Swiss `MWST` is a term of its own. */
+const VAT_WORD = String.raw`${WORD_START}(?:USt|Umsatzsteuer|Mehrwertsteuer|MwSt|Steuersa(?:tz|ätz))\p{L}*`;
+/** Up to 25 characters of the same clause between a rate and its VAT word: "Steuersatz von 10 %", "USt-Satz 10 %", "10 % USt". */
+const NEAR = '[^\\n.;:]{0,25}';
+
+/**
+ * A rate (`10 %`) is not preceded by a digit or a decimal sign, so `110 %`,
+ * `2,0 %` and `7.7 %` do not count, and it counts only with a VAT word before
+ * or after it in the same clause.
+ */
+const ratePattern = (rate: string) => {
+  const bare = `(?<![\\d,.])${escapeRegExp(rate).replace(' ', '\\s?')}`;
+  return new RegExp(`(?<=${VAT_WORD}${NEAR})${bare}|${bare}(?=${NEAR}${VAT_WORD})`, 'gu');
+};
+
+interface TermRule {
+  term: string;
+  pattern: RegExp;
+  practice: string;
+}
+
+/** Longest term first, so `MWST-Code` is reported as itself and not as `MWST` too. */
+const TERM_RULES: readonly TermRule[] = [
+  ...SWISS_PRACTICE_TERMS.map((term): TermRule => ({ term, practice: 'Swiss practice', pattern: termPattern(term) })),
+  ...AUSTRIAN_PRACTICE_TERMS.map((term): TermRule => ({ term, practice: 'Austrian BMD practice', pattern: termPattern(term) })),
+  ...AUSTRIAN_VAT_RATES.map((term): TermRule => ({ term, practice: 'Austrian BMD practice', pattern: ratePattern(term) })),
+].sort((a, b) => b.term.length - a.term.length);
+const TARGET_PATTERNS = ORIGIN_TARGETS.map((token) => ({ token, pattern: new RegExp(`${WORD_START}${token}${WORD_END}`, 'u') }));
 
 interface ProseLine {
   /** The `## ` heading the line belongs to, or "" before the first one. */
@@ -416,10 +447,11 @@ function proseLines(markdown: string): ProseLine[] {
 }
 
 /**
- * The places that may name BMD and DATEV and their terms (a08 design decisions 1
- * and 7): a README line that links an origin project (the origin sentence and the
- * FAQ answer on BMD and DATEV), the README item about other target formats, the
- * troubleshooting findings that detect a copied setup, and the whole changelog.
+ * The places that may name Abacus and BMD and the practice terms of the origin
+ * projects (o08 design decision 3): a README line that links an origin project
+ * (the origin sentence and the FAQ answer on DATEV, BMD and Abacus), the README
+ * item about other target formats, the troubleshooting findings that detect a
+ * copied setup, and the whole changelog.
  */
 const ALLOWED_ORIGIN_MENTIONS: Record<string, (line: ProseLine) => boolean> = {
   'README.md': ({ section, raw, text }) => ORIGIN_LINK.test(raw) || (section === 'Was es nicht macht' && /^- .*Zielformate/.test(text)),
@@ -427,9 +459,22 @@ const ALLOWED_ORIGIN_MENTIONS: Record<string, (line: ProseLine) => boolean> = {
 };
 const FILES_ABOUT_THE_ORIGIN = new Set(['CHANGELOG.md']);
 
+/** Problems where one line uses a term of Swiss or Austrian practice, each term reported once. */
+function termProblems(file: string, line: string): string[] {
+  const quoted = line.trim();
+  const problems: string[] = [];
+  let text = line;
+  for (const { term, pattern, practice } of TERM_RULES) {
+    if (text.search(pattern) < 0) continue;
+    problems.push(`${file}: "${quoted}": "${term}" is a term of ${practice}`);
+    text = text.replace(pattern, (match) => ' '.repeat(match.length));
+  }
+  return problems;
+}
+
 /**
- * Problems where a German file uses a term of Austrian BMD practice, or names
- * BMD or DATEV, outside the allowed places.
+ * Problems where a German file uses a term of Swiss or Austrian practice, or
+ * names Abacus or BMD, outside the allowed places.
  */
 export function checkPracticeTerms(file: string, markdown: string): string[] {
   if (FILES_ABOUT_THE_ORIGIN.has(file)) return [];
@@ -437,12 +482,44 @@ export function checkPracticeTerms(file: string, markdown: string): string[] {
   const problems: string[] = [];
   for (const line of proseLines(markdown)) {
     if (allowed(line)) continue;
-    const quoted = line.text.trim();
-    for (const { term, pattern } of PRACTICE_PATTERNS) {
-      if (pattern.test(line.text)) problems.push(`${file}: "${quoted}": "${term}" is a term of Austrian BMD practice`);
-    }
+    problems.push(...termProblems(file, line.text));
     for (const { token, pattern } of TARGET_PATTERNS) {
-      if (pattern.test(line.text)) problems.push(`${file}: "${quoted}": "${token}" is named outside a link to an origin project, the other target formats and the findings for a copied setup`);
+      if (pattern.test(line.text)) problems.push(`${file}: "${line.text.trim()}": "${token}" is named outside a link to an origin project, the other target formats and the findings for a copied setup`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * The same Swiss and Austrian term rules for a German file that is not
+ * Markdown: the GitHub issue forms, the examples, the Dockerfile and the mapping
+ * templates, every line as written (o08 design decision 3: one rule set for
+ * every German file, no per-file term lists).
+ */
+export function checkPracticeTermLines(file: string, text: string): string[] {
+  return text.split('\n').flatMap((line) => termProblems(file, line));
+}
+
+/** Problems where a German file uses the Swiss quotation marks « and »; German ones are „…“. */
+export function checkQuotationMarks(file: string, markdown: string): string[] {
+  return markdown
+    .split('\n')
+    .filter((line) => /[«»]/.test(line))
+    .map((line) => `${file}: "${line.trim()}": « and » are Swiss quotation marks; write „…“`);
+}
+
+/**
+ * Problems where the prose of a German file writes a rate the English way: with
+ * a decimal point (`7.0 %`) or without the space before the percent sign
+ * (`19%`). German is `7 %`, `19 %`, `10,7 %`; code spans and fences are code.
+ */
+export function checkRateNotation(file: string, markdown: string): string[] {
+  const problems: string[] = [];
+  for (const line of proseLines(markdown)) {
+    for (const match of line.text.matchAll(/(?<![\p{L}\p{N}.,])\d+(?:[.,]\d+)?[ \u00a0\u202f]?%/gu)) {
+      const rate = match[0];
+      if (rate.includes('.')) problems.push(`${file}: "${line.text.trim()}": "${rate}" has a decimal point; write a decimal comma`);
+      else if (!/[ \u00a0\u202f]%$/u.test(rate)) problems.push(`${file}: "${line.text.trim()}": "${rate}" needs a space before %`);
     }
   }
   return problems;

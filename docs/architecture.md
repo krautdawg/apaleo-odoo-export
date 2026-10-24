@@ -13,7 +13,7 @@ src/
   sources/
     apaleo/     der Adapter für apaleo: Token, HTTP mit Wiederholungen, Schemas nach der Swagger-Beschreibung, Umwandlung in die Typen aus core
   demo/         export --demo: aufgezeichnete apaleo-Antworten aus examples/demo/, ohne Netz
-  mapping/      die Kontenzuordnung als CSV: laden, auflösen, prüfen, die KMU-Hotelvorlage, der Kontenexport eines Connectors
+  mapping/      die Kontenzuordnung als CSV: laden, auflösen, prüfen, die Hotelvorlagen für SKR03 und SKR04, das Wissen über l10n_de, das Erkennen einer kopierten Zuordnung aus einem Vorgängerprojekt
   posting/      Journalzeilen + Kontenzuordnung -> Odoo-Buchungen, mit der Prüfung der Umsatzsteuer
   odoo/         der Writer für die Odoo-Importdatei: Buchungssätze pro Tag, Steuermodell von Odoo, Basisanpassung, Prüfung, Bereinigung, Bewegungsmodell
   export/       der Ablauf: Regeln für Zeiträume, Abruf, Buchen, Plausibilitätsprüfungen, Ausgabeordner und Manifest
@@ -30,7 +30,7 @@ cli -> export / schedule -> sources/<name>     (Verdrahtung)
 Zwei Lint-Regeln (in `eslint.config.js`, getestet in `test/lint/`) sorgen dafür, dass das so bleibt:
 
 - `core`, `odoo`, `mapping` und `posting` dürfen nichts aus `src/sources/` importieren. Sie sehen nur die kanonischen Typen in `src/core/source.ts`.
-- Alles unter `src/` ausser dem Einstieg der Kommandozeile erreicht die Uhr, das Netz und die Umgebung nur über den übergebenen `CommandContext` (`ctx.now()`, `ctx.fetchFn`, `ctx.env`, `ctx.fs`). Kein `new Date()`, kein `Date.now()`, kein nacktes `fetch` und kein `process.env`. Tests bauen mit `createTestContext()` in `test/helpers/context.ts` einen Kontext mit Attrappen.
+- Alles unter `src/` außer dem Einstieg der Kommandozeile erreicht die Uhr, das Netz und die Umgebung nur über den übergebenen `CommandContext` (`ctx.now()`, `ctx.fetchFn`, `ctx.env`, `ctx.fs`). Kein `new Date()`, kein `Date.now()`, kein nacktes `fetch` und kein `process.env`. Tests bauen mit `createTestContext()` in `test/helpers/context.ts` einen Kontext mit Attrappen.
 
 ## Der Vertrag SourceAdapter
 
@@ -58,13 +58,13 @@ Eine `LedgerLine` ist ein gebuchtes Paar aus Soll und Haben im Buchungsjournal d
 | `debit`, `credit` | die beiden Konten: `number`, `name`, `type`, optional `parentNumber` |
 | `command` | der Geschäftsvorfall, zum Beispiel `PostCharge`, `PostPayment` |
 | `currency` | muss die Währung des Zielformats sein (`TargetWriter.currency`, bei Odoo `odoo.currency`; sonst `E-CURRENCY`) |
-| `grossCents` | Bruttobetrag in ganzen Rappen (Cent) mit dem Vorzeichen der Quelle; Nachlässe sind negativ |
-| `netPrecise`, `netCents` | Nettobetrag als genauer Dezimaltext der Quelle (apaleo schickt bis zu acht Nachkommastellen, z. B. `"12.5210084"`) und kaufmännisch auf ganze Rappen gerundet |
+| `grossCents` | Bruttobetrag in ganzen Cent mit dem Vorzeichen der Quelle; Nachlässe sind negativ |
+| `netPrecise`, `netCents` | Nettobetrag als genauer Dezimaltext der Quelle (apaleo schickt bis zu acht Nachkommastellen, z. B. `"12.5210084"`) und kaufmännisch auf ganze Cent gerundet |
 | `taxes[]` | `vatType`, `percent`, `amountPrecise` (genauer Dezimaltext) und `amountCents` (gerundet), so weitergegeben, wie sie ankommen |
-| `receipt`, `reference`, `referenceType` | Rechnungs- oder Zahlungsreferenz und die Reservation, für `Text2` (siehe `posting.text2`) |
+| `receipt`, `reference`, `referenceType` | Rechnungs- oder Zahlungsreferenz und die Reservierung, für das Protokoll (siehe `posting.text2`) |
 | `sourceEntryNumber`, `source` | damit sich jede Zeile bis zur Quelle zurückverfolgen lässt |
 
-Die Kontotypen nutzen die Namen von apaleo (`Revenues`, `Payments`, `Liabilities`, `Receivables`, `CityTaxes`, `Vat`, ...), das genaueste Modell, das bisher bekannt ist. Eine andere Quelle ordnet ihre Konten diesen Typen zu. Der Bruttobetrag ist immer ganze Rappen: Rechne Gleitkommazahlen am Rand um, wie es `toCents` in `src/core/money.ts` tut, und lehne Bruttobeträge unter einem Rappen ab. Netto- und Steuerbeträge dürfen genauer sein; behalte sie als Dezimaltext (`netPrecise`, `amountPrecise`) und runde sie für die Felder in Rappen (`…Cents`) kaufmännisch (`decimalToCents`). Genaue Beträge addierst du mit `sumDecimals` exakt, nie als Gleitkommazahlen.
+Die Kontotypen nutzen die Namen von apaleo (`Revenues`, `Payments`, `Liabilities`, `Receivables`, `CityTaxes`, `Vat`, ...), das genaueste Modell, das bisher bekannt ist. Eine andere Quelle ordnet ihre Konten diesen Typen zu. Der Bruttobetrag ist immer ein ganzer Centbetrag: Rechne Gleitkommazahlen am Rand um, wie es `toCents` in `src/core/money.ts` tut, und lehne Bruttobeträge mit Bruchteilen eines Cents ab. Netto- und Steuerbeträge dürfen genauer sein; behalte sie als Dezimaltext (`netPrecise`, `amountPrecise`) und runde sie für die Felder in Cent (`…Cents`) kaufmännisch (`decimalToCents`). Genaue Beträge addierst du mit `sumDecimals` exakt, nie als Gleitkommazahlen.
 
 `getAccountTotals` liefert die Daten für die optionale Vollständigkeitsprüfung (`checks.aggregates`). Eine Quelle ohne solche Summen kann eine leere Liste von Konten zurückgeben.
 
@@ -72,7 +72,7 @@ Die Kontotypen nutzen die Namen von apaleo (`Revenues`, `Payments`, `Liabilities
 
 1. Leg `src/sources/smoobu/` an, mit einem Client, der nur `ctx.fetchFn` und `ctx.now()` nutzt, zod-Schemas für die Antworten, die du liest, und Umwandlungen in `SourceProperty`, `SourceAccount` und `LedgerLine`.
 2. Bau die Quelle aus der Konfiguration in einer Funktion `createSmoobuSource(loaded, ctx)` und wähle sie in `createSource` in `src/cli/source.ts` aus (heute: `ctx.sourceFactory` oder apaleo). Ein neuer Abschnitt der Konfiguration kommt in `configSections` in `src/core/config.ts`; der Docs-Test erwartet ihn dann in `docs/configuration.md`.
-3. Leg aufgezeichnete oder erfundene Antworten, die genau der API-Dokumentation der Quelle entsprechen, in `test/fixtures/smoobu/` ab, mit einer `README.md`, die sagt, was jede Datei enthält. Nie echte Gästedaten: Anonymisiere Namen, Reservationsnummern und Beträge.
+3. Leg aufgezeichnete oder erfundene Antworten, die genau der API-Dokumentation der Quelle entsprechen, in `test/fixtures/smoobu/` ab, mit einer `README.md`, die sagt, was jede Datei enthält. Nie echte Gästedaten: Anonymisiere Namen, Reservierungsnummern und Beträge.
 4. Teste den Adapter mit den Testdaten über eine Attrappe für `fetchFn` (siehe `test/helpers/apaleo.ts` und `test/apaleo/`). Die Tests für Kontenzuordnung, Buchungsregeln und Export bleiben unabhängig vom PMS und nutzen `FakeSource` in `test/helpers/fake-source.ts`.
 5. Hat die Quelle kein Buchungsjournal (Smoobu, Stripe), bildet der Adapter die Paare aus Soll und Haben selbst. Beschreib diese Regel in `docs/`, denn dein Steuerberater muss sie verstehen.
 

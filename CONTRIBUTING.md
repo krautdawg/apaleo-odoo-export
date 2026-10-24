@@ -1,8 +1,8 @@
 # Mitmachen
 
-Danke, dass du helfen willst. Dieses Projekt ist ein Geschenk an Hotels in der Schweiz und ihre Treuhänder: klein, lesbar und nachprüfbar. Fehlermeldungen, Korrekturen, Dokumentation, Wissen über Abacus, die MWST und die Kontenzuordnung nach dem KMU-Kontenrahmen und neue Quellen sind alle willkommen.
+Danke, dass du helfen willst. Dieses Projekt ist ein Geschenk an Hotels in Deutschland mit apaleo und Odoo und an ihre Steuerberater: klein, lesbar und nachprüfbar. Fehlermeldungen, Korrekturen, Dokumentation, Wissen über Odoo, die Umsatzsteuer und die Kontenzuordnung nach SKR03 und SKR04 und neue Quellen sind alle willkommen.
 
-Die Dokumentation ist in Schweizer Hochdeutsch geschrieben: mit «du», mit «ss» statt Eszett und mit den Begriffen, die Treuhänder in der Schweiz verwenden (MWST-Code, Mandant, Kurtaxe). Der Docs-Test prüft das. Code, Bezeichner, Kommentare im Code, Ausgaben der Kommandozeile und Commit-Nachrichten bleiben auf Englisch, damit auch Mitwirkende ohne Deutsch den Code lesen können. Issues und Pull Requests auf Englisch sind genauso willkommen wie auf Deutsch.
+Die Dokumentation ist auf Deutsch geschrieben, wie man es in Deutschland schreibt: mit „du“, mit „ß“, mit deutschen Anführungszeichen („…“), mit Steuersätzen wie `7 %` und `19 %` und mit den Begriffen, die eine Kanzlei verwendet (Steuerberater, Buchungssatz, Sachkonto, Gegenkonto, USt, Kennzahl, UStVA, Kurtaxe, Anzahlung). Menünamen von Odoo stehen auf Deutsch, mit der englischen Bezeichnung in Klammern, wo sie sich unterscheidet. Der Docs-Test prüft das. Code, Bezeichner, Kommentare im Code, Ausgaben der Kommandozeile und Commit-Nachrichten bleiben auf Englisch, damit auch Mitwirkende ohne Deutsch den Code lesen können. Issues und Pull Requests auf Englisch sind genauso willkommen wie auf Deutsch.
 
 Mit deinem Beitrag stimmst du zu, dass er unter der [MIT-Lizenz](LICENSE) steht, und du hältst dich an den [Verhaltenskodex](CODE_OF_CONDUCT.md).
 
@@ -37,7 +37,7 @@ Die CI führt alle bei jedem Push und jedem Pull Request aus, dazu die Installat
 
 Jedes Stück Arbeit ist eine OpenSpec-Änderung in `openspec/changes/<name>/`: ein kurzer Vorschlag (warum, was, was nicht), ein Design, Spezifikationen mit Szenarien und eine Liste von Aufgaben. Die angenommenen Spezifikationen liegen in `openspec/specs/`.
 
-1. Für alles, was grösser ist als ein Tippfehler oder ein offensichtlicher Fehler, eröffne zuerst ein Issue, damit wir uns über den Umfang einig sind.
+1. Für alles, was größer ist als ein Tippfehler oder ein offensichtlicher Fehler, eröffne zuerst ein Issue, damit wir uns über den Umfang einig sind.
 2. Schreib die Änderung (`openspec new change <name>`) und prüfe sie mit `openspec validate <name> --strict`.
 3. Setze die Aufgaben um, mit einem Test für jedes Szenario. Halte `pnpm test`, `pnpm lint` und `pnpm typecheck` grün.
 4. Wenn sie fertig ist, archiviere sie: `openspec archive <name> -y`, dann `openspec validate --specs --strict`.
@@ -48,9 +48,9 @@ Wie der Code aufgebaut ist und wie du eine Quelle oder ein Zielformat hinzufügs
 
 - Befehle bekommen Uhr, Netz, Dateisystem und Umgebung nur aus dem `CommandContext` (`ctx.now()`, `ctx.fetchFn`, `ctx.fs`, `ctx.env`); Lint setzt das durch. Tests nutzen `createTestContext()`.
 - `core`, `odoo`, `mapping` und `posting` importieren nie aus `src/sources/`.
-- Geld sind ganze Rappen (im Code `…Cents`). Nie Gleitkommazahlen.
+- Geld sind ganze Cent (im Code `…Cents`). Nie Gleitkommazahlen.
 - Jede Prüfung meldet einen `Finding` mit Code. Ein neuer Code braucht eine Zeile in `docs/troubleshooting.md`.
-- Ein neuer Befehl, eine neue Option oder ein neuer Konfigurationsschlüssel wird im README oder in `docs/` beschrieben, auf Deutsch. Der Docs-Test schlägt fehl, wenn ein beschriebener Befehl, eine Option, ein Konfigurationsschlüssel oder ein Befund-Code im Code nicht existiert, wenn ein Link ins Leere zeigt, wenn ein Text nicht deutsch ist oder wenn er Begriffe aus der deutschen oder der österreichischen Buchhaltungspraxis verwendet.
+- Ein neuer Befehl, eine neue Option oder ein neuer Konfigurationsschlüssel wird im README oder in `docs/` beschrieben, auf Deutsch. Der Docs-Test schlägt fehl, wenn ein beschriebener Befehl, eine Option, ein Konfigurationsschlüssel oder ein Befund-Code im Code nicht existiert, wenn ein Link ins Leere zeigt, wenn ein Text nicht deutsch ist, die Leserin oder den Leser siezt, Schweizer Anführungszeichen enthält, einen Steuersatz mit Punkt oder ohne Leerzeichen vor `%` schreibt oder Begriffe aus der Schweizer oder der österreichischen Buchhaltungspraxis verwendet.
 - Halte die Abhängigkeiten zur Laufzeit klein. Besprich eine neue zuerst im Issue.
 
 ## Commits und Pull Requests
@@ -61,9 +61,9 @@ Wie der Code aufgebaut ist und wie du eine Quelle oder ein Zielformat hinzufügs
 
 ## Testdaten und personenbezogene Daten
 
-- **Niemals echte Gästedaten committen**: keine Gästenamen, E-Mail-Adressen, Reservationsnummern, Rechnungsnummern oder echten Beträge aus einem Hotel. Testdaten sind erfunden («Hotel Beispiel») oder vollständig anonymisiert.
-- **Anonymisiere apaleo-Antworten**, bevor du sie beisteuerst: Ersetze Namen, Nummern von Reservationen und Folios, Belegnummern, Namen der Hotels und Beträge, und lass die Struktur genau so, wie apaleo sie geschickt hat. Beschreib den Tag in der `README.md` des Ordners mit den Testdaten.
-- **Niemals Secrets committen**: kein Client-Secret, kein Token, keine echte MWST- oder UID-Nummer und keine Nummer eines echten Abacus-Mandanten, keine `.env`. Die Tests dürfen nie die echte apaleo-API aufrufen; `live-smoke` ist der einzige Befehl für echte Zugangsdaten, und du startest ihn von Hand.
+- **Niemals echte Gästedaten committen**: keine Gästenamen, E-Mail-Adressen, Reservierungsnummern, Rechnungsnummern oder echten Beträge aus einem Hotel. Testdaten sind erfunden („Hotel Beispiel“) oder vollständig anonymisiert.
+- **Anonymisiere apaleo-Antworten**, bevor du sie beisteuerst: Ersetze Namen, Nummern von Reservierungen und Folios, Belegnummern, Namen der Hotels und Beträge, und lass die Struktur genau so, wie apaleo sie geschickt hat. Beschreib den Tag in der `README.md` des Ordners mit den Testdaten.
+- **Niemals Secrets committen**: kein Client-Secret, kein Token, keine echte Steuernummer oder USt-IdNr., keine Adresse oder Datenbank-ID einer echten Odoo-Datenbank und kein API-Schlüssel, keine `.env`. Die Tests dürfen nie die echte apaleo-API aufrufen; `live-smoke` ist der einzige Befehl für echte Zugangsdaten, und du startest ihn von Hand.
 - Füge die Ausgabe von `live-smoke` erst in ein Issue ein, nachdem du die Namen entfernt hast.
 
 ## Wissen über die Kontenzuordnung

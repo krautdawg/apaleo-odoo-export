@@ -75,7 +75,7 @@ output:
 
 checks:
   # Vergleicht das Buchungsjournal zusätzlich mit den Tagessummen von apaleo pro
-  # Hauptkonto und warnt bei Abweichungen (W-AGGREGATE-DIFF). Standardmässig aus:
+  # Hauptkonto und warnt bei Abweichungen (W-AGGREGATE-DIFF). Standardmäßig aus:
   # Es braucht die optionale Berechtigung core.subledger_aggregate.create und
   # eine zusätzliche Anfrage pro Tag.
   aggregates: false
@@ -100,7 +100,7 @@ schedule:
     # Bei 1 wird gestern als "not yet final" gemeldet und später exportiert.
     offsetDays: 2
   # apaleo kann auf einen Tag noch buchen, bis der Tagesabschluss (Night Audit)
-  # den folgenden Tag schliesst, und der läuft nach Mitternacht. Ein Zeitraum, der
+  # den folgenden Tag schließt, und der läuft nach Mitternacht. Ein Zeitraum, der
   # am Tag T endet, ist deshalb ab dieser Ortszeit am Tag T+2 abgeschlossen und
   # wird dann exportiert ("00:00" bis "12:00", in Anführungszeichen). Bis dahin
   # meldet das Tool ihn als "not yet final". Setze den Wert auf die Uhrzeit, zu

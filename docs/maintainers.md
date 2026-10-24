@@ -2,9 +2,14 @@
 
 ## Das Repository ist vorerst privat
 
-Das Repository ist privat. Beschreibung und Themen sollen später Hotels und Kanzleien in Deutschland finden, die auf GitHub nach „apaleo Odoo Export“ oder „apaleo Buchhaltung“ suchen, aber **niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
+Das Repository ist privat. Beschreibung und Themen sollen Hotels und Kanzleien in Deutschland helfen, das Tool zu finden, wenn sie auf GitHub oder in einer Suchmaschine nach „apaleo Odoo Export“, „apaleo Odoo Buchhaltung“ oder „Odoo Hotel Buchungsjournal Import“ suchen, aber **niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
 
-Dieses Repository (krautdawg/apaleo-odoo-export) hat bisher nur die Beschreibung "apaleo Odoo Export (in Arbeit)" und keine Themen. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08, ohne die Sichtbarkeit zu ändern; die Themen des Vorgängerprojekts (Abacus, Schweiz) übernimmt dieses Repository nicht.
+Die OpenSpec-Änderung o08 hat Beschreibung und Themen gesetzt, ohne die Sichtbarkeit zu ändern:
+
+- Beschreibung: „Kostenloser apaleo Odoo Export: Buchungssätze für die Odoo Buchhaltung aus apaleo, für Hotels in Deutschland (SKR03/SKR04). Open Source, MIT.“
+- Themen: `apaleo`, `odoo`, `odoo-accounting`, `apaleo-odoo`, `odoo-import`, `journal-entries`, `buchhaltung`, `hotel`, `hospitality`, `accounting`, `skr03`, `skr04`, `germany`, `deutschland`, `steuerberater`, `open-source`.
+
+Kein Thema nennt ein Vorgängerprojekt oder die Schweiz. Prüfen lässt sich das mit `gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility`.
 
 Keiner der Schritte unter „Vor der Veröffentlichung“ ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
 
@@ -18,11 +23,11 @@ gh pr checks <number> --watch --fail-fast && gh pr merge <number> --squash
 
 ## Vor der Veröffentlichung
 
-README und einige Anleitungen beschreiben noch das Vorgängerprodukt; die OpenSpec-Änderungen o05 bis o08 schreiben sie für Odoo und Deutschland neu. Das Repository bleibt privat, bis der erste Testimport mit einer Kanzlei bestätigt ist.
+README und Anleitungen beschreiben seit o08 das Tool für Odoo und Deutschland. Das Repository bleibt trotzdem privat, bis der erste Testimport mit einer Kanzlei bestätigt ist.
 
 In dieser Reihenfolge:
 
-1. [ ] Mach mit einer Kanzlei einen ersten echten Testimport in Odoo (Testdatenbank oder Testunternehmen, Checkliste in [odoo-import.md](odoo-import.md#erster-testimport-checkliste)) und trag ihn unten unter [Testimporte](#testimporte) ein, mit der Kanzlei unter „Geprüft von“. Erst dann darf das README den Satz streichen, dass der erste Testimport mit einem Steuerberater noch aussteht.
+1. [ ] Mach mit einer Kanzlei einen ersten echten Testimport in Odoo (Testdatenbank oder Testunternehmen, Checkliste in [odoo-import.md](odoo-import.md#erster-testimport-checkliste)), einmal in Odoo 19 auf Odoo Online (Testversion) und einmal in Odoo 17 oder 18 Community, und trag beide unten unter [Testimporte](#testimporte) ein, mit der Kanzlei unter „Geprüft von“. Erst dann darf das README den Satz streichen, dass der erste Testimport mit einem Steuerberater noch aussteht.
 2. [ ] Zeichne einen Geschäftstag 2026 einer deutschen apaleo-Sandbox (EUR, `Europe/Berlin`) mit `live-smoke` auf, anonymisiere ihn und leg ihn als Testdaten in `test/fixtures/apaleo/live/` ab, neben den Tagen BER und VIE, damit der Export auch über die Konten für Speisen zu 7 % getestet ist.
 3. [ ] Lies das README in einem frischen Klon und führe den Schnellstart und `export --month 2026-09 --demo --dry-run` noch einmal aus.
 4. [ ] Starte `pnpm test` (mit dem Docs-Test) und prüfe, dass die CI auf `main` grün ist.
@@ -87,9 +92,10 @@ Nicht Teil von Version 1, in keiner bestimmten Reihenfolge, und alles innerhalb 
 
 - **Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe**: Das Tool legt die Buchungssätze selbst als Entwürfe in Odoo an, statt eine Importdatei zu schreiben. In Version 1 gibt es das nicht, weil die externe API nur im Odoo-Tarif „Custom“ freigeschaltet ist (nicht in „One App Free“ und „Standard“), weil zwei Protokolle nötig wären (JSON-2 ab Odoo 19, XML-RPC für 17 und 18, und XML-RPC fällt mit Odoo 22 weg), weil das Tool dafür einen API-Schlüssel mit Schreibrechten als Secret bräuchte und weil für jede Odoo-Version zu prüfen wäre, dass Entwürfe ihre Steuerzeilen behalten. Die Importdatei funktioniert dagegen in jedem Tarif, jeder Edition und jeder Version.
 - **Kostenstellen über die Kostenrechnung von Odoo**: eine optionale Spalte der Kontenzuordnung mit der Datenbank-ID eines Odoo-Kostenrechnungskontos (analytic account), geschrieben als `line_ids/analytic_distribution`. Nicht in Version 1, weil die Datenbank-ID in jeder Datenbank anders ist und keine Vorlage sie kennen kann, weil ein Hotel ohne Kostenrechnung nichts davon hat und weil erst ein aufgezeichneter Import zeigen muss, wie Odoo die Verteilung auf die Steuerzeilen überträgt. Bestehende Kontenzuordnungen bleiben dabei gültig.
+- **Vorlagen für Österreich und die Schweiz**: Hotelvorlagen für die Odoo-Lokalisierungen l10n_at und l10n_ch, mit ihren Steuern und Sätzen. Heute geht das nur mit einer Kontenzuordnung, die du mit deiner Kanzlei von Hand anlegst; die Prüfungen des Tools kennen nur die deutschen Steuern (`W-TAX-UNCHECKED`).
 - **Wöchentlicher Rhythmus**: `schedule.cadence` mit einer Datei pro Woche, zwischen Tag und Monat.
 - **Gebühren aus Abrechnungsdateien**: die Gebühren und Rückbuchungen (Chargebacks) der Zahlungsdienstleister aus ihren Abrechnungen buchen.
-- **E-Mail-Versand**: die Dateien per SMTP an den Treuhänder schicken statt über einen gemeinsamen Ordner.
+- **E-Mail-Versand**: die Dateien per SMTP an die Kanzlei schicken statt über einen gemeinsamen Ordner.
 - **Dauerprozess mit eigenem Zeitplan**: ein Modus, der dauerhaft läuft und eine eigene Uhr hat, statt `schedule --once` aus Cron oder der Compose-Schleife.
 - **Überwachung und Alarme**: eine Zustandsprüfung und ein Alarm (Mail oder Webhook), wenn ein geplanter Lauf fehlschlägt.
 - **Dependabot**: automatische Updates der Abhängigkeiten für npm-Pakete, GitHub Actions und das Docker-Basis-Image.
