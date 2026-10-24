@@ -37,23 +37,27 @@ For each property and month the export SHALL run the mapping coverage check, the
 - **THEN** no file is written for BSP, the file for BSP2 is written, `E-UNMAPPED` is printed for BSP, and the exit code is 1
 
 ### Requirement: Plausibility checks
-The export SHALL verify that the absolute gross of all ledger lines equals the sum over booked and skipped lines; that per business day the signed movement of each mapped target account in the bookings, as the target's movement model gives it (Abacus: the Collective account by the gross amount and the Single account by the gross amount minus the tax, each signed by its side from `DebitCredit`; the tax leg on the MWST account is not part of this check), equals the signed apaleo movement of the booked lines mapped to it (the gross amount on the side without MWST, the gross amount minus apaleo's rounded tax on the VAT side); and that per rate the tax amounts in the bookings equal the sum of apaleo's per-line tax rounded to Rappen of the booked lines of that rate, apart from tax amounts of deposit releases computed from a chart rate (`W-VAT-INFERRED`); violations SHALL be errors. The `E-VAT-TOTAL` message SHALL also name apaleo's precise VAT total of the rate and the line-rounding difference; the difference between the tax per booking and apaleo's precise total SHALL never be an error by itself. When `checks.aggregates` is true (default false), it SHALL call apaleo's daily aggregates once per business day and compare each listed account's balance (debit minus credit) with the signed sum of that day's ledger lines: a side on a global chart account counts for that account, any other side for its main account; Revenues and Liabilities sides count with their precise net amount, all other types with their gross amount; each tax of a line with a Revenues side counts for the chart's `Vat` account of that VAT type and rate, and of a line with a Liabilities side for the `VatOnLiabilities` account, signed like that side; both balances are rounded to cents only for the comparison. A difference SHALL be reported as a warning. The aggregate comparison SHALL depend only on the ledger lines and the chart, never on the bookings of a target.
+The export SHALL verify that the absolute gross of all ledger lines equals the sum over booked and skipped lines; that per business day the signed movement of each mapped target account in the bookings, as the target's movement model gives it (Odoo: the non-VAT side by the gross amount and the VAT side by the gross amount minus apaleo's rounded tax, each signed by its side; the tax lines Odoo creates are not part of this check), equals the signed apaleo movement of the booked lines mapped to it; and that per rate the tax amounts in the bookings equal the sum of apaleo's per-line tax rounded to cents of the booked lines of that rate, apart from tax amounts of deposit releases computed from a chart rate (`W-VAT-INFERRED`); violations SHALL be errors. The `E-VAT-TOTAL` message SHALL also name apaleo's precise VAT total of the rate and the line-rounding difference; the difference between the tax per booking and apaleo's precise total SHALL never be an error by itself. The rendered file SHALL additionally pass the writer's checks of the fitted entries (`E-ODOO-UNBALANCED`, `E-ODOO-GROSS`, `E-ODOO-VAT-FIT`). When `checks.aggregates` is true (default false), it SHALL call apaleo's daily aggregates once per business day and compare each listed account's balance (debit minus credit) with the signed sum of that day's ledger lines: a side on a global chart account counts for that account, any other side for its main account; Revenues and Liabilities sides count with their precise net amount, all other types with their gross amount; each tax of a line with a Revenues side counts for the chart's `Vat` account of that VAT type and rate, and of a line with a Liabilities side for the `VatOnLiabilities` account, signed like that side; both balances are rounded to cents only for the comparison. A difference SHALL be reported as a warning. The aggregate comparison SHALL depend only on the ledger lines and the chart, never on the bookings of a target.
 
 #### Scenario: Tax total per rate
-- **WHEN** a defect makes the bookings at 8.1 % carry 4.00 tax in total while apaleo's per-line taxes at 8.1 %, rounded to Rappen, total 4.02
-- **THEN** error `E-VAT-TOTAL` is reported for 8.1 % with both amounts and apaleo's precise total, and no file is written
+- **WHEN** a defect makes the bookings at 19 % carry 4.00 apaleo tax in total while apaleo's per-line taxes at 19 %, rounded to cents, total 4.02
+- **THEN** error `E-VAT-TOTAL` is reported for 19 % with both amounts and apaleo's precise total, and no file is written
 
 #### Scenario: Line rounding is not an error
-- **WHEN** the recorded VIE day 2026-10-21 is exported, where the bookings carry 7.74 tax at 10 % and apaleo's precise total is 7.74545454
+- **WHEN** the recorded VIE day 2026-10-21 is exported with the VIE Odoo mapping, where the bookings carry 7.74 tax at 10 % and apaleo's precise total is 7.74545454
 - **THEN** no `E-VAT-TOTAL` is raised, and the protocol shows both amounts and the difference 0.01
 
 #### Scenario: Roundings at another rate
-- **WHEN** the posting run reported two `W-VAT-ROUNDING` differences of computed deposit tax at 3.8 % and the bookings at 8.1 % carry two Rappen more tax than apaleo charged
-- **THEN** error `E-VAT-TOTAL` is reported for 8.1 % and no file is written
+- **WHEN** the posting run reported two `W-VAT-ROUNDING` differences of computed deposit tax at 7 % and the bookings at 19 % carry two cents more tax than apaleo charged
+- **THEN** error `E-VAT-TOTAL` is reported for 19 % and no file is written
 
 #### Scenario: Side bug is caught
-- **WHEN** a defect writes a booking with `DebitCredit` `D` where the apaleo line credits the Collective account
-- **THEN** error `E-ACCOUNT-BALANCE` names the day, the Abacus account and both signed amounts, and no file is written
+- **WHEN** a defect writes a booking with debit and credit account swapped
+- **THEN** error `E-ACCOUNT-BALANCE` names the day, the Odoo account and both signed amounts, and no file is written
+
+#### Scenario: Fitting bug is caught
+- **WHEN** a defect in the fitting leaves an entry 0.01 out of balance after the modelled Odoo tax
+- **THEN** `E-ODOO-UNBALANCED` names the day and the difference, and no file is written
 
 #### Scenario: Aggregate check off by default
 - **WHEN** `checks.aggregates` is not set
@@ -64,31 +68,27 @@ The export SHALL verify that the absolute gross of all ledger lines equals the s
 - **THEN** warning `W-AGGREGATE-DIFF` names the day, the account, both balances and the basis (gross, net or tax), and the file is still written
 
 #### Scenario: Normal real day has no aggregate warning
-- **WHEN** `checks.aggregates` is true and the recorded VIE responses of 2026-10-21 are exported with the Abacus live mapping
-- **THEN** all 19 listed accounts match and no `W-AGGREGATE-DIFF` is raised
+- **WHEN** `checks.aggregates` is true and the recorded BER responses of 2026-10-21 are exported with the BER Odoo mapping
+- **THEN** all 18 listed accounts match and no `W-AGGREGATE-DIFF` is raised
 
 #### Scenario: Conservation violated
 - **WHEN** a defect causes a ledger line to be neither booked nor listed as skipped
 - **THEN** error `E-CONSERVATION` is raised and no file is written
 
 ### Requirement: Dry run
-With `--dry-run` the export SHALL run every step except writing, SHALL print the posting summary (totals per Abacus account; net, tax and gross per MWST-Code and rate with apaleo's precise VAT, the difference to the tax per booking and, for the Swiss rates, the Ziffer of the MWST-Abrechnung: 8.1 % 303, 2.6 % 313, 3.8 % 343; deposit tax per MWST-Code and rate the same way; Kurtaxe and other levies per account, with or without MWST; payments per clearing account; deposits received, released and refunded; accounts receivable; write-offs; skipped lines with unsigned totals; findings) and the import block of the protocol, and SHALL exit with code 1 if any error finding exists. The protocol file SHALL contain the same summary.
+With `--dry-run` the export SHALL run every step except writing, SHALL print the posting summary (first per Odoo tax and rate: the Kennzahl from the target (19 % Kz 81, 7 % Kz 86), net, Odoo's modelled VAT, apaleo's VAT rounded per line and precise, and the difference, with one sentence explaining that Odoo computes the VAT from the base and that the file fits the base to apaleo's gross, and the days with a difference; then deposit tax per rate the same way; totals per Odoo account; Kurtaxe and other levies per account, with or without tax; payments per clearing account; deposits received, released and refunded; accounts receivable; write-offs per rate; the number of entries, lines and rounding lines; skipped lines with unsigned totals; findings) and the import block of the protocol, and SHALL exit with code 1 if any error finding exists. The protocol file SHALL contain the same summary.
 
 #### Scenario: Review before the first file
-- **WHEN** the user runs `apaleo-abacus export --month 2026-10 --property BSP --dry-run`
+- **WHEN** the user runs `apaleo-odoo export --month 2026-09 --property BSP --dry-run`
 - **THEN** the summary and the import block are printed and no file or folder is created
 
-#### Scenario: Swiss rates with their Ziffer
-- **WHEN** the Swiss fixture month is exported with `--dry-run`
-- **THEN** the summary shows the revenue lines for `313` 3.8 % with Ziffer 343, `311` 8.1 % with Ziffer 303 and `312` 2.6 % with Ziffer 313, each with net, tax, gross, apaleo VAT and difference
+#### Scenario: German rates with their Kennzahl
+- **WHEN** the German fixture month is exported with `--dry-run`
+- **THEN** the summary shows the revenue lines for `tax_ust_7_skr03` 7 % with Kz 86 and `tax_ust_19_skr03` 19 % with Kz 81, each with net, Odoo VAT, apaleo VAT and difference
 
-#### Scenario: VAT comparison on the recorded VIE day
-- **WHEN** the recorded VIE day 2026-10-21 is exported with `--dry-run` and the Abacus live mapping
-- **THEN** the summary shows for revenue at 10 % the tax 7.74 of the bookings, apaleo's VAT 7.75 and the difference 0.01, with one sentence explaining that the tax is rounded per booking and apaleo's total per day
-
-#### Scenario: VAT comparison in the protocol
-- **WHEN** the recorded VIE day 2026-10-21 is exported with the Abacus live mapping (codes `V10`, `V13`, `V20`)
-- **THEN** the protocol shows for revenue `V10 10 %: net 77.46, tax 7.74, gross 85.20, apaleo VAT 7.75, difference 0.01` and `V20 20 %: net 39.49, tax 7.89, gross 47.38, apaleo VAT 7.90, difference 0.01`, without a Ziffer for these non-Swiss rates, and with the same sentence on the rounding
+#### Scenario: VAT difference per tax rounding
+- **WHEN** the German fixture month is exported with `--dry-run` and `odoo.taxRounding: per_tax`
+- **THEN** the summary shows, for every rate with a difference, the month's Odoo VAT, apaleo VAT, the difference and the days on which it arose, and the explaining sentence
 
 ### Requirement: Output layout and manifest
 The export SHALL write each file to `<output.dir>/<propertyId>/<YYYY-MM>/` with the deterministic name `ODOO_Buchungen_<from>-<to>_<propertyId>.csv`, SHALL write a protocol text file `<name>.protokoll.txt` beside it, and SHALL record in `manifest.json` the file name, SHA-256 of the file, number of bookings, entries and lines, the sum of the debit column, Odoo's modelled VAT per tax and rate, the Odoo company id and journal code, the mapping file SHA-256, the tool version and the creation time. The protocol SHALL contain the target's import block (see the `odoo-journal-writer` capability) and, per entry line, the source entry numbers and receipt numbers of the apaleo lines it nets.
@@ -106,7 +106,7 @@ The export SHALL write each file to `<output.dir>/<propertyId>/<YYYY-MM>/` with 
 - **THEN** the protocol's import block names the Odoo company and journal and no Mandant, because only the Abacus writer reads the `abacus` section
 
 ### Requirement: Idempotent re-runs
-Re-running an export for a period whose file exists SHALL do nothing when the new file is byte-identical to the existing one, SHALL refuse with `E-FILE-EXISTS` when any byte differs, and with `--overwrite` SHALL keep the old file under a `.replaced-<timestamp>.xml` name, write the new one and record both in the manifest. The comparison SHALL read the existing file, so it works without the manifest. When the file is unchanged but its protocol or current manifest entry is missing or describes another file (a run interrupted between writing the file and its companions), the run SHALL rewrite them and report `N-COMPANIONS-REPAIRED`. Writing SHALL hold an exclusive lock file in the property-month folder and SHALL re-check the file on disk under that lock, so two concurrent runs never both write or replace the same file; the run that finds the lock or a changed file SHALL fail that property-month with `E-EXPORT` and write nothing. An export whose period overlaps another Abacus file in the same folder SHALL be refused with `E-PERIOD-OVERLAP`, because importing both would book the shared days twice.
+Every file SHALL be rendered for a revision: 1 for the first file of a period, and on `--overwrite` one more than the revision of the file it replaces, taken from that file's manifest entry or, without one, from the target writer's `revisionOf()` of the file on disk; the manifest SHALL record the revision of every file. Re-running an export for a period whose file exists SHALL render with the existing file's revision and SHALL do nothing when the new file is byte-identical to the existing one, SHALL refuse with `E-FILE-EXISTS` when any byte differs, and with `--overwrite` SHALL keep the old file under a `.replaced-<timestamp>.csv` name, write the new one with the next revision and record both in the manifest. The comparison SHALL read the existing file, so it works without the manifest. When the file is unchanged but its protocol or current manifest entry is missing or describes another file (a run interrupted between writing the file and its companions), the run SHALL rewrite them and report `N-COMPANIONS-REPAIRED`. Writing SHALL hold an exclusive lock file in the property-month folder and SHALL re-check the file on disk under that lock, so two concurrent runs never both write or replace the same file; the run that finds the lock or a changed file SHALL fail that property-month with `E-EXPORT` and write nothing. An export whose period overlaps another Odoo file in the same folder SHALL be refused with `E-PERIOD-OVERLAP`, because both files contain entries for the shared days and importing both would overwrite reviewed drafts with the other file's content or book those days twice.
 
 #### Scenario: Unchanged re-run
 - **WHEN** the same month is exported twice with unchanged apaleo data and mapping
@@ -114,23 +114,31 @@ Re-running an export for a period whose file exists SHALL do nothing when the ne
 
 #### Scenario: Late posting changed the month
 - **WHEN** a late posting changed the month after it was exported
-- **THEN** the second run refuses with `E-FILE-EXISTS`, explains that the Treuhänder must first delete the imported bookings of that file in Abacus (in the Nebenjournal before they are transferred, or by reversing them), and suggests `--overwrite`
+- **THEN** the second run refuses with `E-FILE-EXISTS`, suggests `--overwrite`, and explains that the new file will be revision 2 with new External IDs, and that before importing it the draft entries with the reference `apaleo BSP` of that period must be deleted in Odoo and the posted ones reversed, because an import cannot change a posted entry and a reversal keeps its External ID
+
+#### Scenario: Overwrite writes the next revision
+- **WHEN** the month exists as revision 1 and the user runs the export again with `--overwrite` after a late posting
+- **THEN** the old file is kept as `.replaced-<timestamp>.csv`, the new file's entries carry `apaleo_c1_BSP_<YYYYMMDD>_r2` and the reference suffix ` (Korrektur 2)`, the manifest records revision 2, and a later run without changes reports `unchanged`
+
+#### Scenario: Revision without the manifest
+- **WHEN** the existing file is revision 2, `manifest.json` was deleted, and the user exports again with `--overwrite` after another change
+- **THEN** the revision is read from the existing file and the new file is revision 3
 
 #### Scenario: Manifest deleted
 - **WHEN** `manifest.json` was deleted and the same month is exported again with unchanged data
-- **THEN** the run reports `unchanged` by comparing the existing file, leaves the Abacus file untouched and writes the missing manifest entry again (`N-COMPANIONS-REPAIRED`)
+- **THEN** the run reports `unchanged` by comparing the existing file, leaves the Odoo file untouched and writes the missing manifest entry again (`N-COMPANIONS-REPAIRED`)
 
-#### Scenario: Config changed the content
-- **WHEN** the month was exported and `abacus.geschaeftsbereich` was changed before the same month is exported again with unchanged data
-- **THEN** the run refuses with `E-FILE-EXISTS` and keeps the old file, and with `--overwrite` it replaces the file and the new bookings carry the new `Division`
+#### Scenario: Config changed the journal
+- **WHEN** the month was exported and `odoo.journal` was changed before the same month is exported again with unchanged data
+- **THEN** the run refuses with `E-FILE-EXISTS` and keeps the old file, and with `--overwrite` it replaces the file with revision 2, whose entries carry the new journal code
 
-#### Scenario: Config changed the interface version
-- **WHEN** the month was exported and `abacus.version` was changed to `2024.00` before the same month is exported again with unchanged data
-- **THEN** the run refuses with `E-FILE-EXISTS` and keeps the old file, because the `Parameter` block differs, and with `--overwrite` it replaces the file and the new file names version `2024.00`
+#### Scenario: Config changed the rounding method
+- **WHEN** the month was exported with `odoo.taxRounding: per_line` and is exported again with `per_tax`
+- **THEN** the run refuses with `E-FILE-EXISTS`, because the fitted bases differ, and with `--overwrite` it replaces the file
 
 #### Scenario: Overlapping period
 - **WHEN** the folder holds the file for 2026-09-01 to 2026-09-30 and the user exports 2026-09-20 to 2026-09-30
-- **THEN** the export refuses with `E-PERIOD-OVERLAP`, names the existing file and writes nothing
+- **THEN** the export refuses with `E-PERIOD-OVERLAP`, names the existing file, says that both files contain entries for those days, and writes nothing
 
 ### Requirement: Target writer boundary
 The export pipeline SHALL write files only through a `TargetWriter` that provides the file name for a property and period, the file-name pattern used to find existing and overlapping files of that target, the rendered bytes, the comparison that decides whether an existing file is unchanged, the protocol title, the target's advice in the `E-PERIOD-OVERLAP` and `E-FILE-EXISTS` refusals (the program the file is imported into, its config keys, how an imported file is undone), the currency the target books in for a given config, and the signed account movements of a booking that the plausibility checks compare with apaleo. `src/export/` SHALL NOT import a target module's internals other than its `TargetWriter`, and the output folder logic and the checks SHALL NOT contain a target-specific file pattern, program name, currency, field name or config key. A manifest entry SHALL count as a file of the target only when its name matches the target's file pattern. The default target SHALL be `odooTarget`.
