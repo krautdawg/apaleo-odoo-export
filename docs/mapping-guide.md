@@ -69,7 +69,7 @@ Eine andere Steuer, zum Beispiel eine eigene Steuer deiner Kanzlei, darfst du ei
 Der Satz hängt vom Datum der Leistung ab, nicht vom Datum der Zahlung:
 
 - **Logis (Beherbergung)**: 7 % (§ 12 Abs. 2 Nr. 11 UStG).
-- **Speisen** (Frühstück, Restaurant, Halbpension): 7 % für Leistungen ab 2026-01-01 (Steueränderungsgesetz 2025), 19 % für Leistungen davor. Die Vorlage legt Speisen zu 7 % auf dasselbe Konto wie Logis (`8300` bzw. `4300`); ob die Kanzlei ein eigenes Konto für Speisen möchte (zum Beispiel `8301`, in Odoo anzulegen), entscheidet sie. Der Export warnt mit `W-FOOD-RATE`, siehe [Speisen ab 2026](#speisen-ab-2026).
+- **Speisen** (Frühstück, Restaurant, Halbpension): 7 % für Leistungen ab 2026-01-01 (Steueränderungsgesetz 2025), 19 % für Leistungen vom 2024-01-01 bis 2025-12-31; davor galten die ermäßigten Sätze von 2020 bis 2023, siehe [Speisensatz nach Leistungsdatum](#speisensatz-nach-leistungsdatum). Die Vorlage legt Speisen zu 7 % auf dasselbe Konto wie Logis (`8300` bzw. `4300`); ob die Kanzlei ein eigenes Konto für Speisen möchte (zum Beispiel `8301`, in Odoo anzulegen), entscheidet sie. Der Export warnt mit `W-FOOD-RATE`.
 - **Getränke**, Minibar und sonstige Leistungen (Parken, Wellness): 19 %.
 - **16 % und 5 %**: die Sätze vom 2020-07-01 bis 2020-12-31. apaleo legt die Konten in jedem Kontenplan an; die Vorlage lässt sie leer, und ein Export für 2020 stoppt mit `E-UNMAPPED`. Exporte für diesen Zeitraum klärst du mit deiner Kanzlei.
 
@@ -124,7 +124,7 @@ Leere Zeilen sind Absicht: Dort entscheidet deine Kanzlei. Ein 7-%-Erlöskonto, 
 - **Kurtaxe und Beherbergungsteuer**: durchlaufender Posten ohne Steuer oder Teil des Entgelts zu 7 %, siehe [Kurtaxe und Beherbergungsteuer](#kurtaxe-und-beherbergungsteuer). Die Vorlage füllt diese Zeilen nicht vor; der Export stoppt mit `E-UNMAPPED`, bis die Kanzlei entschieden hat.
 - **No-Show- und Stornogebühren**: Entgelt oder Schadenersatz, siehe [Gebühren für No-Show und Storno](#gebühren-für-no-show-und-storno).
 - **Forderungsverluste**: mit der Berichtigung nach § 17 UStG, siehe [Forderungsverluste](#forderungsverluste).
-- **Speisen auf einem eigenen Konto**: siehe [Speisen ab 2026](#speisen-ab-2026).
+- **Speisen auf einem eigenen Konto**: siehe [Speisensatz nach Leistungsdatum](#speisensatz-nach-leistungsdatum).
 
 ## Anzahlungen
 
@@ -175,9 +175,9 @@ Ob eine Gebühr Entgelt für eine Leistung oder Schadenersatz ist, entscheidet d
 
 Schreibt das Hotel eine Forderung in apaleo ab, bucht apaleo den Verlust (LossOfAccountsReceivable) gegen die Gästeforderung, mit der Umsatzsteuer der ausgefallenen Leistung. Die `*`-Zeilen der Vorlage legen den Verlust nach Satz ab: SKR03 `2401` mit `tax_ust_7_skr03`, `2406` mit `tax_ust_19_skr03`, `2400` ohne Steuer (SKR04 `6931`, `6936`, `6930`). So bucht Odoo den Verlust selbst mit seinen Abgleichsmodellen „Forderungsverlust“. Im Buchungssatz steht die Verlustzeile mit der Steuer im Soll, also auf der Seite einer Gutschrift: Odoo rechnet eine negative Umsatzsteuer und mindert Kennzahl 86 bzw. 81. Das ist die Berichtigung nach § 17 Abs. 2 Nr. 1 UStG. Ein Verlust ohne Umsatzsteuer in apaleo geht ohne Steuer auf `2400` bzw. `6930`. Die Übersicht zeigt die abgeschriebenen Forderungen pro Satz mit der Minderung der Kennzahl.
 
-### Speisen ab 2026
+### Speisensatz nach Leistungsdatum
 
-Speisen in Restaurant und Hotel (Frühstück, Halbpension, Bankett, Catering) kosten für Leistungen ab 2026-01-01 7 % Umsatzsteuer, für Leistungen davor 19 % (Steueränderungsgesetz 2025); Getränke bleiben bei 19 %. Maßgeblich ist das Datum der Leistung. Der häufigste Fehler nach der Änderung ist ein Speisenkonto in apaleo, das noch mit 19 % bucht. Deshalb warnt der Export einmal pro Geschäftstag mit `W-FOOD-RATE`, wenn eine Erlöszeile auf einem Konto, dessen apaleo-Name nach Speisen klingt (Speise, Frühstück, Restaurant, Essen, Küche, Halbpension, Vollpension, Catering, Bankett, Food, Breakfast) und nicht nach Getränken, ab 2026-01-01 19 % oder davor 7 % trägt. Die Warnung blockiert nichts: Ein Konto für Speisen und Getränke darf Getränke zu 19 % tragen. apaleos Standardkonto „Revenues Food and beverages“ nennt beides und löst die Warnung deshalb nie aus.
+Speisen in Restaurant und Hotel (Frühstück, Halbpension, Bankett, Catering) kosten für Leistungen ab 2026-01-01 7 % Umsatzsteuer (Steueränderungsgesetz 2025) und für Leistungen vom 2024-01-01 bis 2025-12-31 19 %. Davor galten: 7 % vom 2021-01-01 bis 2023-12-31, 5 % vom 2020-07-01 bis 2020-12-31 (Corona-Steuerhilfegesetz) und 19 % bis 2020-06-30. Getränke tragen immer den Regelsatz (heute 19 %). Maßgeblich ist das Datum der Leistung. Der häufigste Fehler nach der Änderung ist ein Speisenkonto in apaleo, das noch mit 19 % bucht. Deshalb warnt der Export einmal pro Geschäftstag mit `W-FOOD-RATE`, wenn eine Erlöszeile auf einem Konto, dessen apaleo-Name nach Speisen klingt (Speise, Frühstück, Restaurant, Essen, Küche, Halbpension, Vollpension, Catering, Bankett, Food, Breakfast) und nicht nach Getränken, einen anderen Satz als den Speisensatz ihres Leistungstags trägt, ab 2026-01-01 also 19 % und 2024 und 2025 7 %. Die Warnung blockiert nichts: Ein Konto für Speisen und Getränke darf Getränke zu 19 % tragen. apaleos Standardkonto „Revenues Food and beverages“ nennt beides und löst die Warnung deshalb nie aus.
 
 Die Vorlage legt Speisen zu 7 % auf das Konto für Logis (SKR03 `8300`, SKR04 `4300`). Möchte deine Kanzlei Speisen getrennt sehen, legt sie in Odoo ein eigenes Konto an (zum Beispiel `8301` mit `tax_ust_7_skr03`) und trägt es in die Zeilen der Speisenkonten ein.
 
@@ -197,7 +197,7 @@ Die Vorlage legt Speisen zu 7 % auf das Konto für Logis (SKR03 `8300`, SKR04 `4
 | `N-GENERATED-ACCOUNT` | Eine Zahlungszeile zeigt auf Kasse oder Geldtransit, die Odoo beim Einrichten anlegt. | Vergleiche den Code mit dem Kontenplan. |
 | `W-CITY-TAX-TAXED` | Eine Zeile für die Kurtaxe trägt eine Steuer über 0 %. | Lass dir bestätigen, dass der Betrieb die Abgabe schuldet; sonst `1590` bzw. `1370` ohne Steuer. |
 | `N-TEMPLATE-SUGGESTION` | `init-mapping --update`: Die aktuelle Vorlage hat für eine leere Zeile jetzt einen Vorschlag. | Prüf den Vorschlag mit der Kanzlei und trag ihn von Hand ein. |
-| `W-FOOD-RATE` | Export: Ein Speisenkonto bucht ab 2026 mit 19 % oder davor mit 7 %. | Prüf die Umsatzsteuer-Einstellung in apaleo mit der Kanzlei. |
+| `W-FOOD-RATE` | Export: Ein Speisenkonto bucht nicht mit dem Speisensatz seines Leistungstags (ab 2026-01-01 7 %, vom 2024-01-01 bis 2025-12-31 19 %). | Prüf die Umsatzsteuer-Einstellung in apaleo mit der Kanzlei. |
 | `W-VAT-RATE-UNUSUAL` | Der Satz ist kein deutscher Satz (0, 7, 19 %); bei 16 und 5 % nennt die Warnung die Zeit vom 2020-07-01 bis 2020-12-31. | Prüfe die Zeile, Exporte für 2020 klärst du mit der Kanzlei. |
 | `E-VAT-MISMATCH` | Der Satz der Zeile weicht vom Satz des apaleo-Kontos oder der Buchungen ab, auch über ein Elternkonto. | Gib dem Konto eine eigene Zeile mit dem richtigen Konto, der Steuer und dem Satz. |
 | `E-UNMAPPED` | Ein gebuchtes Konto hat kein Odoo-Konto. | Folge der Meldung: Sie nennt die Zeile oder die `*`-Zeile mit einem Beispiel aus der SKR03-Vorlage. |
@@ -216,5 +216,5 @@ Bevor die erste Datei in Odoo importiert wird, geht deine Kanzlei die Kontenzuor
 - [ ] Für jedes Konto ohne Steuer ist geklärt, ob später von Hand eine Standardsteuer gesetzt werden könnte (`N-DEFAULT-TAX-ACCOUNT`, zum Beispiel SKR04 `4200`), und dass niemand eine solche Buchungszeile in Odoo bearbeitet.
 - [ ] Kein Erlös im Inland trägt `tax_not_taxable_skr03` oder `tax_not_taxable_skr04` (`W-TAX-KZ45`).
 - [ ] Kasse und Geldtransit tragen die Codes aus dem Kontenplan des Unternehmens (`N-GENERATED-ACCOUNT`).
-- [ ] Die Kurtaxe, die Beherbergungsteuer, No-Show- und Stornogebühren und die Speisen ab 2026 sind entschieden und eingetragen; eine Abgabe mit Steuer (`W-CITY-TAX-TAXED`) ist vom Betrieb geschuldet.
+- [ ] Die Kurtaxe, die Beherbergungsteuer, No-Show- und Stornogebühren und der Speisensatz ab 2026-01-01 sind entschieden und eingetragen; eine Abgabe mit Steuer (`W-CITY-TAX-TAXED`) ist vom Betrieb geschuldet.
 - [ ] `apaleo-odoo mapping check --property <id> --from <erster Tag> --to <letzter Tag>` meldet für einen echten Monat keinen Fehler.

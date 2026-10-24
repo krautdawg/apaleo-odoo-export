@@ -45,7 +45,7 @@ const SPA: SourceAccount = {
   hasChildren: false,
 };
 const SPA_ROW =
-  'RevenueSpa_Normal:19.00;Revenues;Spa (19%);19;8400;tax_ust_19_skr03;19;Vorschlag (ungeprüft): Erlöse 19 % USt (sonstige Leistungen, zum Beispiel Parken, Wellness, Speisen vor 2026). ' +
+  'RevenueSpa_Normal:19.00;Revenues;Spa (19%);19;8400;tax_ust_19_skr03;19;Vorschlag (ungeprüft): Erlöse 19 % USt (sonstige Leistungen, zum Beispiel Parken, Wellness, Speisen 2024 und 2025). ' +
   'Quelle: Odoo l10n_de SKR03 (account.account-de_skr03.csv, account.tax-de_skr03.csv), Branches 17.0, 18.0 und 19.0, Kontonummern wie DATEV SKR 03 (apaleo-datev-export), geprüft 2026-10-24.';
 const ACC7 = 'RevenueAccommodation_Reduced:7.00';
 const SKR03 = ['--template', 'skr03-hotel'];
@@ -191,7 +191,7 @@ describe('apaleo-odoo init-mapping', () => {
     const decoded = decodeCsv(read(ctx));
     expect(decoded.encoding).toBe('windows-1252');
     expect(decoded.text.startsWith(saved)).toBe(true);
-    expect(decoded.text).toContain('\nRevenueSpa_Normal:19.00,Revenues,8400,tax_ust_19_skr03,19,"Vorschlag (ungeprüft): Erlöse 19 % USt (sonstige Leistungen, zum Beispiel Parken, Wellness, Speisen vor 2026).');
+    expect(decoded.text).toContain('\nRevenueSpa_Normal:19.00,Revenues,8400,tax_ust_19_skr03,19,"Vorschlag (ungeprüft): Erlöse 19 % USt (sonstige Leistungen, zum Beispiel Parken, Wellness, Speisen 2024 und 2025).');
     expect(decoded.text).not.toContain('\r');
   });
 

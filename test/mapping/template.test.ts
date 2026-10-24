@@ -123,14 +123,15 @@ describe.each([
     for (const [i, name] of names.entries()) expect(find(named, `N${i}`)?.comment, name).toContain('Schadenersatz');
   });
 
-  it('maps a food account at 7 % with the comment on the Speisen rate from 2026-01-01, 19 % before and an own account for Speisen', () => {
+  it('maps a food account at 7 % with the comment on the Speisen rate from 2026-01-01, 19 % from 2024-01-01 to 2025-12-31, the warning by the day of the service and an own account for Speisen', () => {
     const names = ['Speisen', 'Frühstück', 'Restaurant', 'Essen', 'Küche', 'Halbpension', 'Vollpension', 'Catering', 'Bankett', 'Food', 'Breakfast'];
     const food = suggest(names.map((name, i) => account(`F${i}`, name, 'Revenues', rate(7))), template);
     for (const [i, name] of names.entries()) {
       const row = find(food, `F${i}`);
       expect(mapped(row), name).toEqual([chart.rev7, chart.tax7, '7']);
       expect(row?.comment, name).toContain('Speisen zu 7 % für Leistungen ab 2026-01-01');
-      expect(row?.comment, name).toContain('vorher 19 %');
+      expect(row?.comment, name).toContain('vom 2024-01-01 bis 2025-12-31 19 %');
+      expect(row?.comment, name).toContain('nicht mit dem Satz seines Leistungstags');
       expect(row?.comment, name).toContain('eigenes 7-%-Erlöskonto für Speisen');
       expect(row?.comment, name).toContain('W-FOOD-RATE');
     }

@@ -228,5 +228,5 @@ The German fixture month of o03 (`test/fixtures/apaleo/de-month/`) SHALL additio
 
 #### Scenario: Food rate around the change
 - **WHEN** the fixture day around 2026-01-01 is exported with the SKR03 template mapping
-- **THEN** neither line raises `W-FOOD-RATE` (19 % before 2026, 7 % from 2026), and the same lines with swapped rates raise it once per day
+- **THEN** neither line raises `W-FOOD-RATE` (19 % on 2025-12-31, 7 % from 2026-01-01), and the same lines with swapped rates raise it once per day
 

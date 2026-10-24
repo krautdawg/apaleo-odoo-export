@@ -110,11 +110,45 @@ export function generatedChartOf(account: string): GermanChart | undefined {
 export const FOOD_NAME_PATTERN = /speise|food|frühstück|fruehstueck|breakfast|restaurant|essen|küche|kueche|kitchen|halbpension|vollpension|catering|bankett|banquet/iu;
 export const BEVERAGE_NAME_PATTERN = /getränk|getraenk|beverage|drink|minibar|\bbar\b/iu;
 
-/** Speisen in restaurants and catering are taxed at 7 % for services from this day, at 19 % before (Steueränderungsgesetz 2025). */
-export const FOOD_RATE_CHANGE = '2026-01-01';
-/** The rate of Speisen before and from `FOOD_RATE_CHANGE`. */
-export const FOOD_RATE_BEFORE = 19;
-export const FOOD_RATE_FROM = 7;
+/** A period in which Speisen in restaurants and catering carry one German VAT rate: from `from` (inclusive) to `to` (inclusive, open when absent). */
+export interface FoodRatePeriod {
+  readonly from?: string;
+  readonly to?: string;
+  readonly percent: number;
+  /** The law that set the rate, for messages. */
+  readonly law?: string;
+}
+
+/**
+ * The German VAT rate of Speisen in restaurants and catering by the day of the
+ * service: 19 % until 2020-06-30, 5 % from 2020-07-01 to 2020-12-31 and 7 % from
+ * 2021-01-01 to 2023-12-31 (Corona-Steuerhilfegesetz, extended twice), 19 % from
+ * 2024-01-01 to 2025-12-31, and 7 % for services from 2026-01-01
+ * (Steueränderungsgesetz 2025). Drinks always carry the standard rate.
+ */
+export const FOOD_RATE_PERIODS: readonly FoodRatePeriod[] = [
+  { to: '2020-06-30', percent: 19 },
+  { from: '2020-07-01', to: '2020-12-31', percent: 5, law: 'Corona-Steuerhilfegesetz' },
+  { from: '2021-01-01', to: '2023-12-31', percent: 7, law: 'Corona-Steuerhilfegesetz' },
+  { from: '2024-01-01', to: '2025-12-31', percent: 19 },
+  { from: '2026-01-01', percent: 7, law: 'Steueränderungsgesetz 2025' },
+];
+
+/** The rates Speisen or drinks carried in Germany since 2020; a food line at another rate (0 % for example) is not a rate mix-up. */
+export const FOOD_RATE_CANDIDATES: ReadonlySet<number> = new Set([5, 7, 16, 19]);
+
+/** The period of Speisen whose days include `date` (`YYYY-MM-DD`). */
+export function foodRatePeriod(date: string): FoodRatePeriod {
+  const period = FOOD_RATE_PERIODS.find((p) => (p.from === undefined || date >= p.from) && (p.to === undefined || date <= p.to));
+  if (!period) throw new Error(`no Speisen rate period for ${date}`);
+  return period;
+}
+
+/** "from 2024-01-01 to 2025-12-31", "until 2020-06-30" or "from 2026-01-01 (Steueränderungsgesetz 2025)", for messages. */
+export function foodRatePeriodText(period: FoodRatePeriod): string {
+  const days = period.from === undefined ? `until ${period.to ?? ''}` : period.to === undefined ? `from ${period.from}` : `from ${period.from} to ${period.to}`;
+  return period.law === undefined ? days : `${days} (${period.law})`;
+}
 
 /** An apaleo account name that is food revenue: it matches the food pattern and not the beverage pattern. */
 export function isFoodName(name: string): boolean {

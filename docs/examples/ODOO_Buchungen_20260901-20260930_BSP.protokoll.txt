@@ -94,6 +94,6 @@ apaleo entries per line of the file (entry number and receipt or reference):
 
 File: ODOO_Buchungen_20260901-20260930_BSP.csv
 SHA-256: f587b8aa9c35ff2baafb7770ddeaedad1eafe5b76982cc22a719acd734fc1c67
-Mapping SHA-256: e9dc86245a6c78c72a2714c421fc0e13a4912c609c056e6a6cc103317fc4cf20
+Mapping SHA-256: af4756e552c40bbea9dd0042a0c144f2006b50e1ad6d85464f51e7a3a091904a
 Tool: apaleo-odoo 0.0.0
 Created: 2026-10-05T08:00:00.000Z
