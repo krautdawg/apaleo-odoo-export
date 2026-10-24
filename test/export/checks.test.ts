@@ -249,6 +249,13 @@ describe('German special-case warnings for a month', () => {
     expect(checkFoodRate([charge({ businessDate: '2026-09-14', credit: ACCOUNTS.food19, grossCents: 2_380, netCents: 2_000, netPrecise: '20', taxes: germanTax(19, 380) })])).toEqual([]);
   });
 
+  it('Messen and Interessentenpaket are not food: no W-FOOD-RATE for "Zuschlag Messen" or "Interessentenpaket" at 19 % in 2026, but one for "Abendessen" and "Mittagessen"', () => {
+    expect(checkFoodRate([breakfast('Zuschlag Messen', '2026-09-14', 19)])).toEqual([]);
+    expect(checkFoodRate([breakfast('Interessentenpaket', '2026-09-14', 19)])).toEqual([]);
+    expect(checkFoodRate([breakfast('Abendessen', '2026-09-14', 19)]).map((f) => f.code)).toEqual(['W-FOOD-RATE']);
+    expect(checkFoodRate([breakfast('Mittagessen', '2026-09-15', 19)]).map((f) => f.code)).toEqual(['W-FOOD-RATE']);
+  });
+
   it('warns for food at 7 % before 2026-01-01, never for food at the rate of its day or without tax, and once per day for several lines and accounts', () => {
     expect(checkFoodRate([breakfast('Frühstück (7%)', '2025-12-31', 7, 'RevenueBreakfast_Reduced:7.00')]).map((f) => f.value)).toEqual(['2025-12-31']);
     expect(checkFoodRate([breakfast('Frühstück', '2025-12-31', 19), breakfast('Frühstück', '2026-01-01', 7)])).toEqual([]);

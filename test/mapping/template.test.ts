@@ -137,6 +137,14 @@ describe.each([
     }
   });
 
+  it('counts Essen, Essensgutschein, Abendessen and Mittagessen as food, but not Messen, Interessen or Interessentenpaket', () => {
+    for (const name of ['Essen', 'Essensgutschein', 'Abendessen', 'Mittagessen', 'Abendessen Halbpension']) expect(FOOD_NAME_PATTERN.test(name), name).toBe(true);
+    for (const name of ['Zuschlag Messen', 'Messen', 'Interessen', 'Interessentenpaket', 'Messezuschlag']) expect(FOOD_NAME_PATTERN.test(name), name).toBe(false);
+    const named = suggest([account('M1', 'Zuschlag Messen', 'Revenues', rate(19)), account('M2', 'Abendessen', 'Revenues', rate(7))], template);
+    expect(find(named, 'M1')?.comment).not.toContain('Speisen zu 7 %');
+    expect(mapped(find(named, 'M2'))).toEqual([chart.rev7, chart.tax7, '7']);
+  });
+
   it('uses the food and beverage patterns of W-FOOD-RATE in its rules', () => {
     const food = template.rules.find((rule) => rule.apaleoType === 'Revenues' && rule.apaleoVatPercent === 7 && rule.namePattern?.test('Frühstück'));
     const drinks = template.rules.find((rule) => rule.apaleoType === 'Revenues' && rule.apaleoVatPercent === 19 && rule.namePattern?.test('Getränke'));

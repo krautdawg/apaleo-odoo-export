@@ -240,7 +240,7 @@ Before writing, the export SHALL refuse with `E-TAX-RATES` a property-month whos
 - **THEN** no `E-TAX-RATES` is raised
 
 ### Requirement: German special-case warnings for a month
-For each property and month, the export and `schedule --once` SHALL report `W-CITY-TAX-TAXED` for the mapping rows the month's ledger lines resolve to, and SHALL report `W-FOOD-RATE` once per business day on which a revenue line whose apaleo account name matches the template's food pattern (and not a beverage pattern) carries a German rate other than the Speisen rate of its service day (19 % until 2020-06-30, 5 % from 2020-07-01 to 2020-12-31, 7 % from 2021-01-01 to 2023-12-31, 19 % from 2024-01-01 to 2025-12-31, 7 % from 2026-01-01), naming the day, the apaleo account, the rate and the Speisen rate of the day with its period. Both warnings SHALL appear in the dry run, the CLI output and the protocol, and SHALL NOT block the file.
+For each property and month, the export and `schedule --once` SHALL report `W-CITY-TAX-TAXED` for the mapping rows the month's ledger lines resolve to, including an `*any*` or parent row of another type that a CityTaxes, SecondCityTax or GuestLevies account resolves to (the warning then names that levy account), and SHALL report `W-FOOD-RATE` once per business day on which a revenue line whose apaleo account name matches the template's food pattern (and not a beverage pattern) carries a German rate other than the Speisen rate of its service day (19 % until 2020-06-30, 5 % from 2020-07-01 to 2020-12-31, 7 % from 2021-01-01 to 2023-12-31, 19 % from 2024-01-01 to 2025-12-31, 7 % from 2026-01-01), naming the day, the apaleo account, the rate and the Speisen rate of the day with its period. Both warnings SHALL appear in the dry run, the CLI output and the protocol, and SHALL NOT block the file.
 
 #### Scenario: Food at 19 % in 2026
 - **WHEN** a breakfast line on 2026-09-14 credits an apaleo account named "Frühstück" at 19 %
@@ -253,4 +253,12 @@ For each property and month, the export and `schedule --once` SHALL report `W-CI
 #### Scenario: Drinks are not food
 - **WHEN** a line on 2026-09-14 credits an apaleo account named "Getränke Restaurant" at 19 %
 - **THEN** no `W-FOOD-RATE` is raised
+
+#### Scenario: Messen is not food
+- **WHEN** lines on 2026-09-14 credit apaleo accounts named "Zuschlag Messen" and "Interessentenpaket" at 19 %
+- **THEN** no `W-FOOD-RATE` is raised, while accounts named "Abendessen" or "Mittagessen" at 19 % raise it
+
+#### Scenario: Kurtaxe on an any row
+- **WHEN** a CityTaxes account resolves to an `*any*` row with `tax_ust_7_skr03` and 7
+- **THEN** the export reports `W-CITY-TAX-TAXED` naming the row, its line and the CityTaxes account
 
