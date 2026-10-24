@@ -1,13 +1,15 @@
 import { encodeCp1252 } from '../core/cp1252.js';
 import { concatBytes, decodeCsv, detectSeparator, encodeCsvFile, formatCsvLine, parseCsv } from './csv.js';
+import { generatedAccounts } from './l10n-de.js';
 import type { Template, TemplateSettings } from './template.js';
 import { MAPPING_COLUMNS, ROW_FIELDS, rowKey, type MappingColumn, type MappingRowValues } from './types.js';
 
-/** The comment line on top of a written mapping file: the template and the MWST-Codes it was written with. */
-export function mappingHeaderComment(template: Template, { mwstCodes }: TemplateSettings): string {
+/** The comment line on top of a written mapping file: the template and the Odoo version it was written for, with the generated accounts. */
+export function mappingHeaderComment(template: Template, settings: TemplateSettings): string {
+  const { cash, transfer } = generatedAccounts(template.chart, settings.version);
   return (
-    `apaleo-odoo Kontenzuordnung, Vorlage ${template.id}, MWST-Codes ${mwstCodes.normal} (8,1 %), ${mwstCodes.reduziert} (2,6 %), ` +
-    `${mwstCodes.beherbergung} (3,8 %). Alle Vorschläge mit dem Treuhänder prüfen. Spalten abacus_account und mwst_code in Excel als Text formatieren.`
+    `apaleo-odoo Kontenzuordnung, Vorlage ${template.id} für Odoo ${settings.version} (Kasse ${cash}, Geldtransit ${transfer} wie in einer frischen Datenbank). ` +
+    'Alle Vorschläge mit deinem Steuerberater prüfen. Spalten odoo_account und odoo_tax in Excel als Text formatieren.'
   );
 }
 

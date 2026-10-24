@@ -31,11 +31,11 @@ function indexOf(mapping: Mapping): Map<string, MappingRow> {
  * type); (4) for VAT-relevant types the wildcard row for the type and the line's
  * rate; (5) for other types the wildcard row for the type.
  *
- * An exact row (steps 1 and 2) with an empty Abacus account is returned as is: it
+ * An exact row (steps 1 and 2) with an empty Odoo account is returned as is: it
  * means "unmapped", because the user listed that account on purpose. A parent
- * row with an empty Abacus account does not end the search (template version 1
- * wrote `3000;Liabilities` empty, and one Abacus account cannot serve every
- * rate); when nothing else gives an Abacus account, the first such parent row is
+ * row with an empty Odoo account does not end the search (template version 1
+ * wrote `3000;Liabilities` empty, and one Odoo account cannot serve every
+ * rate); when nothing else gives an Odoo account, the first such parent row is
  * returned so that findings can name it.
  */
 export function resolve(mapping: Mapping, account: AccountRef, options: ResolveOptions): MappingRow | undefined {
@@ -59,13 +59,13 @@ export function resolve(mapping: Mapping, account: AccountRef, options: ResolveO
   while (parent !== undefined && !seen.has(parent)) {
     seen.add(parent);
     const row = byNumber(parent);
-    if (row?.abacusAccount) return row;
+    if (row?.odooAccount) return row;
     emptyParent ??= row;
     parent = inChart(parent)?.parentNumber;
   }
 
   const wildcard = wildcardRow(index, account.type, options.rate);
-  return wildcard?.abacusAccount ? wildcard : (emptyParent ?? wildcard);
+  return wildcard?.odooAccount ? wildcard : (emptyParent ?? wildcard);
 }
 
 /** The wildcard row for a type: for VAT-relevant types the one at `rate` (none when the rate is unknown). */

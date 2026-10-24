@@ -3,38 +3,32 @@ import { readFile } from 'node:fs/promises';
 import { ChartIndex } from '../core/chart.js';
 import { ACCOUNT_TYPES, type SourceAccount } from '../core/source.js';
 import { commentLines, detectSeparator, parseCsv } from './csv.js';
+import type { OdooVersion } from '../core/config.js';
+import { generatedAccounts, type GeneratedAccounts, type GermanChart } from './l10n-de.js';
 import { WILDCARD, parsePercent, rowKey, type MappingRowValues } from './types.js';
 
 /**
- * The KMU hotel template: a rule file in `templates/` that `init-mapping`
- * applies to the apaleo chart of accounts (design decisions 2 and 3).
+ * The SKR03 and SKR04 hotel templates for Odoo: rule files in `templates/` that
+ * `init-mapping` applies to the apaleo chart of accounts (design decision 3).
  */
 
-const RULE_COLUMNS = ['apaleo_type', 'name_pattern', 'apaleo_vat_percent', 'abacus_account', 'mwst_code', 'mwst_percent', 'comment'];
-const TEMPLATE_ID = /\bkmu-hotel@\d+\b/;
-const TEMPLATE_URL = new URL('../../templates/kmu-hotel.rules.csv', import.meta.url);
+const RULE_COLUMNS = ['apaleo_type', 'name_pattern', 'apaleo_vat_percent', 'odoo_account', 'odoo_tax', 'tax_percent', 'comment'];
+/** The templates `init-mapping --template` accepts. */
+export const TEMPLATE_NAMES = ['skr03-hotel', 'skr04-hotel'] as const;
+export type TemplateName = (typeof TEMPLATE_NAMES)[number];
+/** The template named in fix hints and in the refusal of a foreign mapping file. */
+export const DEFAULT_TEMPLATE: TemplateName = 'skr03-hotel';
+const TEMPLATE_ID = /\b(skr03|skr04)-hotel@\d+\b/;
+const templateUrl = (name: TemplateName) => new URL(`../../templates/${name}.rules.csv`, import.meta.url);
 /** `name_pattern` of a rule that matches any name and also yields a wildcard row. */
 const WILDCARD_PATTERN = '*';
-/** Every template row carries this mark until the Treuhänder has checked it. */
+/** Every template row carries this mark until the Steuerberater has checked it. */
 export const SUGGESTION_MARK = 'Vorschlag (ungeprüft)';
-const NO_RULE_COMMENT = `${SUGGESTION_MARK}: keine Regel der Vorlage passt, bitte mit dem Treuhänder zuordnen.`;
+const NO_RULE_COMMENT = `${SUGGESTION_MARK}: keine Regel der Vorlage passt, bitte mit der Kanzlei zuordnen.`;
 const ARCHIVED = 'archiviert';
 
-/** The MWST-Codes of the Mandant that the template writes (`abacus.mwstCodes`). */
-export interface MwstCodes {
-  normal: string;
-  reduziert: string;
-  beherbergung: string;
-}
-
-/** The codes of the Abacus KMU sample Mandant, the defaults of `abacus.mwstCodes`. */
-export const DEFAULT_MWST_CODES: Readonly<MwstCodes> = { normal: '311', reduziert: '312', beherbergung: '313' };
-
-/** The rate each configured code stands for (`W-MWST-CODE-RATE`). */
-export const MWST_CODE_RATES: Readonly<Record<keyof MwstCodes, number>> = { normal: 8.1, reduziert: 2.6, beherbergung: 3.8 };
-
-/** `mwst_code` of a rule that stands for a configured code: `{normal}`, `{reduziert}` or `{beherbergung}`. */
-const CODE_PLACEHOLDER = /^\{(normal|reduziert|beherbergung)\}$/;
+/** `odoo_account` of a rule for an account Odoo generates at company setup: the Kasse and the Geldtransit account. */
+const GENERATED_PLACEHOLDERS: Readonly<Record<string, keyof GeneratedAccounts>> = { '{cash}': 'cash', '{transfer}': 'transfer' };
 
 export interface TemplateRule {
   line: number;
@@ -45,79 +39,85 @@ export interface TemplateRule {
   wildcard: boolean;
   /** Undefined matches any rate. */
   apaleoVatPercent: number | undefined;
-  /** The Abacus account; empty leaves the account unmapped. */
-  abacusAccount: string;
-  /** An MWST-Code, a placeholder such as `{normal}`, or empty. */
-  mwstCode: string;
-  mwstPercent: string;
+  /** The Odoo account, `{cash}` or `{transfer}`; empty leaves the account unmapped. */
+  odooAccount: string;
+  /** The Odoo tax (chart-template id), or empty. */
+  odooTax: string;
+  taxPercent: string;
   comment: string;
 }
 
 export interface Template {
-  /** For example `kmu-hotel@1`. */
+  /** For example `skr03-hotel@1`. */
   id: string;
+  chart: GermanChart;
   rules: TemplateRule[];
 }
 
-/** What the rows depend on: the MWST-Codes of the Mandant. */
+/** What the rows depend on: the Odoo version, which decides the codes of the generated accounts. */
 export interface TemplateSettings {
-  mwstCodes: MwstCodes;
+  version: OdooVersion;
 }
 
-/** Reads the template shipped in `templates/`. */
-export async function loadTemplate(): Promise<Template> {
-  return parseTemplate(await readFile(TEMPLATE_URL, 'utf8'));
+/** Reads a template shipped in `templates/`. */
+export async function loadTemplate(name: TemplateName = DEFAULT_TEMPLATE): Promise<Template> {
+  return parseTemplate(await readFile(templateUrl(name), 'utf8'));
 }
 
-let shipped: Template | undefined;
+const shipped = new Map<TemplateName, Template>();
 
-/** The template shipped in `templates/`, read once and synchronously (for fix hints in findings). */
-export function shippedTemplate(): Template {
-  shipped ??= parseTemplate(readFileSync(TEMPLATE_URL, 'utf8'));
-  return shipped;
+/** A template shipped in `templates/`, read once and synchronously (for fix hints in findings). */
+export function shippedTemplate(name: TemplateName = DEFAULT_TEMPLATE): Template {
+  let template = shipped.get(name);
+  if (!template) {
+    template = parseTemplate(readFileSync(templateUrl(name), 'utf8'));
+    shipped.set(name, template);
+  }
+  return template;
 }
 
-/** The account and MWST-Code the template's wildcard rule gives a type at a rate (any rate for types without one); undefined when none. */
+/** The account and tax the template's wildcard rule gives a type at a rate (any rate for types without one); undefined when none. */
 export function templateWildcard(
   template: Template,
   type: string,
   rate: number | undefined,
-  settings: TemplateSettings = { mwstCodes: DEFAULT_MWST_CODES },
-): { abacusAccount: string; mwstCode: string } | undefined {
+  settings: TemplateSettings = { version: 18 },
+): { odooAccount: string; odooTax: string } | undefined {
   const rule = template.rules.find(
-    (r) => r.wildcard && r.apaleoType === type && r.abacusAccount !== '' && (r.apaleoVatPercent === undefined || r.apaleoVatPercent === rate),
+    (r) => r.wildcard && r.apaleoType === type && r.odooAccount !== '' && (r.apaleoVatPercent === undefined || r.apaleoVatPercent === rate),
   );
-  return rule ? { abacusAccount: rule.abacusAccount, mwstCode: resolveCode(rule.mwstCode, settings) } : undefined;
+  return rule ? { odooAccount: resolveAccount(rule.odooAccount, template, settings), odooTax: rule.odooTax } : undefined;
 }
 
 export function parseTemplate(text: string): Template {
-  const id = TEMPLATE_ID.exec(commentLines(text).join('\n'))?.[0];
-  if (!id) throw new Error('The KMU hotel template does not name its version (kmu-hotel@N)');
-  const [header, ...records] = parseCsv(text, detectSeparator(text), 'the KMU hotel template');
+  const match = TEMPLATE_ID.exec(commentLines(text).join('\n'));
+  if (!match) throw new Error('The hotel template does not name its version (skr03-hotel@N or skr04-hotel@N)');
+  const [id, chart] = match as unknown as [string, GermanChart];
+  const [header, ...records] = parseCsv(text, detectSeparator(text), `the hotel template ${id}`);
   if (header?.fields.join(';') !== RULE_COLUMNS.join(';')) {
-    throw new Error(`The KMU hotel template header must be ${RULE_COLUMNS.join(';')}`);
+    throw new Error(`The hotel template header must be ${RULE_COLUMNS.join(';')}`);
   }
   const rules = records.map(({ line, fields }): TemplateRule => {
-    const [type = '', pattern = '', vat = '', abacusAccount = '', mwstCode = '', mwstPercent = '', comment = ''] = fields;
+    const [type = '', pattern = '', vat = '', odooAccount = '', odooTax = '', taxPercent = '', comment = ''] = fields;
     return {
       line,
       apaleoType: type,
       namePattern: pattern === '' || pattern === WILDCARD_PATTERN ? undefined : new RegExp(pattern, 'iu'),
       wildcard: pattern === WILDCARD_PATTERN,
       apaleoVatPercent: parsePercent(vat),
-      abacusAccount,
-      mwstCode,
-      mwstPercent,
+      odooAccount,
+      odooTax,
+      taxPercent,
       comment,
     };
   });
-  return { id, rules };
+  return { id, chart, rules };
 }
 
-/** A rule's `mwst_code` with a placeholder replaced by the configured code. */
-function resolveCode(code: string, { mwstCodes }: TemplateSettings): string {
-  const placeholder = CODE_PLACEHOLDER.exec(code)?.[1] as keyof MwstCodes | undefined;
-  return placeholder ? mwstCodes[placeholder] : code;
+/** A rule's `odoo_account` with `{cash}` or `{transfer}` replaced by the code of a fresh database of the chart and version. */
+function resolveAccount(account: string, template: Template, { version }: TemplateSettings): string {
+  const placeholder = GENERATED_PLACEHOLDERS[account];
+  return placeholder ? generatedAccounts(template.chart, version)[placeholder] : account;
 }
 
 /**
@@ -146,8 +146,8 @@ export function ruleFor(template: Template, chart: ChartIndex, account: SourceAc
  *
  * A container account outside the global ledger (`hasChildren`, such as `3000`
  * Liabilities) gets no row when its type has wildcard rules and no rule gives it
- * an Abacus account: the wildcard rows cover its per-reservation children, and one
- * Abacus account cannot serve every rate.
+ * an Odoo account: the wildcard rows cover its per-reservation children, and one
+ * Odoo account cannot serve every rate.
  */
 export function suggestRows(accounts: readonly SourceAccount[], template: Template, settings: TemplateSettings): MappingRowValues[] {
   const chart = new ChartIndex(accounts);
@@ -163,14 +163,14 @@ export function suggestRows(accounts: readonly SourceAccount[], template: Templa
     if (parents.has(`${account.number}\u0000${account.type}`)) continue;
     const rule = ruleFor(template, chart, account);
     const container = account.ledger !== 'global' && account.hasChildren && wildcardTypes.has(account.type);
-    if (container && !rule?.abacusAccount) continue;
+    if (container && !rule?.odooAccount) continue;
     const comment = rule ? rule.comment : NO_RULE_COMMENT;
     add({
       apaleoAccount: account.number,
       apaleoType: account.type,
       apaleoName: account.name,
       apaleoVatPercent: account.vat === undefined ? '' : String(account.vat.percent),
-      ...ruleValues(rule, settings),
+      ...ruleValues(rule, template, settings),
       comment: account.isArchived ? `${ARCHIVED}. ${comment}` : comment,
     });
   }
@@ -180,21 +180,20 @@ export function suggestRows(accounts: readonly SourceAccount[], template: Templa
       apaleoType: rule.apaleoType,
       apaleoName: '',
       apaleoVatPercent: rule.apaleoVatPercent === undefined ? '' : String(rule.apaleoVatPercent),
-      ...ruleValues(rule, settings),
+      ...ruleValues(rule, template, settings),
       comment: rule.comment,
     });
   }
   return [...rows.values()].sort(byType);
 }
 
-/** The Abacus account, MWST-Code and rate a rule gives; all empty without a rule or without an account. */
-export function ruleValues(rule: TemplateRule | undefined, settings: TemplateSettings): Pick<MappingRowValues, 'abacusAccount' | 'mwstCode' | 'mwstPercent' | 'kost'> {
-  const mapped = rule !== undefined && rule.abacusAccount !== '';
+/** The Odoo account, tax and rate a rule gives; all empty without a rule or without an account. */
+export function ruleValues(rule: TemplateRule | undefined, template: Template, settings: TemplateSettings): Pick<MappingRowValues, 'odooAccount' | 'odooTax' | 'taxPercent'> {
+  const mapped = rule !== undefined && rule.odooAccount !== '';
   return {
-    abacusAccount: mapped ? rule.abacusAccount : '',
-    mwstCode: mapped ? resolveCode(rule.mwstCode, settings) : '',
-    mwstPercent: mapped ? rule.mwstPercent : '',
-    kost: '',
+    odooAccount: mapped ? resolveAccount(rule.odooAccount, template, settings) : '',
+    odooTax: mapped ? rule.odooTax : '',
+    taxPercent: mapped ? rule.taxPercent : '',
   };
 }
 
