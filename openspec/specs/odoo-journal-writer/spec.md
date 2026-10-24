@@ -1,5 +1,8 @@
-## ADDED Requirements
+# odoo-journal-writer Specification
 
+## Purpose
+The Odoo journal-entry import file (`src/odoo/`): one draft `account.move` per property and business day as CSV for Odoo's standard import, lines netted per account, tax and label, taxes by External ID and never tax lines, a model of Odoo's tax computation with the base fitting so that no entry gets an automatic balancing line, External IDs with revisions, validation of every booking and entry, the file name, the import block of the protocol and the golden-file tests. Checked against real Odoo 17, 18 and 19 by the local maintainer test import (`scripts/odoo-check/`).
+## Requirements
 ### Requirement: One journal entry per property and business day
 The writer SHALL turn the `OdooBooking` values of one property and period into one journal entry per business day that has bookings, dated that day, in the configured journal, and SHALL net the booking sides of a day per key (Odoo account, tax External ID, label): the debit and credit amounts of a key are summed, the net becomes one line on the side of its sign, and a key whose net is 0 produces no line. A VAT side SHALL contribute its net amount (gross minus apaleo's tax) to its key and its gross to the fitting of its group; every other side SHALL contribute its gross. A day without bookings SHALL produce no entry.
 
@@ -160,3 +163,4 @@ The repository SHALL contain golden files in `test/golden/odoo/` for: an empty m
 #### Scenario: Golden files unchanged
 - **WHEN** `pnpm test` runs without `UPDATE_GOLDEN`
 - **THEN** every rendered file equals its golden file byte for byte, and every golden entry balances with the modelled tax
+
