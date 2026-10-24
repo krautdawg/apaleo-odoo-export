@@ -109,6 +109,53 @@ export const abacusSection = z.strictObject({
   geschaeftsbereich: geschaeftsbereich.default(0),
 });
 
+const ODOO_JOURNAL_MESSAGE = 'must be the code of the Odoo journal: 1 to 5 characters of A-Z and 0-9 (Odoo allows at most 5 characters)';
+const odooJournal = codeText(/^[A-Z0-9]{1,5}$/, ODOO_JOURNAL_MESSAGE);
+const ODOO_ACCOUNT_MESSAGE = 'must be an Odoo account code: 1 to 64 characters of A-Z, a-z, 0-9 and "."';
+const odooAccount = codeText(/^[A-Za-z0-9.]{1,64}$/, ODOO_ACCOUNT_MESSAGE);
+
+export const ODOO_VERSIONS = [17, 18, 19] as const;
+export const ODOO_CURRENCIES = ['EUR', 'CHF'] as const;
+export const ODOO_TAX_ROUNDINGS = ['per_line', 'per_tax'] as const;
+export type OdooVersion = (typeof ODOO_VERSIONS)[number];
+export type OdooTaxRounding = (typeof ODOO_TAX_ROUNDINGS)[number];
+
+/** `version: "18"` in quotes means the same as `version: 18`. */
+const odooVersion = z.preprocess(
+  (value) => (typeof value === 'string' && /^\d+$/.test(value.trim()) ? Number(value) : value),
+  z.literal(ODOO_VERSIONS, { error: 'must be 17, 18 or 19 (the Odoo version of the database)' }),
+);
+
+/** The rounding method a new Odoo company starts with: "Round per Line" in 17 and 18, "Round per Tax" in 19 (research §3). */
+export function defaultTaxRounding(version: OdooVersion): OdooTaxRounding {
+  return version === 19 ? 'per_tax' : 'per_line';
+}
+
+/**
+ * Where the journal entries go in Odoo (docs/odoo-format.md). Optional until o03
+ * makes Odoo the default target. `taxRounding` defaults to the rounding method of
+ * a new company of `version`, and `roundingAccount` is required with `per_tax`.
+ */
+export const odooSection = z
+  .strictObject({
+    /** The code of the miscellaneous journal the entries are imported into, for example `APA`. */
+    journal: odooJournal,
+    /** The database id of the company that owns the taxes (for a branch its root company), in the External IDs. */
+    companyId: wholeNumber(1, 999_999).default(1),
+    /** The company currency: every property must book in it, the tool does not convert. */
+    currency: z.enum(ODOO_CURRENCIES, { error: 'must be "EUR" or "CHF" (the currency of the Odoo company)' }).default('EUR'),
+    version: odooVersion,
+    /** Must equal the company's Settings > Accounting > Taxes > Rounding Method. */
+    taxRounding: z.enum(ODOO_TAX_ROUNDINGS, { error: 'must be "per_line" or "per_tax" (the rounding method of the Odoo company)' }).optional(),
+    /** An account without taxes for the cent that per-tax rounding cannot reach. No default. */
+    roundingAccount: odooAccount.optional(),
+  })
+  .transform(({ taxRounding, ...odoo }) => ({ ...odoo, taxRounding: taxRounding ?? defaultTaxRounding(odoo.version) }))
+  .superRefine((odoo, issue) => {
+    if (odoo.taxRounding !== 'per_tax' || odoo.roundingAccount !== undefined) return;
+    issue.addIssue({ code: 'custom', path: ['roundingAccount'], message: 'is required with taxRounding: per_tax' });
+  });
+
 /** How the posting rules fill Abacus fields. */
 export const postingSection = z.strictObject({
   /** `Text2`: the receipt (invoice) number when there is one (default), or always the reservation reference. */
@@ -124,6 +171,8 @@ export const propertyEntry = z.strictObject({
   mandant: mandant.optional(),
   /** Overrides `abacus.geschaeftsbereich` for this property's file. */
   geschaeftsbereich: geschaeftsbereich.optional(),
+  /** Overrides `odoo.journal` for this property's file. */
+  journal: odooJournal.optional(),
 });
 
 export const propertiesSection = z
@@ -205,6 +254,8 @@ export const configSections = {
   output: outputSection.prefault({}),
   /** Required: `abacus.mandant` has no default, so a missing section reports that key. */
   abacus: abacusSection.prefault({ mandant: undefined }),
+  /** Optional until Odoo is the default target (o03). */
+  odoo: odooSection.optional(),
   posting: postingSection.prefault({}),
   properties: propertiesSection.default([]),
   checks: checksSection.prefault({}),
@@ -216,6 +267,7 @@ export const configSchema = z.strictObject(configSections);
 export type Config = z.infer<typeof configSchema>;
 export type PostingConfig = z.infer<typeof postingSection>;
 export type AbacusConfig = z.infer<typeof abacusSection>;
+export type OdooConfig = z.infer<typeof odooSection>;
 export type PropertyConfig = z.infer<typeof propertyEntry>;
 export type ScheduleConfig = z.infer<typeof scheduleSection>;
 
@@ -228,6 +280,11 @@ export interface AbacusUnit {
 export function abacusUnitOf(abacus: Pick<AbacusConfig, 'mandant' | 'geschaeftsbereich'>, properties: Config['properties'], propertyId: string): AbacusUnit {
   const property = properties.find((p) => p.id === propertyId);
   return { mandant: property?.mandant ?? abacus.mandant, geschaeftsbereich: property?.geschaeftsbereich ?? abacus.geschaeftsbereich };
+}
+
+/** The journal code a property's file is imported into: its own, else the `odoo` section's. */
+export function odooJournalOf(odoo: Pick<OdooConfig, 'journal'>, properties: Config['properties'], propertyId: string): string {
+  return properties.find((p) => p.id === propertyId)?.journal ?? odoo.journal;
 }
 
 /** The `value` of a `W-MANDANT-SHARED` finding: Mandant and Geschäftsbereich. */
@@ -398,10 +455,14 @@ function parseConfigText(text: string, path: string): ParsedConfigText {
 
 /**
  * The keys whose value is a code written as text (Mandantennummer, account,
- * MWST-Code). `011` and `11` are different MWST-Codes in the Mandant's MWST-Tabelle,
+ * MWST-Code, Odoo journal and account). `011` and `11` are different MWST-Codes in the Mandant's MWST-Tabelle,
  * so a number there is accepted only when its source text is its decimal form.
  */
-const CODE_KEYS = [/^abacus\.(mandant|mwstKonto|mwstHilfskonto|mwstCodes\.(normal|reduziert|beherbergung))$/, /^properties\.\d+\.mandant$/];
+const CODE_KEYS = [
+  /^abacus\.(mandant|mwstKonto|mwstHilfskonto|mwstCodes\.(normal|reduziert|beherbergung))$/,
+  /^odoo\.(journal|roundingAccount)$/,
+  /^properties\.\d+\.(mandant|journal)$/,
+];
 
 /** A code written as `011`, `0x1F` or `1e2` without quotes: the parser has already changed its digits, so refuse it and ask for quotes. */
 function rejectRewrittenCodes(numberSources: NumberSources, path: string): void {
@@ -571,6 +632,11 @@ function rejectForeignSections(raw: Record<string, unknown>, path: string): void
 /** Extra words for a missing required key: what to do before the key can be filled in. */
 const REQUIRED_HINTS: Readonly<Record<string, string>> = {
   'abacus.mandant': 'name the Mandantennummer of the hotel in Abacus, for example 1234 (the Treuhänder knows it); see docs/configuration.md',
+  'odoo.journal': 'name the code of the Odoo journal the entries are imported into, for example APA; see docs/configuration.md',
+  'odoo.version': 'name the Odoo version of the database: 17, 18 or 19; see docs/configuration.md',
+  'odoo.roundingAccount':
+    'it is required with taxRounding: per_tax (the default for odoo.version 19): name an Odoo account without taxes for the rounding cents, ' +
+    'for example "2700", or set odoo.taxRounding to per_line if the Odoo company rounds per line; see docs/configuration.md',
 };
 
 /** Writes env values into the raw object and returns which key paths they set. */

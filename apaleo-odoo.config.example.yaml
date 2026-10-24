@@ -51,6 +51,29 @@ abacus:
   # (properties[].geschaeftsbereich), sonst warnt das Tool mit W-MANDANT-SHARED.
   geschaeftsbereich: 0
 
+# Odoo: wohin die Buchungssätze in Odoo gehen. Bis Odoo das Standardziel ist,
+# ist der Abschnitt optional; nimm die Rauten weg, um ihn zu nutzen. Was jeder
+# Wert in der Importdatei bewirkt, steht in docs/odoo-format.md.
+# odoo:
+#   # Das Kürzel des Journals (Typ „Sonstige“), in das die Buchungssätze
+#   # importiert werden: 1 bis 5 Zeichen A-Z und 0-9. Ohne Standardwert.
+#   journal: APA
+#   # Die Odoo-Version der Datenbank: 17, 18 oder 19. Ohne Standardwert.
+#   version: 18
+#   # Die Datenbank-ID des Unternehmens, dem die Steuern gehören (bei einer
+#   # Niederlassung das Hauptunternehmen). Standard 1.
+#   companyId: 1
+#   # Die Währung des Unternehmens: EUR (Standard) oder CHF. Jedes Hotel muss
+#   # in dieser Währung buchen, das Tool rechnet nicht um.
+#   currency: EUR
+#   # Die Rundungsmethode des Unternehmens (Einstellungen > Buchhaltung >
+#   # Steuern > Rundungsmethode): per_line oder per_tax. Standard: per_line
+#   # für Odoo 17 und 18, per_tax für Odoo 19. Muss zu Odoo passen.
+#   # taxRounding: per_line
+#   # Ein Konto ohne Steuer für den Rundungscent bei per_tax, zum Beispiel
+#   # "2700". Mit per_tax Pflicht.
+#   # roundingAccount: "2700"
+
 posting:
   # Was in Text2 jeder Buchung steht: "receipt" nimmt den Beleg aus apaleo
   # (Rechnung, Zahlungsreferenz) und sonst die Reservationsreferenz;
