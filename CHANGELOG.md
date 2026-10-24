@@ -8,6 +8,14 @@ Die Geschichte von apaleo-abacus-export beginnt hier. Das Projekt ist eine Kopie
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- **Deutsche Sonderfälle** (o05): Die neue Warnung `W-CITY-TAX-TAXED` meldet in `mapping check` und beim Export eine Zeile für CityTaxes, SecondCityTax oder GuestLevies mit Steuer (Kurtaxe als durchlaufender Posten ohne Steuer, eine vom Betrieb geschuldete Übernachtungsteuer als Teil des Entgelts). `W-FOOD-RATE` warnt einmal pro Geschäftstag, wenn ein Speisenkonto nicht mit dem Speisensatz seines Leistungstags bucht (ab 2026-01-01 7 %, vom 2024-01-01 bis 2025-12-31 19 %, davor die Sätze von 2020 bis 2023). `init-mapping --update` nennt mit `N-TEMPLATE-SUGGESTION` leere Zeilen, für die die Vorlage jetzt einen Vorschlag hat. Das Protokoll zeigt die Anzahlungen pro Odoo-Steuer und Satz (erhalten, aufgelöst, erstattet) und die abgeschriebenen Forderungen pro Satz mit der Minderung der Kennzahl. `docs/posting-rules.md` beschreibt die Buchungsregeln für Odoo und die deutschen Sonderfälle.
+
+### Geändert
+
+- **SKR-Hotelvorlagen `skr03-hotel@2` und `skr04-hotel@2`** (o05): Zeilen und Kommentare für No-Show- und Stornogebühren zu 7 % und 0 % (Entgelt oder Schadenersatz), den Speisensatz nach Leistungsdatum, die Kurtaxe nach § 10 UStG und Forderungsverluste nach § 17 UStG mit der geminderten Kennzahl. Anzahlungen buchen mit der Steuer ihres Satzes, Auflösung und Erstattung auf der Seite einer Gutschrift; Forderungsverluste als Basiszeile mit der Umsatzsteuer im Soll, wie Odoos eigene Abgleichsmodelle.
+
 ### Entfernt
 
 - **Abacus-Writer** (o04): Der Writer für AbaConnect-Dateien mit seinen Tests und Golden Files, die Anleitungen `docs/abacus-format.md` und `docs/abacus-import.md` und die Befunde des Abacus-Writers sind entfernt. Eine Konfiguration mit einem Abschnitt `abacus` lehnt das Tool ab und nennt den Abschnitt `odoo`, ebenso die Schlüssel `mandant` und `geschaeftsbereich` unter `properties`. Neu ist [docs/odoo-import.md](docs/odoo-import.md): Vorbereitung, Import, Prüfung, Revisionen und Rückgängigmachen in Odoo.
