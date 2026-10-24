@@ -52,10 +52,10 @@ Ein Zeitraum wird an Monatsgrenzen geteilt, damit jede Datei in einem Kalendermo
 
 Für jedes Hotel und jeden Monat, in dieser Reihenfolge:
 
-1. Das Hotel und jede apaleo-Zeile des Monats sind in der Leitwährung des Mandanten (`abacus.leitwaehrung`, `E-CURRENCY`). Eine Abacus-Buchung steht in der Leitwährung, ohne Fremdwährung, und das Tool rechnet nicht um. Ein Hotel in einer anderen Währung wird deshalb abgelehnt, bevor das Buchungsjournal gelesen wird.
-2. Die Kontenzuordnung lässt sich lesen; eine Zuordnung von apaleo-bmd-export, eine aus einer deutschen Einrichtung (apaleo-datev-export) und den Kontenexport eines kostenpflichtigen Connectors lehnt das Tool ab (`E-EXPORT`, siehe [troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)).
-3. Jedes im Zeitraum gebuchte Konto ist zugeordnet (`E-UNMAPPED`, `E-VAT-MISMATCH`, `E-VAT-RATE-UNKNOWN`, wie bei `mapping check --from --to`).
-4. Die Buchungsregeln und ihre MWST-Prüfung pro Zeile ([posting-rules.md](posting-rules.md)). Danach trägt jeder MWST-Code in den Buchungen des Monats genau einen Satz (`E-MWST-CODE-RATES`): Ein MWST-Code hat in der MWST-Tabelle des Mandanten an einem Datum nur einen Satz. Zwei Zeilen der Kontenzuordnung mit demselben Code und verschiedenen Sätzen sind erlaubt, solange nicht beide im selben Monat gebucht werden, zum Beispiel beim Satzwechsel am 1. Januar.
+1. Das Hotel und jede apaleo-Zeile des Monats sind in der Währung des Odoo-Unternehmens (`odoo.currency`, `E-CURRENCY`). Ein Buchungssatz in Odoo steht in dieser Währung, und das Tool rechnet nicht um. Ein Hotel in einer anderen Währung wird deshalb abgelehnt, bevor das Buchungsjournal gelesen wird.
+2. Die Kontenzuordnung lässt sich lesen; eine Zuordnung von apaleo-abacus-export, apaleo-bmd-export oder apaleo-datev-export und den Kontenexport eines kostenpflichtigen Connectors lehnt das Tool ab (`E-EXPORT`, siehe [troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)).
+3. Jedes im Zeitraum gebuchte Konto ist zugeordnet (`E-UNMAPPED`, `E-VAT-MISMATCH`, `E-VAT-RATE-UNKNOWN`, wie bei `mapping check --from --to`). Für die Zeilen, die der Monat nutzt, warnt der Export wie `mapping check` mit `W-TAX-RATE`, `W-TAX-UNCHECKED` und `W-TAX-KZ45`.
+4. Die Buchungsregeln und ihre Steuerprüfung pro Zeile ([posting-rules.md](posting-rules.md)). Danach trägt jede Odoo-Steuer in den Buchungen des Monats genau einen Satz (`E-TAX-RATES`): Eine Steuer hat in Odoo nur einen Satz. Zwei Zeilen der Kontenzuordnung mit derselben Steuer und verschiedenen Sätzen sind erlaubt, solange nicht beide im selben Monat gebucht werden.
 5. Plausibilitätsprüfungen auf dem Ergebnis, die nachrechnen, was die Buchungen ergeben müssen:
    - `E-CONSERVATION`: Jede apaleo-Zeile ist gebucht oder übersprungen, nach Anzahl und Betrag ohne Vorzeichen.
    - `E-ACCOUNT-BALANCE`: Pro Geschäftstag und Abacus-Konto bewegen die Buchungen das Konto genau so wie die apaleo-Zeilen, die ihm zugeordnet sind: das Konto der `CollectiveInformation` mit dem Bruttobetrag, das Konto der `SingleInformation` mit dem Bruttobetrag ohne die MWST, jedes mit seiner Seite aus `DebitCredit`. Die MWST-Buchung auf dem Steuerkonto zählt hier nicht mit. Das findet Fehler bei Soll/Haben und Vorzeichen.
@@ -86,7 +86,7 @@ Ein anderer Satz bekommt keine Ziffer, zum Beispiel am aufgezeichneten Tag VIE (
 
 Jede Buchung trägt die Steuer ihrer apaleo-Zeile, auf den Rappen gerundet; apaleo hält die Steuer jeder Zeile genau (bis zu acht Nachkommastellen) und rundet erst die Summe des Tages. Die Differenz von ein paar Rappen ist diese Rundung, kein Fehler, und kein Grund, Buchungen zu ändern. In der MWST-Abrechnung zählt, was Abacus gebucht hat. Auf 5 Rappen rundet das Tool nie.
 
-Abacus bucht Bruttobeträge mit enthaltener MWST (`TaxIncluded` `I`); die Kontrolle ist die MWST, die im Bruttobetrag steckt (Betrag mal Satz durch 100 plus Satz, auf den Rappen gerundet). Weicht sie um einen Rappen von der Steuer aus apaleo ab, meldet der Export `W-VAT-ROUNDING`, und die Buchung behält die Steuer von apaleo.
+Odoo rechnet die Umsatzsteuer selbst aus dem Nettobetrag jeder Zeile und ihrer Steuer. Wie das Tool die Nettobeträge so wählt, dass Odoos Steuer den Bruttobetrag aus apaleo erreicht, steht in [odoo-format.md](odoo-format.md#basisanpassung-warum-manche-nettobeträge-um-einen-cent-abweichen).
 
 ## Ausgabeordner
 

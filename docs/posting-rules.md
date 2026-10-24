@@ -50,7 +50,7 @@ Die Meldungen nennen die Buchungsnummer aus apaleo, beide Konten mit Nummer und 
 
 Die Fälle, in denen das Schweizer MWST-Recht von einem einfachen Verkauf abweicht. Die Buchungsregeln bleiben dieselben; was sich unterscheidet, steht in der Kontenzuordnung ([mapping-guide.md](mapping-guide.md)). Die Beispiele stammen aus dem Schweizer Testmonat des Tools (erfundenes Hotel Beispiel Engelberg, August 2026, CHF, `test/fixtures/apaleo/ch-month/`), gebucht mit der KMU-Vorlage. Jede Zeile der Tabellen ist eine Buchung der Datei `test/golden/abacus/ch-month.xml`.
 
-**Steuersätze.** Jede Buchung trägt den Satz, den apaleo hat: Beherbergung mit Frühstück 3,8 % (MWSTG Art. 25 Abs. 4), Speisen, Getränke und Minibar 8,1 %, Take-away 2,6 %. Die Liste steht im [Leitfaden zur Kontenzuordnung](mapping-guide.md#mwst-code-und-mwst-satz).
+**Steuersätze.** Jede Buchung trägt den Satz, den apaleo hat: Beherbergung mit Frühstück 3,8 % (MWSTG Art. 25 Abs. 4), Speisen, Getränke und Minibar 8,1 %, Take-away 2,6 %. Die Liste steht im [Leitfaden zur Kontenzuordnung](mapping-guide.md#steuer-und-steuersatz).
 
 | Fall | Collective | Single | `DebitCredit` | Betrag | MWST | MWST-Code | `Text1` |
 |---|---|---|---|---|---|---|---|
@@ -80,7 +80,7 @@ Die Fälle, in denen das Schweizer MWST-Recht von einem einfachen Verkauf abweic
 |---|---|---|---|---|---|---|---|
 | Halbpension 186.84 und Getränke 21.62 auf Rechnung | `1102` | `1101` | `D` | 208.46 | keine | ENG-2026-0815 | Forderung an Debitor |
 
-Die Halbpension selbst ist eine Zeile auf dem Beherbergungskonto zu 3,8 %, weil der Beherbergungsanteil mindestens 70 % ausmacht; wie ein Paket aufgeteilt wird, entscheidet das Hotel in apaleo (siehe [mapping-guide.md](mapping-guide.md#halbpension-und-vollpension)).
+Die Halbpension selbst ist eine Zeile auf dem Beherbergungskonto zu 3,8 %, weil der Beherbergungsanteil mindestens 70 % ausmacht; wie ein Paket aufgeteilt wird, entscheidet das Hotel in apaleo (siehe [mapping-guide.md](mapping-guide.md#steuersätze-nach-leistungsdatum)).
 
 **Debitorenverlust mit MWST-Korrektur.** apaleo belastet den Debitorenverlust und entlastet die Gästeforderung, mit der MWST der Forderung. Mit dem MWST-Code des Satzes steht das Verlustkonto in `SingleInformation` im Soll (`C`), und die MWST ist positiv: Sie mindert die Umsatzsteuer als Entgeltsminderung (MWSTG Art. 41). Ohne `taxes[]` geht der Verlust auf das Verlustkonto ohne MWST-Code (`3808`), ohne `TaxData`. Die Übersicht zeigt die abgeschriebenen Forderungen pro Satz.
 
@@ -127,7 +127,7 @@ So sieht die Anzahlung per Twint in der Datei aus (gekürzt):
 
 ## Vereinnahmte Entgelte
 
-Mit `abacus.abrechnungsart: vereinnahmt` sind die Buchungen dieselben; nur der `UseCode` wird `1`, und das Steuerkonto der `CollectiveInformation` wird das Hilfskonto (`abacus.mwstHilfskonto`, Standard `2202`). Abacus bucht die MWST dieser Buchungen dann auf das Hilfskonto und überträgt sie erst auf das Steuerkonto, wenn eine Zahlung erfasst wird, normalerweise in der Debitorenbuchhaltung, die dieses Tool nicht bedient. Die Datei bucht die MWST am Tag der Leistung, nach vereinnahmten Entgelten entsteht sie aber mit der Zahlung (MWSTG Art. 40 Abs. 2); das betrifft Rechnungen, die am Periodenende offen sind. `doctor` und jeder Export, auch der Probelauf, warnen deshalb mit `W-ABRECHNUNGSART-VEREINNAHMT`, einmal pro Hotel und Monat: in der Ausgabe dieses Monats und in seinem Protokoll. Der Exit-Code bleibt 0. Wie dein Treuhänder das Hilfskonto am Periodenende korrigiert, steht in [mapping-guide.md](mapping-guide.md#vereinnahmte-entgelte).
+Mit `abacus.abrechnungsart: vereinnahmt` sind die Buchungen dieselben; nur der `UseCode` wird `1`, und das Steuerkonto der `CollectiveInformation` wird das Hilfskonto (`abacus.mwstHilfskonto`, Standard `2202`). Abacus bucht die MWST dieser Buchungen dann auf das Hilfskonto und überträgt sie erst auf das Steuerkonto, wenn eine Zahlung erfasst wird, normalerweise in der Debitorenbuchhaltung, die dieses Tool nicht bedient. Die Datei bucht die MWST am Tag der Leistung, nach vereinnahmten Entgelten entsteht sie aber mit der Zahlung (MWSTG Art. 40 Abs. 2); das betrifft Rechnungen, die am Periodenende offen sind. `doctor` und jeder Export, auch der Probelauf, warnen deshalb mit `W-ABRECHNUNGSART-VEREINNAHMT`, einmal pro Hotel und Monat: in der Ausgabe dieses Monats und in seinem Protokoll. Der Exit-Code bleibt 0. Wie dein Treuhänder das Hilfskonto am Periodenende korrigiert, steht in [abacus-format.md](abacus-format.md).
 
 ## Anzahlungen ohne MWST-Betrag
 

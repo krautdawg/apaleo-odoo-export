@@ -63,7 +63,7 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
    Dann die Konfiguration ausfüllen und das Secret setzen. Das Secret kommt nie in die Konfigurationsdatei.
 
    ```sh
-   cp apaleo-odoo.config.example.yaml apaleo-odoo.config.yaml   # apaleo.clientId, den Abacus-Mandanten (abacus.mandant) und unter properties dein Hotel eintragen
+   cp apaleo-odoo.config.example.yaml apaleo-odoo.config.yaml   # apaleo.clientId, das Odoo-Journal und die Version (odoo.journal, odoo.version) und unter properties dein Hotel eintragen
    export APALEO_CLIENT_SECRET='das Secret aus apaleo'
    node dist/cli/main.js doctor
    node dist/cli/main.js properties
@@ -73,10 +73,10 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
 
    Die Befehle unten verwenden `apaleo-odoo`. Ohne `pnpm link --global` tippst du stattdessen `node dist/cli/main.js`.
 
-3. **Kontenzuordnung anlegen** und von deinem Treuhänder mit dem [Leitfaden zur Kontenzuordnung](docs/mapping-guide.md) prüfen lassen:
+3. **Kontenzuordnung anlegen** und von deinem Steuerberater mit dem [Leitfaden zur Kontenzuordnung](docs/mapping-guide.md) prüfen lassen:
 
    ```sh
-   apaleo-odoo init-mapping --property BSP --template kmu-hotel   # schreibt mapping-BSP.csv nach dem Schweizer Kontenrahmen KMU
+   apaleo-odoo init-mapping --property BSP --template skr03-hotel   # schreibt mapping-BSP.csv nach der SKR03-Hotelvorlage (oder skr04-hotel)
    apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30
    ```
 
@@ -115,7 +115,7 @@ Die Dateien erscheinen in `./data/<Hotel>/<JJJJ-MM>/`. Cron auf dem Host, einmal
 | `doctor` | Prüft Node.js, Konfigurationsdatei und Uhr. Ohne Netz. |
 | `properties` | Listet die apaleo-Hotels, die die Custom App lesen darf. |
 | `live-smoke` | Liest einen Geschäftstag aus apaleo mit echten Zugangsdaten und zeigt, was zurückkam. Schreibt nichts. |
-| `init-mapping` | Schreibt eine Kontenzuordnung aus dem apaleo-Kontenplan und der KMU-Hotelvorlage (`--template kmu-hotel`); `--update` hängt neue Konten an, `--accounts-from` übernimmt die Konten aus dem Kontenexport eines kostenpflichtigen Connectors. |
+| `init-mapping` | Schreibt eine Kontenzuordnung aus dem apaleo-Kontenplan und einer Hotelvorlage für Odoo (`--template skr03-hotel` oder `skr04-hotel`); `--update` hängt neue Konten an. |
 | `mapping check` | Prüft eine Kontenzuordnung, und mit `--from`/`--to`, ob jedes im Zeitraum gebuchte Konto zugeordnet ist. |
 | `export` | Schreibt die Abacus-Dateien (AbaConnect XML Buchungen) eines Monats oder Zeitraums nach allen Prüfungen; `--dry-run` schreibt nichts, `--demo` nimmt die Demodaten. |
 | `schedule` | `schedule --once` exportiert jeden fälligen Zeitraum, der noch nicht im Ausgabeordner liegt, und endet. Für Cron und Docker. |
@@ -172,7 +172,7 @@ apaleo-odoo-export baut auf [apaleo-bmd-export](https://github.com/krautdawg/apa
 
 **Mehrere Hotels?** Trag sie unter `properties` in der Konfiguration ein. Jedes bekommt eine eigene Zuordnung und eine eigene Datei. Bucht dein Treuhänder sie in einen Mandanten, bekommt jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`).
 
-**Ich nutze heute einen bezahlten Connector. Kann ich wechseln?** Ja. Exportiere die Kontenzuordnung des Connectors als CSV und leg die Zuordnung mit `init-mapping --template kmu-hotel --accounts-from <Datei>` an: Das Tool übernimmt Konten und Kostenstellen, die MWST-Codes kommen aus der Vorlage; prüf das Ergebnis mit deinem Treuhänder ([Umstieg von einem anderen Connector](docs/mapping-guide.md#umstieg-von-einem-anderen-connector)). Fang mit dem ersten Monat an, den der alte Connector nicht mehr geliefert hat, damit nichts doppelt importiert wird; siehe [docs/docker.md](docs/docker.md#der-erste-lauf).
+**Ich nutze heute einen bezahlten Connector. Kann ich wechseln?** Ja. Leg die Zuordnung mit `init-mapping --template skr03-hotel` (oder `skr04-hotel`) an und übertrag Konten, die von der Vorlage abweichen, von Hand; prüf das Ergebnis mit deinem Steuerberater ([Umstieg von einem anderen Connector](docs/mapping-guide.md#umstieg-von-einem-anderen-connector)). Fang mit dem ersten Monat an, den der alte Connector nicht mehr geliefert hat, damit nichts doppelt importiert wird; siehe [docs/docker.md](docs/docker.md#der-erste-lauf).
 
 **Rechnet mein Hotel mit dem Saldosteuersatz ab?** Dann passt Version 1 nicht: Das Tool bucht die MWST nach der effektiven Methode, so wie apaleo sie pro Zeile berechnet. Die Saldosteuersatz- und die Pauschalsteuersatzmethode stehen unter «Später geplant» in [docs/maintainers.md](docs/maintainers.md#später-geplant).
 

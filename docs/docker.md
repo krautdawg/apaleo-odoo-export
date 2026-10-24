@@ -49,8 +49,8 @@ Eine Zeile pro Hotel und Zeitraum:
 2026-11-03T06:30:12+01:00 BSP2 2026-10 already exported /data/BSP2/2026-10/ABACUS_Buchungen_20261001-20261031_BSP2.xml
 2026-11-03T06:30:13+01:00 BSP3 2026-10 failed E-UNMAPPED
   E-UNMAPPED (apaleo_account): apaleo account RevenueFoodAndBeverages_Normal:8.10 ...
-2026-11-03T06:30:14+01:00 BSP4 2026-10 written /data/BSP4/2026-10/ABACUS_Buchungen_20261001-20261031_BSP4.xml W-VAT-ROUNDING
-  W-VAT-ROUNDING: ... a rounding difference of 0.01, added to the rounding total of the summary
+2026-11-03T06:30:14+01:00 BSP4 2026-10 written /data/BSP4/2026-10/ABACUS_Buchungen_20261001-20261031_BSP4.xml W-TAX-UNCHECKED
+  W-TAX-UNCHECKED: ... the tool does not know the Odoo tax __import__.ust_7_hotel (it knows the l10n_de sale taxes ...
 ```
 
 Jede Zeile erscheint, sobald ihr Hotel und Zeitraum fertig sind; ein Lauf, der mittendrin abbricht, zeigt also trotzdem die Dateien, die er geschrieben hat. Das Ergebnis ist `written`, `already exported`, `no bookings`, `not yet final` oder `failed`, gefolgt von jedem Befund-Code (zuerst `E-`, dann Warnungen `W-` und Hinweise `N-`) und den Befunden selbst, eingerückt, damit auch die E-Mails von Cron und `docker logs` die Warnungen zeigen. Ist nichts fällig, steht dort `nothing due` mit dem heutigen Datum und der Zeitzone. Der Exit-Code ist 0, wenn jeder Zeitraum geschrieben wurde, schon exportiert war, keine Buchungen hatte oder noch nicht abgeschlossen ist, 1, wenn einer fehlgeschlagen ist, und 2 bei falschem Aufruf (zum Beispiel `schedule` ohne `--once`). Ein Secret erscheint nie in der Ausgabe.
