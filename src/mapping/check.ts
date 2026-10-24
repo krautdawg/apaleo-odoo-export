@@ -4,7 +4,7 @@ import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import { formatCents } from '../core/money.js';
 import { ACCOUNT_TYPES, type AccountRef, type LedgerLine } from '../core/source.js';
-import { L10N_DE_TAXES, NOT_TAXABLE_TAXES, defaultTaxOf, generatedAccounts, generatedChartOf, knownTax } from './l10n-de.js';
+import { LEVY_TYPES, L10N_DE_TAXES, NOT_TAXABLE_TAXES, defaultTaxOf, generatedAccounts, generatedChartOf, knownTax } from './l10n-de.js';
 import { resolve } from './resolve.js';
 import { shippedTemplate, templateWildcard } from './template.js';
 import {
@@ -68,7 +68,7 @@ export function checkMapping(mapping: Mapping, options: CheckMappingOptions = {}
 }
 
 /** The `checkMapping` warnings about a row's tax that the export repeats for the rows it uses. */
-export const USED_ROW_TAX_WARNINGS: ReadonlySet<string> = new Set(['W-TAX-RATE', 'W-TAX-UNCHECKED', 'W-TAX-KZ45']);
+export const USED_ROW_TAX_WARNINGS: ReadonlySet<string> = new Set(['W-TAX-RATE', 'W-TAX-UNCHECKED', 'W-TAX-KZ45', 'W-CITY-TAX-TAXED']);
 
 /**
  * The export's error for a used row whose known l10n_de tax has another rate in
@@ -79,7 +79,7 @@ export const USED_ROW_TAX_WARNINGS: ReadonlySet<string> = new Set(['W-TAX-RATE',
 export const USED_ROW_TAX_RATE_ERROR = 'E-TAX-RATE-WRONG';
 
 /**
- * `W-TAX-UNCHECKED` and `W-TAX-KZ45` for the mapping rows the lines of a period
+ * `W-TAX-UNCHECKED`, `W-TAX-KZ45` and `W-CITY-TAX-TAXED` for the mapping rows the lines of a period
  * actually resolve to, and `E-TAX-RATE-WRONG` in place of `W-TAX-RATE`, one finding
  * per code that names every row it concerns (`lines 3, 6: ...`). The posting guard
  * compares rates only, so a swapped tax (`tax_ust_19_skr03` at 7 %) or a custom tax
@@ -175,6 +175,17 @@ function checkRow(row: MappingRow, options: CheckMappingOptions): Finding[] {
         tax,
         `the Odoo tax ${tax} is the non-taxable 0 % tax: Odoo reports its base in UStVA Kz 45 (nicht steuerbare Umsätze, Leistungsort im Ausland). ` +
           'Domestic untaxed revenue, Schadenersatz and durchlaufende Posten such as a guest-owed Kurtaxe carry no tax at all: leave odoo_tax and tax_percent empty',
+      );
+    }
+    if (LEVY_TYPES.has(row.apaleoType) && rateKnown && rate > 0) {
+      add(
+        'W-CITY-TAX-TAXED',
+        'odoo_tax',
+        tax,
+        `the ${row.apaleoType} row for apaleo account ${row.apaleoAccount} books the Odoo tax ${tax} at ${rate} %. A guest-owed Kurtaxe or Kurbeitrag ` +
+          'that the hotel only collects is a durchlaufender Posten without tax (§ 10 Abs. 1 UStG: SKR03 1590 / SKR04 1370, odoo_tax and tax_percent empty); ' +
+          'only a levy the hotel owes itself and passes on to the guest (Übernachtung- or Beherbergungsteuer) is part of the consideration at 7 %. ' +
+          'Confirm the row with your Steuerberater (docs/mapping-guide.md)',
       );
     }
   } else if (rateKnown && rate > 0) {

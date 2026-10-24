@@ -1,13 +1,20 @@
 export { GERMAN_VAT_RATES, USED_ROW_TAX_WARNINGS, checkCoverage, checkMapping, checkUsedTaxes, type CheckMappingOptions, type CoverageOptions } from './check.js';
-export { appendRows, mappingHeaderComment, newRows, renderMappingFile } from './file.js';
+export { appendRows, mappingHeaderComment, newRows, renderMappingFile, templateSuggestions } from './file.js';
 export {
+  BEVERAGE_NAME_PATTERN,
   DEFAULT_TAX_ACCOUNTS,
+  FOOD_NAME_PATTERN,
+  FOOD_RATE_BEFORE,
+  FOOD_RATE_CHANGE,
+  FOOD_RATE_FROM,
   GENERATED_ACCOUNT_CODES,
   L10N_DE_TAXES,
+  LEVY_TYPES,
   NOT_TAXABLE_TAXES,
   defaultTaxOf,
   generatedAccounts,
   generatedChartOf,
+  isFoodName,
   knownTax,
   type GeneratedAccounts,
   type GermanChart,

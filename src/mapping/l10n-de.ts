@@ -100,3 +100,26 @@ export const GENERATED_ACCOUNT_CODES: Readonly<Record<GermanChart, readonly stri
 export function generatedChartOf(account: string): GermanChart | undefined {
   return GERMAN_CHARTS.find((chart) => GENERATED_ACCOUNT_CODES[chart].includes(account));
 }
+
+/**
+ * apaleo account names of food revenue (Speisen), as the hotel templates' 7 %
+ * food rule matches them, and of beverages (Getränke), which are never food. The
+ * export's `W-FOOD-RATE` uses both: an account name matching the food pattern
+ * and not the beverage pattern is food.
+ */
+export const FOOD_NAME_PATTERN = /speise|food|frühstück|fruehstueck|breakfast|restaurant|essen|küche|kueche|kitchen|halbpension|vollpension|catering|bankett|banquet/iu;
+export const BEVERAGE_NAME_PATTERN = /getränk|getraenk|beverage|drink|minibar|\bbar\b/iu;
+
+/** Speisen in restaurants and catering are taxed at 7 % for services from this day, at 19 % before (Steueränderungsgesetz 2025). */
+export const FOOD_RATE_CHANGE = '2026-01-01';
+/** The rate of Speisen before and from `FOOD_RATE_CHANGE`. */
+export const FOOD_RATE_BEFORE = 19;
+export const FOOD_RATE_FROM = 7;
+
+/** An apaleo account name that is food revenue: it matches the food pattern and not the beverage pattern. */
+export function isFoodName(name: string): boolean {
+  return FOOD_NAME_PATTERN.test(name) && !BEVERAGE_NAME_PATTERN.test(name);
+}
+
+/** apaleo's levy types: a guest-owed Kurtaxe is a durchlaufender Posten, a hotel-owed Übernachtungsteuer part of the consideration. */
+export const LEVY_TYPES: ReadonlySet<string> = new Set(['CityTaxes', 'SecondCityTax', 'GuestLevies']);

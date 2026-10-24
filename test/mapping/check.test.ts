@@ -98,6 +98,23 @@ describe('Mapping validation for Odoo', () => {
     expect(findings[0]?.message).toContain('Domestic untaxed revenue, Schadenersatz and durchlaufende Posten such as a guest-owed Kurtaxe carry no tax at all');
   });
 
+  it('Kurtaxe mapped with tax: a CityTaxes row on 8300 with tax_ust_7_skr03 at 7 warns W-CITY-TAX-TAXED naming the row, its line and § 10 Abs. 1 UStG', () => {
+    const findings = check([mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoVatPercent: '7', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' })]);
+    expect(codes(findings)).toEqual(['W-CITY-TAX-TAXED']);
+    expect(findings[0]?.message).toMatch(/^line 2: the CityTaxes row for apaleo account 3501 books the Odoo tax tax_ust_7_skr03 at 7 %\. /);
+    expect(findings[0]?.message).toContain('durchlaufender Posten without tax (§ 10 Abs. 1 UStG');
+    expect(findings[0]?.message).toContain('Übernachtung- or Beherbergungsteuer) is part of the consideration at 7 %');
+  });
+
+  it.each(['SecondCityTax', 'GuestLevies'])('warns W-CITY-TAX-TAXED for a taxed %s row too', (apaleoType) => {
+    expect(codes(check([mappingRow({ apaleoAccount: 'L', apaleoType, apaleoVatPercent: '7', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' })]))).toEqual(['W-CITY-TAX-TAXED']);
+  });
+
+  it('Kurtaxe as durchlaufender Posten: a CityTaxes row on 1590 without tax, or with a tax at 0 %, raises no W-CITY-TAX-TAXED', () => {
+    expect(check([mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoVatPercent: '0', odooAccount: '1590' })])).toEqual([]);
+    expect(codes(check([mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', odooAccount: '1590', odooTax: '__import__.frei', taxPercent: '0' })]))).toEqual(['W-TAX-UNCHECKED']);
+  });
+
   it('Generated account: a Payments row on 1000 with odoo.version 18 notes N-GENERATED-ACCOUNT: a fresh SKR03 database has the Kasse on 1001 and no 1000', () => {
     const findings = check([mappingRow({ apaleoAccount: '1600', apaleoType: 'Payments', odooAccount: '1000' })]);
     expect(codes(findings)).toEqual(['N-GENERATED-ACCOUNT']);
@@ -418,6 +435,15 @@ describe('checkUsedTaxes', () => {
     const untaxed = ledgerLine({ credit: { number: 'R0', name: 'No VAT', type: 'Revenues' }, taxes: [] });
     expect(codes(used([mappingRow({ apaleoAccount: 'R0', apaleoType: 'Revenues', odooAccount: '8200', odooTax: 'tax_not_taxable_skr03', taxPercent: '0' })], [untaxed]))).toEqual(['W-TAX-KZ45']);
     expect(used([revenue()], [lodging])).toEqual([]);
+  });
+
+  it('warns W-CITY-TAX-TAXED for a used taxed levy row, and not for an unused one', () => {
+    const levyRow = mappingRow({ apaleoAccount: '3502', apaleoType: 'CityTaxes', apaleoVatPercent: '7', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7' });
+    const levy = ledgerLine({ credit: { number: '3502', name: 'Übernachtungsteuer (7%)', type: 'CityTaxes' }, grossCents: 1_070, netCents: 1_000, taxes: t7(70) });
+    const findings = used([levyRow], [levy]);
+    expect(codes(findings)).toEqual(['W-CITY-TAX-TAXED']);
+    expect(findings[0]?.message).toMatch(/^line 3 of the mapping file: the CityTaxes row for apaleo account 3502 books the Odoo tax tax_ust_7_skr03 at 7 %/);
+    expect(used([revenue(), levyRow], [lodging])).toEqual([]);
   });
 
   it('Unused row with a custom tax: reports only the rows the lines resolve to', () => {

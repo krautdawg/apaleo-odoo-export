@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { ChartIndex } from '../../src/core/chart.js';
 import type { AccountRef, AccountType, SourceAccount } from '../../src/core/source.js';
 import {
+  BEVERAGE_NAME_PATTERN,
+  FOOD_NAME_PATTERN,
   SUGGESTION_MARK,
   TEMPLATE_NAMES,
   checkCoverage,
@@ -13,6 +15,7 @@ import {
   resolve,
   shippedTemplate,
   suggestRows,
+  templateSuggestions,
   templateWildcard,
   type MappingRowValues,
   type Template,
@@ -56,7 +59,7 @@ describe.each([
   ['skr04-hotel', skr04, 'skr04'],
 ] as const)('SKR hotel templates for Odoo: %s', (name, template, chart) => {
   it('names its version, marks every rule "Vorschlag (ungeprüft)" and names the source with the check date', () => {
-    expect(template.id).toBe(`${name}@1`);
+    expect(template.id).toBe(`${name}@2`);
     expect(template.chart).toBe(chart);
     expect(template.rules.length).toBeGreaterThan(25);
     for (const rule of template.rules) {
@@ -77,8 +80,105 @@ describe.each([
   it('ships a template file that is valid UTF-8 with CRLF and a comment on every rule', () => {
     const text = readFileSync(new URL(`../../templates/${name}.rules.csv`, import.meta.url), 'utf8');
     expect(text.split('\n').every((line) => line === '' || line.endsWith('\r'))).toBe(true);
-    expect(text.split('\n')[0]).toContain(`${name}@1`);
+    expect(text.split('\n')[0]).toContain(`${name}@2`);
     expect(template.rules.every((rule) => rule.comment !== '')).toBe(true);
+  });
+});
+
+describe.each([
+  ['skr03-hotel', skr03, { rev7: '8300', rev0: '8200', tax7: 'tax_ust_7_skr03', tax19: 'tax_ust_19_skr03', loss: ['2401', '2406', '2400'], kurtaxe: '1590' }],
+  ['skr04-hotel', skr04, { rev7: '4300', rev0: '4200', tax7: 'tax_ust_7_skr04', tax19: 'tax_ust_19_skr04', loss: ['6931', '6936', '6930'], kurtaxe: '1370' }],
+] as const)('Template rows for German special cases: %s', (_name, template, chart) => {
+  const rows = suggest(GERMAN_CHART, template);
+
+  it('Kurtaxe options in the comment: the CityTaxes row is empty and names 1590 / 1370 without tax for a guest-owed Kurtaxe, 7 % for a hotel-owed Übernachtungsteuer, § 10 Abs. 1 UStG and docs/mapping-guide.md', () => {
+    const row = find(rows, '3501');
+    expect(mapped(row)).toEqual(['', '', '']);
+    for (const text of ['Kurtaxe, Kurbeitrag', '§ 10 Abs. 1 UStG', 'SKR03 1590 / SKR04 1370 ohne Steuer', 'Übernachtung- oder Beherbergungsteuer', 'Beherbergung zu 7 %', `${chart.rev7} mit ${chart.tax7}`, 'W-CITY-TAX-TAXED', 'docs/mapping-guide.md']) {
+      expect(row?.comment).toContain(text);
+    }
+  });
+
+  it('No-show at 7 %: RevenueNoShow_Reduced:7.00 and RevenueCancellationFees_Reduced:7.00 map to the 7 % revenue account with the comment on consideration or Schadenersatz and apaleo\'s VAT setting', () => {
+    for (const number of ['RevenueNoShow_Reduced:7.00', 'RevenueCancellationFees_Reduced:7.00']) {
+      const row = find(rows, number);
+      expect(mapped(row), number).toEqual([chart.rev7, chart.tax7, '7']);
+      expect(row?.comment).toContain('Entgelt für die Beherbergung (steuerbar) oder Schadenersatz (nicht steuerbar)');
+      expect(row?.comment).toContain('USt-Einstellung des Kontos in apaleo');
+    }
+  });
+
+  it('maps untaxed no-show and cancellation fees to the 0 % revenue account without tax, with the same decision for the Kanzlei', () => {
+    for (const number of ['RevenueNoShow_Without:0.00', 'RevenueCancellationFees_Without:0.00']) {
+      const row = find(rows, number);
+      expect(mapped(row), number).toEqual([chart.rev0, '', '0']);
+      expect(row?.comment).toContain('Stornogebühren ohne USt');
+      expect(row?.comment).toContain('entscheidet die Kanzlei');
+    }
+  });
+
+  it('matches cancellation and no-show names too: Storno, Stornierung, Cancellation, No-Show, Noshow', () => {
+    const names = ['Stornogebühr', 'Stornierung', 'Cancellation fee', 'No-Show', 'Noshow Gebühr'];
+    const named = suggest(names.map((name, i) => account(`N${i}`, name, 'Revenues', rate(7))), template);
+    for (const [i, name] of names.entries()) expect(find(named, `N${i}`)?.comment, name).toContain('Schadenersatz');
+  });
+
+  it('maps a food account at 7 % with the comment on the Speisen rate from 2026-01-01, 19 % before and an own account for Speisen', () => {
+    const names = ['Speisen', 'Frühstück', 'Restaurant', 'Essen', 'Küche', 'Halbpension', 'Vollpension', 'Catering', 'Bankett', 'Food', 'Breakfast'];
+    const food = suggest(names.map((name, i) => account(`F${i}`, name, 'Revenues', rate(7))), template);
+    for (const [i, name] of names.entries()) {
+      const row = find(food, `F${i}`);
+      expect(mapped(row), name).toEqual([chart.rev7, chart.tax7, '7']);
+      expect(row?.comment, name).toContain('Speisen zu 7 % für Leistungen ab 2026-01-01');
+      expect(row?.comment, name).toContain('vorher 19 %');
+      expect(row?.comment, name).toContain('eigenes 7-%-Erlöskonto für Speisen');
+      expect(row?.comment, name).toContain('W-FOOD-RATE');
+    }
+  });
+
+  it('uses the food and beverage patterns of W-FOOD-RATE in its rules', () => {
+    const food = template.rules.find((rule) => rule.apaleoType === 'Revenues' && rule.apaleoVatPercent === 7 && rule.namePattern?.test('Frühstück'));
+    const drinks = template.rules.find((rule) => rule.apaleoType === 'Revenues' && rule.apaleoVatPercent === 19 && rule.namePattern?.test('Getränke'));
+    expect(food?.namePattern?.source).toBe(FOOD_NAME_PATTERN.source);
+    expect(drinks?.namePattern?.source).toBe(BEVERAGE_NAME_PATTERN.source);
+  });
+
+  it('writes the LossOfAccountsReceivable wildcard rows by rate with a comment on § 17 UStG and the lowered Kennzahl', () => {
+    const [loss7, loss19, loss0] = chart.loss;
+    expect(mapped(wildcard(rows, 'LossOfAccountsReceivable', '7'))).toEqual([loss7, chart.tax7, '7']);
+    expect(mapped(wildcard(rows, 'LossOfAccountsReceivable', '19'))).toEqual([loss19, chart.tax19, '19']);
+    expect(mapped(wildcard(rows, 'LossOfAccountsReceivable', '0'))).toEqual([loss0, '', '0']);
+    expect(wildcard(rows, 'LossOfAccountsReceivable', '7')?.comment).toContain('§ 17 Abs. 2 Nr. 1 UStG');
+    expect(wildcard(rows, 'LossOfAccountsReceivable', '7')?.comment).toContain('mindert Kennzahl 86');
+    expect(wildcard(rows, 'LossOfAccountsReceivable', '19')?.comment).toContain('mindert Kennzahl 81');
+    expect(wildcard(rows, 'LossOfAccountsReceivable', '0')?.comment).toContain('keine Berichtigung nach § 17 UStG');
+  });
+
+  it('marks every such row "Vorschlag (ungeprüft)"', () => {
+    for (const number of ['3501', 'RevenueNoShow_Reduced:7.00', 'RevenueCancellationFees_Without:0.00', 'RevenueFoodAndBeverages_Reduced:7.00']) {
+      expect(find(rows, number)?.comment.startsWith(SUGGESTION_MARK), number).toBe(true);
+    }
+  });
+});
+
+describe('N-TEMPLATE-SUGGESTION', () => {
+  const suggested = suggest(GERMAN_CHART);
+  const existing = (edit: (row: MappingRowValues) => MappingRowValues) => mappingOf(suggested.map(edit)).rows;
+
+  it('names each existing row without an Odoo account for which the template now has a suggestion, with the account and tax', () => {
+    const blank = (row: MappingRowValues) =>
+      row.apaleoAccount === 'RevenueNoShow_Reduced:7.00' || (row.apaleoType === 'LossOfAccountsReceivable' && row.apaleoVatPercent === '0');
+    const rows = existing((row) => (blank(row) ? { ...row, odooAccount: '', odooTax: '', taxPercent: '' } : row));
+    const notes = templateSuggestions(rows, suggested, skr03.id);
+    expect(notes.map((n) => n.value)).toEqual(['RevenueNoShow_Reduced:7.00', '*']);
+    expect(notes[0]?.message).toContain('(RevenueNoShow_Reduced:7.00 Revenues 7 %) has no Odoo account, and the template skr03-hotel@2 now suggests 8300 / tax_ust_7_skr03 (7 %)');
+    expect(notes.find((n) => n.message.includes('* LossOfAccountsReceivable 0 %'))?.message).toContain('suggests 2400 / without tax');
+    expect(notes.every((n) => n.code === 'N-TEMPLATE-SUGGESTION')).toBe(true);
+  });
+
+  it('names no row the user filled in, and no row the template leaves empty too (Kurtaxe, House)', () => {
+    expect(templateSuggestions(existing((row) => row), suggested, skr03.id)).toEqual([]);
+    expect(templateSuggestions(existing((row) => (row.apaleoAccount === '3501' ? { ...row, odooAccount: '' } : row)), suggested, skr03.id)).toEqual([]);
   });
 });
 
@@ -145,7 +245,7 @@ describe('SKR03 hotel template', () => {
     const rows = suggest(GERMAN_CHART);
     const row = find(rows, '3501');
     expect(row?.odooAccount).toBe('');
-    expect(row?.comment).toContain('durchlaufender Posten: Durchlaufende Posten SKR03 1590 / SKR04 1370 ohne Steuer');
+    expect(row?.comment).toContain('durchlaufender Posten (§ 10 Abs. 1 UStG): Durchlaufende Posten SKR03 1590 / SKR04 1370 ohne Steuer');
     expect(row?.comment).toContain('Übernachtung- oder Beherbergungsteuer');
     expect(row?.comment).toContain('Beherbergung zu 7 %');
     expect(row?.comment).toContain('docs/mapping-guide.md');
@@ -198,7 +298,7 @@ describe('SKR03 hotel template', () => {
 
   it('writes the header comment with the template, the Odoo version and the generated accounts', () => {
     expect(mappingHeaderComment(skr03, SETTINGS)).toBe(
-      'apaleo-odoo Kontenzuordnung, Vorlage skr03-hotel@1 für Odoo 18 (Kasse 1001, Geldtransit 1360 wie in einer frischen Datenbank). ' +
+      'apaleo-odoo Kontenzuordnung, Vorlage skr03-hotel@2 für Odoo 18 (Kasse 1001, Geldtransit 1360 wie in einer frischen Datenbank). ' +
         'Alle Vorschläge mit deinem Steuerberater prüfen. Spalten odoo_account und odoo_tax in Excel als Text formatieren.',
     );
   });

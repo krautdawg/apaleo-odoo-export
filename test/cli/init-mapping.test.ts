@@ -59,7 +59,7 @@ describe('apaleo-odoo init-mapping', () => {
     const bytes = read(ctx);
     expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
     expect(text(ctx).split('\r\n')[0]).toBe(
-      '# apaleo-odoo Kontenzuordnung, Vorlage skr03-hotel@1 für Odoo 18 (Kasse 1001, Geldtransit 1360 wie in einer frischen Datenbank). ' +
+      '# apaleo-odoo Kontenzuordnung, Vorlage skr03-hotel@2 für Odoo 18 (Kasse 1001, Geldtransit 1360 wie in einer frischen Datenbank). ' +
         'Alle Vorschläge mit deinem Steuerberater prüfen. Spalten odoo_account und odoo_tax in Excel als Text formatieren.',
     );
     expect(text(ctx).split('\r\n')[1]).toBe('apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;odoo_account;odoo_tax;tax_percent;comment');
@@ -76,6 +76,8 @@ describe('apaleo-odoo init-mapping', () => {
       'RevenueOther_Reduced:7.00',
       'RevenueNoShow_Reduced:7.00',
       'RevenueNoShow_Without:0.00',
+      'RevenueCancellationFees_Reduced:7.00',
+      'RevenueCancellationFees_Without:0.00',
       '5011',
       '5111',
       '5020',
@@ -95,8 +97,8 @@ describe('apaleo-odoo init-mapping', () => {
     expect(rowOf(ctx, '1600')).toMatch(/^1600;Payments;Cash Payment;;1001;;;Vorschlag \(ungeprüft\): Kasse/);
     expect(rowOf(ctx, '3501')).toMatch(/^3501;CityTaxes;Kurtaxe;0;;;;Vorschlag \(ungeprüft\): bitte mit der Kanzlei entscheiden/);
 
-    expect(ctx.out()).toContain(`Wrote ${join(ctx.cwd, 'mapping-BSP.csv')} from template skr03-hotel@1 for property BSP and Odoo 18.`);
-    expect(ctx.out()).toContain('35 rows: 24 mapped, 8 unmapped, 3 VAT account row(s) that need no Odoo account.');
+    expect(ctx.out()).toContain(`Wrote ${join(ctx.cwd, 'mapping-BSP.csv')} from template skr03-hotel@2 for property BSP and Odoo 18.`);
+    expect(ctx.out()).toContain('37 rows: 26 mapped, 8 unmapped, 3 VAT account row(s) that need no Odoo account.');
     expect(ctx.out()).toContain('have your Steuerberater check the file, compare the Kasse and Geldtransit codes with the Kontenplan');
     // The template output passes the mapping check without an error.
     expect(checkMapping(mapping, { version: 18 }).filter((f) => f.code.startsWith('E-'))).toEqual([]);
@@ -108,7 +110,7 @@ describe('apaleo-odoo init-mapping', () => {
     expect(rowOf(ctx, ACC7)).toContain(';4300;tax_ust_7_skr04;7;');
     expect(rowOf(ctx, '1600')).toContain(';1601;;;');
     expect(rowOf(ctx, '1102')).toContain(';14601;;;');
-    expect(text(ctx).split('\r\n')[0]).toContain('Vorlage skr04-hotel@1 für Odoo 17 (Kasse 1601, Geldtransit 14601');
+    expect(text(ctx).split('\r\n')[0]).toContain('Vorlage skr04-hotel@2 für Odoo 17 (Kasse 1601, Geldtransit 14601');
   });
 
   it('reads the chart through the apaleo API (ctx.fetchFn)', async () => {
@@ -151,6 +153,25 @@ describe('apaleo-odoo init-mapping', () => {
     expect(rowOf(ctx, ACC7)).toBe(editedRow);
     expect(ctx.out()).toContain('Added 1 row(s) for new apaleo accounts:');
     expect(ctx.out()).toMatch(/RevenueSpa_Normal:19\.00\s+Revenues\s+Spa \(19%\)\s+19 %\s+8400/);
+  });
+
+  it('Update notes a new suggestion: an empty no-show row of a skr03-hotel@1 file stays unchanged and N-TEMPLATE-SUGGESTION names it with 8300 / tax_ust_7_skr03', async () => {
+    const { ctx } = await fakeContext();
+    expect(await runCli(['init-mapping', '--property', BSP, ...SKR03], ctx)).toBe(0);
+    const emptyRow = 'RevenueNoShow_Reduced:7.00;Revenues;Revenues No-show (7%);7;;;;von Hand geleert';
+    const old = text(ctx).replace('skr03-hotel@2', 'skr03-hotel@1').replace(/^RevenueNoShow_Reduced:7\.00;.*$/m, emptyRow);
+    const before = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(old)]);
+    await ctx.fs.writeFile(join(ctx.cwd, 'mapping-BSP.csv'), before);
+    const line = old.split('\r\n').indexOf(emptyRow) + 1;
+
+    expect(await runCli(['init-mapping', '--property', BSP, ...SKR03, '--update'], ctx)).toBe(0);
+    expect(read(ctx).equals(before)).toBe(true);
+    expect(ctx.out()).toContain('No new apaleo accounts');
+    const notes = ctx.out().split('\n').filter((l) => l.startsWith('N-TEMPLATE-SUGGESTION'));
+    expect(notes).toEqual([
+      `N-TEMPLATE-SUGGESTION (odoo_account): line ${line} (RevenueNoShow_Reduced:7.00 Revenues 7 %) has no Odoo account, and the template skr03-hotel@2 now suggests ` +
+        '8300 / tax_ust_7_skr03 (7 %). The row was not changed: check the suggestion with your Steuerberater and fill it in by hand, then run "apaleo-odoo mapping check"',
+    ]);
   });
 
   it('--update says so when there is nothing new', async () => {

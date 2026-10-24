@@ -1,4 +1,5 @@
 import { UsageError, UserError } from '../../core/errors.js';
+import { formatFinding } from '../../core/findings.js';
 import {
   TEMPLATE_NAMES,
   VAT_ACCOUNT_TYPES,
@@ -9,6 +10,7 @@ import {
   parseMapping,
   renderMappingFile,
   suggestRows,
+  templateSuggestions,
   type MappingRowValues,
   type TemplateName,
   type TemplateSettings,
@@ -32,7 +34,7 @@ export const initMapping: Command = {
       description: 'Template of the suggestions: skr03-hotel or skr04-hotel, the hotel accounts and taxes of Odoo\'s German chart SKR03 or SKR04',
     },
     out: { type: 'string', valueName: '<file>', description: 'Mapping file (default: properties[].mapping or ./mapping-<id>.csv)' },
-    update: { type: 'boolean', description: 'Append rows for new apaleo accounts to an existing file; existing rows stay unchanged' },
+    update: { type: 'boolean', description: 'Append rows for new apaleo accounts to an existing file; existing rows stay unchanged, new template suggestions for empty rows are listed' },
     ...CONFIG_OPTION,
   },
   async run(args, ctx) {
@@ -76,13 +78,15 @@ export const initMapping: Command = {
     }
 
     const added = newRows(mapping.rows, rows);
+    const suggestions = templateSuggestions(mapping.rows, rows, rules.id);
     if (added.length === 0) {
       ctx.stdout.write(`No new apaleo accounts: ${path} is unchanged.\n`);
-      return EXIT_OK;
+    } else {
+      await writeFileAtomic(ctx, path, appendRows(existing, added));
+      ctx.stdout.write(`Updated ${path}: existing rows unchanged.\n`);
+      printAdded(ctx, added);
     }
-    await writeFileAtomic(ctx, path, appendRows(existing, added));
-    ctx.stdout.write(`Updated ${path}: existing rows unchanged.\n`);
-    printAdded(ctx, added);
+    for (const finding of suggestions) ctx.stdout.write(`${formatFinding(finding)}\n`);
     return EXIT_OK;
   },
 };
