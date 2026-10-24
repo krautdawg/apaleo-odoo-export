@@ -12,7 +12,7 @@ import { FakeSource, type FakeSourceData } from '../helpers/fake-source.js';
 import { readMappingFixture } from '../helpers/mapping.js';
 import { SWISS_CHART } from '../helpers/swiss-chart.js';
 
-const CONFIG = FIXTURE_FILES['apaleo-abacus.config.yaml'];
+const CONFIG = FIXTURE_FILES['apaleo-odoo.config.yaml'];
 
 /** A fake apaleo with the Swiss test chart for property BSP. */
 async function fakeContext(options: { config?: string; files?: Record<string, string>; extraAccounts?: SourceAccount[] } = {}) {
@@ -20,7 +20,7 @@ async function fakeContext(options: { config?: string; files?: Record<string, st
   data.charts[BSP] = [...SWISS_CHART, ...(options.extraAccounts ?? [])];
   const fake = new FakeSource(data);
   const ctx = createTestContext({
-    files: { 'apaleo-abacus.config.yaml': options.config ?? CONFIG, ...options.files },
+    files: { 'apaleo-odoo.config.yaml': options.config ?? CONFIG, ...options.files },
     sourceFactory: () => fake,
   });
   return { ctx, fake };
@@ -48,7 +48,7 @@ const SPA_ROW =
 const ACC38 = 'RevenueAccommodation_Special:3.80';
 const withCodes = (lines: string) => CONFIG.replace('  mandant: 1234\n', `  mandant: 1234\n${lines}`);
 
-describe('apaleo-abacus init-mapping', () => {
+describe('apaleo-odoo init-mapping', () => {
   it('First run: writes mapping-BSP.csv with every leaf account from the KMU hotel template and prints mapped and unmapped counts', async () => {
     const { ctx, fake } = await fakeContext();
     expect(await runCli(['init-mapping', '--property', BSP, '--template', 'kmu-hotel'], ctx)).toBe(0);
@@ -57,7 +57,7 @@ describe('apaleo-abacus init-mapping', () => {
     const bytes = read(ctx);
     expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
     expect(text(ctx).split('\r\n')[0]).toBe(
-      '# apaleo-abacus Kontenzuordnung, Vorlage kmu-hotel@1, MWST-Codes 311 (8,1 %), 312 (2,6 %), 313 (3,8 %). ' +
+      '# apaleo-odoo Kontenzuordnung, Vorlage kmu-hotel@1, MWST-Codes 311 (8,1 %), 312 (2,6 %), 313 (3,8 %). ' +
         'Alle Vorschläge mit dem Treuhänder prüfen. Spalten abacus_account und mwst_code in Excel als Text formatieren.',
     );
     expect(text(ctx).split('\r\n')[1]).toBe('apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment');
@@ -263,12 +263,12 @@ describe('the mapping of the Swiss fixture month', () => {
   const FIXTURE = new URL('../fixtures/mapping/kmu-ch-month.csv', import.meta.url);
   const KURTAXE = 'Testzuordnung wie vom Treuhänder ausgefüllt: Kurtaxe als durchlaufender Posten auf 2210 ohne MWST-Code (ESTV MBI 08 Ziff. 7.11).';
   const HEADER =
-    'apaleo-abacus Kontenzuordnung für Hotel Beispiel Engelberg (ENG), den Schweizer Testmonat: was init-mapping --template kmu-hotel ' +
+    'apaleo-odoo Kontenzuordnung für Hotel Beispiel Engelberg (ENG), den Schweizer Testmonat: was init-mapping --template kmu-hotel ' +
     'auf dem Kontenplan schreibt, nur die Kurtaxe-Zeile 3501 ist ausgefüllt.';
 
   it('is what init-mapping --template kmu-hotel writes on the ENG chart, with only the Kurtaxe row filled in (2210, no MWST-Code)', async () => {
     const config = `apaleo:\n  clientId: ${CLIENT_ID}\nabacus:\n  mandant: 1234\n  leitwaehrung: CHF\n`;
-    const ctx = createApaleoContext({ chMonth: true }, { files: { 'apaleo-abacus.config.yaml': config } });
+    const ctx = createApaleoContext({ chMonth: true }, { files: { 'apaleo-odoo.config.yaml': config } });
     expect(await runCli(['init-mapping', '--property', ENG, '--template', 'kmu-hotel'], ctx)).toBe(0);
     const written = parseMapping(read(ctx, 'mapping-ENG.csv'), { path: 'mapping-ENG.csv' });
     // renderMappingFile writes the mapping columns only, so the rows keep their line numbers here.

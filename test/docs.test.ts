@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Command } from '../src/cli/command.js';
 import { COMMANDS } from '../src/cli/commands/index.js';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   checkCommandLines,
   checkCompatibilityClaims,
@@ -10,7 +13,6 @@ import {
   checkInformalAddress,
   checkLinks,
   checkPracticeTerms,
-  checkSwissSpelling,
   configPaths,
   documentationFiles,
   findingCodes,
@@ -29,10 +31,11 @@ import {
  * an sh/bash fence, every backticked config key and every finding code in the
  * documentation must exist in the code. Since s09 (design decision 7) every
  * relative link and anchor must resolve, and the docs are German, with "du".
- * Since a08 (design decisions 1, 5 and 6) every German file is Swiss Standard
- * German: no "ß", rates written `8,1 %`, no terms of German DATEV or Austrian
- * BMD practice, BMD and DATEV named only where they must be, and no tested
- * Abacus import claimed before one is recorded.
+ * Since a08 (design decisions 1, 5 and 6) no German file uses terms of Austrian
+ * BMD practice, BMD and DATEV are named only where they must be, and no tested
+ * import is claimed before one is recorded. Since o01 (design decision 3) every
+ * doc may be German as written in Germany: "ß", `19 %`, SKR03 and UStVA pass,
+ * in every file, without a list of files.
  */
 const FILES = documentationFiles();
 const GERMAN_FILES = FILES.filter((file) => file !== 'README.en.md');
@@ -66,12 +69,12 @@ describe('README and docs match the code', () => {
   });
 
   it('reads the command lines of the README, also in indented fences of the quick start', () => {
-    const lines = shellLines(readRepoFile('README.md')).filter((line) => /^(apaleo-abacus|node dist\/cli\/main\.js) /.test(line));
-    expect(lines).toEqual(expect.arrayContaining(['apaleo-abacus export --month 2026-09 --dry-run', 'node dist/cli/main.js export --month 2026-09 --demo --dry-run']));
+    const lines = shellLines(readRepoFile('README.md')).filter((line) => /^(apaleo-odoo|node dist\/cli\/main\.js) /.test(line));
+    expect(lines).toEqual(expect.arrayContaining(['apaleo-odoo export --month 2026-09 --dry-run', 'node dist/cli/main.js export --month 2026-09 --demo --dry-run']));
     expect(lines.length).toBeGreaterThanOrEqual(8);
   });
 
-  it.each(FILES)('%s: every apaleo-abacus command and flag in a shell fence exists', (file) => {
+  it.each(FILES)('%s: every apaleo-odoo command and flag in a shell fence exists', (file) => {
     expect(checkCommandLines(file, readRepoFile(file), COMMANDS)).toEqual([]);
   });
 
@@ -91,15 +94,11 @@ describe('README and docs match the code', () => {
     expect(checkInformalAddress(file, germanPart(file))).toEqual([]);
   });
 
-  it.each(GERMAN_FILES)('%s: Swiss spelling: no "ß", rates written like 8,1 %%', (file) => {
-    expect(checkSwissSpelling(file, germanPart(file))).toEqual([]);
-  });
-
-  it.each(GERMAN_FILES)('%s: no German DATEV or Austrian BMD terms, BMD and DATEV only where allowed', (file) => {
+  it.each(GERMAN_FILES)('%s: no Austrian BMD terms, BMD and DATEV only where allowed', (file) => {
     expect(checkPracticeTerms(file, germanPart(file))).toEqual([]);
   });
 
-  it('checks every German file, not a list of Swiss files', () => {
+  it('checks every German file, not a list of files', () => {
     expect(GERMAN_FILES).toEqual(expect.arrayContaining(['README.md', 'CODE_OF_CONDUCT.md', 'CHANGELOG.md', 'DISCLAIMER.md', 'docs/setup-apaleo.md', 'docs/export.md', 'docs/architecture.md']));
     expect(GERMAN_FILES).toHaveLength(FILES.length - 1);
   });
@@ -138,53 +137,69 @@ describe('the docs checks', () => {
   const sh = (...lines: string[]) => ['Some text.', '', '```sh', ...lines, '```', ''].join('\n');
 
   it('names a stale flag, its command and the file', () => {
-    const problems = checkCommandLines('docs/abacus-import.md', sh('apaleo-abacus export --month 2026-10 --email'), COMMANDS);
-    expect(problems).toEqual(['docs/abacus-import.md: "apaleo-abacus export --month 2026-10 --email": --email is not an option of "export"']);
+    const problems = checkCommandLines('docs/abacus-import.md', sh('apaleo-odoo export --month 2026-10 --email'), COMMANDS);
+    expect(problems).toEqual(['docs/abacus-import.md: "apaleo-odoo export --month 2026-10 --email": --email is not an option of "export"']);
   });
 
-  it('Old binary in a doc: names apaleo-bmd and the file, and passes once the line reads apaleo-abacus', () => {
-    expect(checkCommandLines('docs/export.md', sh('apaleo-bmd export --month 2026-10'), COMMANDS)).toEqual([
-      'docs/export.md: "apaleo-bmd export --month 2026-10": apaleo-bmd is the binary of another project; write apaleo-abacus',
+  it('Old binary in a doc: names apaleo-abacus and the file, and passes once the line reads apaleo-odoo', () => {
+    const old = readRepoFile('test/fixtures/docs/old-binary.md');
+    expect(checkCommandLines('docs/export.md', old, COMMANDS)).toEqual([
+      'docs/export.md: "apaleo-abacus export --month 2026-10": apaleo-abacus is the binary of another project; write apaleo-odoo',
     ]);
-    expect(checkCommandLines('docs/export.md', sh('apaleo-abacus export --month 2026-10'), COMMANDS)).toEqual([]);
+    expect(checkCommandLines('docs/export.md', old.replace('apaleo-abacus export', 'apaleo-odoo export'), COMMANDS)).toEqual([]);
+    expect(checkCommandLines('docs/x.md', sh('docker compose run --rm apaleo-abacus schedule --once'), COMMANDS)).toEqual([expect.stringContaining('apaleo-abacus is the binary')]);
+  });
+
+  it('Old binary of the earlier projects in a doc: names apaleo-bmd and apaleo-datev, not a clone URL or a cd line', () => {
+    expect(checkCommandLines('docs/export.md', sh('apaleo-bmd export --month 2026-10'), COMMANDS)).toEqual([
+      'docs/export.md: "apaleo-bmd export --month 2026-10": apaleo-bmd is the binary of another project; write apaleo-odoo',
+    ]);
+    expect(checkCommandLines('docs/export.md', sh('apaleo-odoo export --month 2026-10'), COMMANDS)).toEqual([]);
     expect(checkCommandLines('docs/x.md', sh('docker compose run --rm apaleo-datev export --month 2026-10'), COMMANDS)).toEqual([expect.stringContaining('apaleo-datev is the binary')]);
-    expect(checkCommandLines('docs/x.md', sh('cd apaleo-abacus-export   # not apaleo-bmd', 'git clone https://github.com/krautdawg/apaleo-bmd-export.git'), COMMANDS)).toEqual([]);
+    expect(checkCommandLines('docs/x.md', sh('cd apaleo-odoo-export   # not apaleo-bmd', 'git clone https://github.com/krautdawg/apaleo-bmd-export.git', 'cd apaleo-abacus-export'), COMMANDS)).toEqual([]);
     expect(checkCommandLines('docs/x.md', '`apaleo-bmd export`\n```text\napaleo-bmd export\n```\n', COMMANDS)).toEqual([]);
   });
 
   it('names a renamed command and the file', () => {
     const renamed: Command[] = COMMANDS.map((command) => (command.name === 'export' ? { ...command, name: 'write' } : command));
-    const problems = checkCommandLines('README.md', sh('apaleo-abacus export --month 2026-10 --dry-run'), renamed);
+    const problems = checkCommandLines('README.md', sh('apaleo-odoo export --month 2026-10 --dry-run'), renamed);
     expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatch(/^README\.md: "apaleo-abacus export --month 2026-10 --dry-run": "export" is not a command/);
+    expect(problems[0]).toMatch(/^README\.md: "apaleo-odoo export --month 2026-10 --dry-run": "export" is not a command/);
   });
 
   it('reads two-word commands, global flags, both program spellings and stops at comments and pipes', () => {
     const text = sh(
-      'apaleo-abacus mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # --nonsense in a comment',
+      'apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # --nonsense in a comment',
       'node dist/cli/main.js --help        # or: pnpm link --global',
       'node dist/cli/main.js export --month 2026-09 --demo --dry-run --debug | tee out.txt --x',
-      'apaleo-abacus live-smoke --property BER [--date 2026-10-18]',
-      'APALEO_CLIENT_SECRET=... apaleo-abacus export --unknown',
-      'docker compose run --rm apaleo-abacus export --month 2026-10',
+      'apaleo-odoo live-smoke --property BER [--date 2026-10-18]',
+      'APALEO_CLIENT_SECRET=... apaleo-odoo export --unknown',
+      'docker compose run --rm apaleo-odoo export --month 2026-10',
     );
     expect(checkCommandLines('docs/x.md', text, COMMANDS)).toEqual([]);
-    expect(checkCommandLines('docs/x.md', sh('apaleo-abacus mapping --property BSP'), COMMANDS)).toHaveLength(1);
-    expect(checkCommandLines('docs/x.md', sh('apaleo-abacus live-smoke [--days 3]'), COMMANDS)).toEqual([
-      'docs/x.md: "apaleo-abacus live-smoke [--days 3]": --days is not an option of "live-smoke"',
+    expect(checkCommandLines('docs/x.md', sh('apaleo-odoo mapping --property BSP'), COMMANDS)).toHaveLength(1);
+    expect(checkCommandLines('docs/x.md', sh('apaleo-odoo live-smoke [--days 3]'), COMMANDS)).toEqual([
+      'docs/x.md: "apaleo-odoo live-smoke [--days 3]": --days is not an option of "live-smoke"',
     ]);
   });
 
   it('ignores command lines outside sh and bash fences', () => {
-    const text = ['`apaleo-abacus export --email`', '```text', 'apaleo-abacus export --email', '```', '```yaml', 'apaleo-abacus: --email', '```'].join('\n');
+    const text = ['`apaleo-odoo export --email`', '```text', 'apaleo-odoo export --email', '```', '```yaml', 'apaleo-odoo: --email', '```'].join('\n');
     expect(checkCommandLines('docs/x.md', text, COMMANDS)).toEqual([]);
-    expect(checkCommandLines('docs/x.md', ['```bash', 'apaleo-abacus export --email', '```'].join('\n'), COMMANDS)).toHaveLength(1);
+    expect(checkCommandLines('docs/x.md', ['```bash', 'apaleo-odoo export --email', '```'].join('\n'), COMMANDS)).toHaveLength(1);
   });
 
   it('names a stale config key and the file', () => {
     expect(checkConfigKeys('docs/configuration.md', 'Set `posting.aggregate` to true.')).toEqual([
       'docs/configuration.md: `posting.aggregate` is not a config key',
     ]);
+  });
+
+  it('Stale Odoo config key: names odoo.beraternummer and the file', () => {
+    expect(checkConfigKeys('docs/configuration.md', readRepoFile('test/fixtures/docs/stale-odoo-key.md'))).toEqual([
+      'docs/configuration.md: `odoo.beraternummer` is not a config key',
+    ]);
+    expect(checkConfigKeys('docs/x.md', 'Trag `odoo.currency` ein.', new Set(['odoo.currency']))).toEqual([]);
   });
 
   it('knows nested, defaulted and array keys of the schema', () => {
@@ -304,10 +319,9 @@ describe('the language checks', () => {
 describe('the practice terms check', () => {
   const problemsOf = (file: string, text: string) => checkPracticeTerms(file, text);
 
-  it('Austrian paragraph copied: names the file and the terms Kanzlei and Buchungssymbol', () => {
+  it('Austrian paragraph copied: names the file and the term Buchungssymbol, not Kanzlei', () => {
     expect(problemsOf('docs/mapping-guide.md', 'Die Kanzlei legt das Buchungssymbol an.')).toEqual([
-      'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an.": "Kanzlei" is a term of Austrian BMD practice; use the Swiss Abacus term',
-      'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an.": "Buchungssymbol" is a term of Austrian BMD practice; use the Swiss Abacus term',
+      'docs/mapping-guide.md: "Die Kanzlei legt das Buchungssymbol an.": "Buchungssymbol" is a term of Austrian BMD practice',
     ]);
     for (const term of ['Steuercode', 'Einheitskontenrahmen', 'EKR', 'UVA', 'Ortstaxe', 'Nächtigungsabgabe', 'Personenkonto']) {
       expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([expect.stringContaining(`"${term}"`)]);
@@ -315,35 +329,15 @@ describe('the practice terms check', () => {
     expect(problemsOf('docs/x.md', 'Die Hauskanzlei, das BMDX-Feld, 2,0 % und 110 % sind keine Treffer. `BMD` und `Kanzlei` im Code auch nicht.')).toEqual([]);
   });
 
-  it('Copied DATEV paragraph: names the file and the term', () => {
-    expect(problemsOf('docs/mapping-guide.md', '## Spalten\n\nTrag den BU-Schlüssel ein.\n')).toEqual([
-      'docs/mapping-guide.md: "Trag den BU-Schlüssel ein.": "BU-Schlüssel" is a term of German DATEV practice; use the Swiss Abacus term',
-    ]);
-    for (const term of ['Buchungsstapel', 'SKR03', 'SKR04', 'Automatikkonto', 'Beraternummer', 'EXTF', 'Belegfeld', 'Festschreibung', 'UStVA', 'ELSTER']) {
-      expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([expect.stringContaining(`"${term}"`)]);
+  it('German rate no longer forbidden: 19 %, 7 % and the German accounting terms pass, 10 % is still reported', () => {
+    expect(problemsOf('docs/mapping-guide.md', 'Getränke mit 19 %.')).toEqual([]);
+    expect(problemsOf('docs/mapping-guide.md', 'Konten nach SKR03.')).toEqual([]);
+    for (const term of ['SKR03', 'SKR04', 'UStVA', 'Kennzahl', 'Kanzlei', 'Beherbergungsteuer', 'Übernachtungsteuer', '7 %', '19 %', '7%']) {
+      expect(problemsOf('docs/x.md', `Hier steht ${term} im Text.`), term).toEqual([]);
     }
-    expect(problemsOf('docs/posting-rules.md', 'Die Beherbergungssteuer wird ohne Steuer gebucht.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"Beherbergungssteuer"/)]);
-  });
-
-  it('Foreign rate: names the file and 19 % or 10 %, matched only as a rate token', () => {
-    expect(problemsOf('docs/posting-rules.md', 'Getränke mit 19 %.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"19 %"/)]);
     expect(problemsOf('docs/posting-rules.md', 'Beherbergung mit 10 %.')).toEqual([expect.stringMatching(/^docs\/posting-rules\.md: .*"10 %"/)]);
-    for (const rate of ['13 %', '20 %', '7%']) expect(problemsOf('docs/x.md', `Logis mit ${rate}.`), rate).toHaveLength(1);
-    expect(problemsOf('docs/x.md', 'Nie 110 %, 17 % oder 4,9 %. `19 %` im Code.\n\n```text\nKurtaxe 19 %\n```\n')).toEqual([]);
-  });
-
-  it('Old Swiss rates pass: 7,7 %, 3,7 % and 2,5 % report nothing, while 7 % in the same file does (Old Swiss rates are not foreign rates)', () => {
-    expect(problemsOf('docs/x.md', 'Normalsatz 7.7 %.')).toEqual([]);
-    expect(problemsOf('docs/mapping-guide.md', '7,7 %, 3,7 % und 2,5 % bis 31.12.2023')).toEqual([]);
-    expect(problemsOf('docs/mapping-guide.md', '7,7 %, 3,7 % und 2,5 % bis 31.12.2023\n\nGetränke mit 7 %.\n')).toEqual([
-      'docs/mapping-guide.md: "Getränke mit 7 %.": "7 %" is a term of German DATEV practice; use the Swiss Abacus term',
-    ]);
-  });
-
-  it('Swiss terms are allowed: Kurtaxe and Mandantennummer', () => {
-    const text = 'Die Kurtaxe geht auf ein Durchlaufkonto, die Mandantennummer steht im Kopf.';
-    expect(problemsOf('docs/abacus-format.md', text)).toEqual([]);
-    expect(checkSwissSpelling('docs/abacus-format.md', text)).toEqual([]);
+    for (const rate of ['13 %', '20 %', '20%']) expect(problemsOf('docs/x.md', `Logis mit ${rate}.`), rate).toHaveLength(1);
+    expect(problemsOf('docs/x.md', 'Nie 110 %, 120 % oder 2,0 %. `10 %` im Code.\n\n```text\nKurtaxe 10 %\n```\n')).toEqual([]);
   });
 
   it('Bare target mention: names the file and the token BMD or DATEV', () => {
@@ -381,39 +375,43 @@ describe('the practice terms check', () => {
   });
 });
 
-describe('the Swiss spelling check', () => {
-  it('Swiss file checked from the start: every German file, so docs/abacus-format.md and docs/export.md both report Kanzlei, Buchungssymbol and ß', () => {
-    const text = 'Die Kanzlei legt das Buchungssymbol an.\n\nSchließe die Datei.\n';
-    for (const file of ['docs/abacus-format.md', 'docs/export.md']) {
-      expect([...checkSwissSpelling(file, text), ...checkPracticeTerms(file, text)], file).toEqual([
-        expect.stringMatching(new RegExp(`^${file.replace('.', '\\.')}:3: .*"ß"`)),
-        expect.stringMatching(/"Kanzlei"/),
-        expect.stringMatching(/"Buchungssymbol"/),
-      ]);
+describe('spelling during the transition (o01)', () => {
+  const germany = readRepoFile('test/fixtures/docs/germany-configuration.md');
+  /** Every check the docs test runs on one German file. */
+  const allChecks = (file: string, text: string) => [
+    ...checkCommandLines(file, text, COMMANDS),
+    ...checkConfigKeys(file, text),
+    ...checkLinks(file, text),
+    ...checkGerman(file, text),
+    ...checkInformalAddress(file, text),
+    ...checkPracticeTerms(file, text),
+    ...checkCompatibilityClaims(file, text, 0),
+  ];
+
+  it('Sharp s in any doc: "gemäß" and "Buchungssätze" pass in docs/configuration.md and every other file', () => {
+    expect(germany).toContain('Die Datei enthält die Buchungssätze eines Monats, gemäß der Kontenzuordnung');
+    for (const file of ['docs/configuration.md', 'docs/docker.md', 'README.md', 'CODE_OF_CONDUCT.md']) expect(allChecks(file, germany), file).toEqual([]);
+  });
+
+  it('German rate no longer forbidden: "Getränke mit 19 %" and "SKR03" pass in docs/mapping-guide.md', () => {
+    expect(germany).toContain('Getränke mit 19 %');
+    expect(germany).toContain('SKR03');
+    expect(allChecks('docs/mapping-guide.md', germany)).toEqual([]);
+  });
+
+  it('No transition list: a new docs/odoo-format.md is checked like every other doc, and no list names it', () => {
+    const root = mkdtempSync(join(tmpdir(), 'apaleo-odoo-docs-'));
+    try {
+      mkdirSync(join(root, 'docs'));
+      writeFileSync(join(root, 'docs', 'odoo-format.md'), germany);
+      expect(documentationFiles(root)).toContain('docs/odoo-format.md');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
     }
-  });
-
-  it('Swiss rate notation: names 3.8 % and 3,8% in docs/abacus-format.md, and passes 3,8 %', () => {
-    expect(checkSwissSpelling('docs/abacus-format.md', 'Beherbergung zu 3.8 %.')).toEqual([expect.stringMatching(/^docs\/abacus-format\.md: .*"3\.8 %" is not the Swiss rate notation/)]);
-    expect(checkSwissSpelling('docs/abacus-format.md', 'Beherbergung zu 3,8%.')).toHaveLength(1);
-    expect(checkSwissSpelling('docs/abacus-format.md', 'Beherbergung zu 3,8 %, `3.8` im Code.')).toEqual([]);
-  });
-
-  it('Sharp s in a Swiss doc: names the file, the line and the letter ß, and passes once it reads "Schliesse"', () => {
-    expect(checkSwissSpelling('docs/docker.md', 'Text.\n\nSchließe das Terminal.\n')).toEqual([
-      'docs/docker.md:3: "Schließe das Terminal.": the letter "ß" is not Swiss; write "ss"',
-    ]);
-    expect(checkSwissSpelling('docs/docker.md', 'Text.\n\nSchliesse das Terminal.\n')).toEqual([]);
-    expect(checkSwissSpelling('CODE_OF_CONDUCT.md', '```text\nMaßnahmen\n```\n')).toHaveLength(1);
-  });
-
-  it('Decimal point in a German rate: names 7.7 % and 3,8%, does not report 7 %, and passes 7,7 %, 3,8 % and a rate in a code span', () => {
-    expect(checkSwissSpelling('docs/posting-rules.md', 'Beherbergung zu 7.7 %.')).toEqual([
-      'docs/posting-rules.md: "Beherbergung zu 7.7 %.": "7.7 %" is not the Swiss rate notation; write it like "8,1 %"',
-    ]);
-    expect(checkPracticeTerms('docs/posting-rules.md', 'Beherbergung zu 7.7 %.')).toEqual([]);
-    expect(checkSwissSpelling('docs/posting-rules.md', 'Beherbergung zu 3,8%.')).toEqual([expect.stringContaining('"3,8%" is not the Swiss rate notation')]);
-    expect(checkSwissSpelling('docs/posting-rules.md', 'Beherbergung zu 7,7 % und 3,8 %, Normalsatz 8,1 %, `3.8` und `3.8%` im Code.\n\n```xml\n<Rate>3.8</Rate> 8%\n```\n')).toEqual([]);
+    expect(allChecks('docs/odoo-format.md', germany)).toEqual([]);
+    const helper = readRepoFile('test/helpers/docs.ts');
+    expect(helper).not.toMatch(/\b(?:GERMANY|GERMAN|SWISS)_FILES\b/);
+    expect(helper).not.toContain('odoo-format.md');
   });
 });
 
@@ -491,10 +489,10 @@ describe('docs/docker.md (a07)', () => {
   it('documents the compose loop, the host-cron alternative, the default time zone Europe/Zurich and the demo in the image', () => {
     expect(docker).toContain('docker compose -f docker-compose.example.yml up -d --build');
     expect(docker).toContain('## Cron auf dem Host statt der Schleife');
-    expect(docker).toContain('docker compose -f docker-compose.example.yml run --rm apaleo-abacus schedule --once >> schedule.log 2>&1');
+    expect(docker).toContain('docker compose -f docker-compose.example.yml run --rm apaleo-odoo schedule --once >> schedule.log 2>&1');
     expect(docker).toContain('(Standard `Europe/Zurich`)');
     expect(docker).not.toContain('Vienna');
-    expect(docker).toContain('docker run --rm -w /data -v "$PWD/data:/data" apaleo-abacus-export:local export --month 2026-09 --demo');
+    expect(docker).toContain('docker run --rm -w /data -v "$PWD/data:/data" apaleo-odoo-export:local export --month 2026-09 --demo');
     expect(docker).toContain('uid 1000');
     expect(docker).toContain('ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml');
   });

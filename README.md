@@ -4,11 +4,11 @@
 
 Kostenloser apaleo Abacus Export: XML-Buchungsimport für die Abacus Finanzbuchhaltung aus apaleo, Open Source.
 
-[![CI](https://github.com/krautdawg/apaleo-abacus-export/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krautdawg/apaleo-abacus-export/actions/workflows/ci.yml)
+[![CI](https://github.com/krautdawg/apaleo-odoo-export/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/krautdawg/apaleo-odoo-export/actions/workflows/ci.yml)
 [![Lizenz: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 [![Node.js 24](https://img.shields.io/badge/node.js-24-339933.svg)](https://nodejs.org/)
 
-apaleo-abacus-export ist ein kostenloser Abacus-Export für Hotels in der Schweiz, die mit apaleo arbeiten, und für ihren Treuhänder. Er liest das apaleo-Buchungsjournal eines Monats und schreibt pro Hotel eine AbaConnect-Datei «XML Buchungen», die dein Treuhänder oder deine Buchhaltung in die Abacus Finanzbuchhaltung (FIBU) importiert, mit MWST-Codes und einer Vorlage für die Kontenzuordnung nach dem KMU-Kontenrahmen. Das Tool ist Open Source (MIT-Lizenz) und läuft auf deinem eigenen Rechner mit deinem eigenen apaleo-Konto. Kein Abo, kein gehosteter Dienst, kein Konto bei uns.
+apaleo-odoo-export ist ein kostenloser Abacus-Export für Hotels in der Schweiz, die mit apaleo arbeiten, und für ihren Treuhänder. Er liest das apaleo-Buchungsjournal eines Monats und schreibt pro Hotel eine AbaConnect-Datei «XML Buchungen», die dein Treuhänder oder deine Buchhaltung in die Abacus Finanzbuchhaltung (FIBU) importiert, mit MWST-Codes und einer Vorlage für die Kontenzuordnung nach dem KMU-Kontenrahmen. Das Tool ist Open Source (MIT-Lizenz) und läuft auf deinem eigenen Rechner mit deinem eigenen apaleo-Konto. Kein Abo, kein gehosteter Dienst, kein Konto bei uns.
 
 **Stand:** Die Datei folgt der dokumentierten AbaConnect-Schnittstelle «XML Buchungen»; ein erster Testimport mit einem Treuhänder steht noch aus. Was der Treuhänder dabei prüft, steht in [docs/abacus-import.md](docs/abacus-import.md).
 
@@ -52,18 +52,18 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
 
    <!-- quickstart -->
    ```sh
-   git clone https://github.com/krautdawg/apaleo-abacus-export.git
-   cd apaleo-abacus-export
+   git clone https://github.com/krautdawg/apaleo-odoo-export.git
+   cd apaleo-odoo-export
    corepack enable
    pnpm install --frozen-lockfile
    pnpm build
-   node dist/cli/main.js --help        # oder: pnpm link --global, dann apaleo-abacus --help
+   node dist/cli/main.js --help        # oder: pnpm link --global, dann apaleo-odoo --help
    ```
 
    Dann die Konfiguration ausfüllen und das Secret setzen. Das Secret kommt nie in die Konfigurationsdatei.
 
    ```sh
-   cp apaleo-abacus.config.example.yaml apaleo-abacus.config.yaml   # apaleo.clientId, den Abacus-Mandanten (abacus.mandant) und unter properties dein Hotel eintragen
+   cp apaleo-odoo.config.example.yaml apaleo-odoo.config.yaml   # apaleo.clientId, den Abacus-Mandanten (abacus.mandant) und unter properties dein Hotel eintragen
    export APALEO_CLIENT_SECRET='das Secret aus apaleo'
    node dist/cli/main.js doctor
    node dist/cli/main.js properties
@@ -71,25 +71,25 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
 
    `properties` zeigt die ID deines Hotels. Trag sie in der Konfiguration unter `properties` ein (den auskommentierten Abschnitt `properties:` in der Datei aktivieren); `export` exportiert jedes dort eingetragene Hotel. Die Befehle unten verwenden als Beispiel die ID `BSP`.
 
-   Die Befehle unten verwenden `apaleo-abacus`. Ohne `pnpm link --global` tippst du stattdessen `node dist/cli/main.js`.
+   Die Befehle unten verwenden `apaleo-odoo`. Ohne `pnpm link --global` tippst du stattdessen `node dist/cli/main.js`.
 
 3. **Kontenzuordnung anlegen** und von deinem Treuhänder mit dem [Leitfaden zur Kontenzuordnung](docs/mapping-guide.md) prüfen lassen:
 
    ```sh
-   apaleo-abacus init-mapping --property BSP --template kmu-hotel   # schreibt mapping-BSP.csv nach dem Schweizer Kontenrahmen KMU
-   apaleo-abacus mapping check --property BSP --from 2026-09-01 --to 2026-09-30
+   apaleo-odoo init-mapping --property BSP --template kmu-hotel   # schreibt mapping-BSP.csv nach dem Schweizer Kontenrahmen KMU
+   apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30
    ```
 
 4. **Probelauf**: alle Prüfungen und die Übersicht, keine Datei.
 
    ```sh
-   apaleo-abacus export --month 2026-09 --dry-run
+   apaleo-odoo export --month 2026-09 --dry-run
    ```
 
 5. **Export**: eine Abacus-Datei pro Hotel nach `exports/<Hotel>/<JJJJ-MM>/`. Gib sie deinem Treuhänder für den Import in Abacus ([abacus-import.md](docs/abacus-import.md), die Felder der Datei in [abacus-format.md](docs/abacus-format.md)).
 
    ```sh
-   apaleo-abacus export --month 2026-09
+   apaleo-odoo export --month 2026-09
    ```
 
 ## Schnellstart mit Docker
@@ -99,7 +99,7 @@ Das Image wird auf deinem Rechner aus diesem Repository gebaut; nichts wird aus 
 ```sh
 cp .env.example .env                 # APALEO_CLIENT_SECRET eintragen
 mkdir -p config data
-cp apaleo-abacus.config.example.yaml config/apaleo-abacus.config.yaml   # dann bearbeiten
+cp apaleo-odoo.config.example.yaml config/apaleo-odoo.config.yaml   # dann bearbeiten
 cp mapping-BSP.csv config/           # die von deinem Treuhänder geprüfte Zuordnung
 sudo chown 1000:1000 data            # der Container läuft als Benutzer node (uid 1000)
 docker compose -f docker-compose.example.yml build
@@ -120,11 +120,11 @@ Die Dateien erscheinen in `./data/<Hotel>/<JJJJ-MM>/`. Cron auf dem Host, einmal
 | `export` | Schreibt die Abacus-Dateien (AbaConnect XML Buchungen) eines Monats oder Zeitraums nach allen Prüfungen; `--dry-run` schreibt nichts, `--demo` nimmt die Demodaten. |
 | `schedule` | `schedule --once` exportiert jeden fälligen Zeitraum, der noch nicht im Ausgabeordner liegt, und endet. Für Cron und Docker. |
 
-`apaleo-abacus <Befehl> --help` zeigt die Optionen. Exit-Codes: 0 Erfolg, 1 eine Prüfung oder ein Lauf ist fehlgeschlagen, 2 falscher Aufruf. Jeder Befund-Code mit Lösung: [docs/troubleshooting.md](docs/troubleshooting.md).
+`apaleo-odoo <Befehl> --help` zeigt die Optionen. Exit-Codes: 0 Erfolg, 1 eine Prüfung oder ein Lauf ist fehlgeschlagen, 2 falscher Aufruf. Jeder Befund-Code mit Lösung: [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Konfiguration
 
-Eine YAML-Datei und Umgebungsvariablen für das Secret. Jeder Schlüssel mit Standardwert und Umgebungsvariable: [docs/configuration.md](docs/configuration.md). Die Vorlage zum Kopieren: [apaleo-abacus.config.example.yaml](apaleo-abacus.config.example.yaml).
+Eine YAML-Datei und Umgebungsvariablen für das Secret. Jeder Schlüssel mit Standardwert und Umgebungsvariable: [docs/configuration.md](docs/configuration.md). Die Vorlage zum Kopieren: [apaleo-odoo.config.example.yaml](apaleo-odoo.config.example.yaml).
 
 ## Was es nicht macht
 
@@ -141,7 +141,7 @@ Eine YAML-Datei und Umgebungsvariablen für das Secret. Jeder Schlüssel mit Sta
 
 Im apaleo Store gibt es einen kostenpflichtigen Abacus-Connector. Die Tabelle vergleicht das typische Angebot mit diesem Tool, ohne Namen zu nennen.
 
-| | Kostenpflichtiger Connector im apaleo Store | apaleo-abacus-export |
+| | Kostenpflichtiger Connector im apaleo Store | apaleo-odoo-export |
 |---|---|---|
 | Preis | 24-48 EUR pro Monat (je nach Variante und Anzahl der Betriebe), laut apaleo Store, Oktober 2026 | kostenlos |
 | Betrieb | beim Anbieter | bei dir (Rechner, Server oder Docker) |
@@ -154,7 +154,7 @@ Im apaleo Store gibt es einen kostenpflichtigen Abacus-Connector. Die Tabelle ve
 
 Selbst betreiben heisst: Du behältst die Daten und zahlst nichts, aber du spielst Updates ein, behältst die geplanten Läufe im Blick, gibst die Dateien selbst an deinen Treuhänder weiter und löst Probleme selbst oder mit einem technischen Helfer. Kann das niemand übernehmen, ist ein bezahlter Connector vielleicht die bessere Wahl.
 
-apaleo-abacus-export baut auf [apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) und [apaleo-datev-export](https://github.com/krautdawg/apaleo-datev-export) auf; wer in Österreich mit BMD oder in Deutschland mit DATEV bucht, nimmt eines dieser Projekte.
+apaleo-odoo-export baut auf [apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) und [apaleo-datev-export](https://github.com/krautdawg/apaleo-datev-export) auf; wer in Österreich mit BMD oder in Deutschland mit DATEV bucht, nimmt eines dieser Projekte.
 
 ## Häufige Fragen
 

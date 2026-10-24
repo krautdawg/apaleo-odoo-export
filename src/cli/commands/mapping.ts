@@ -26,7 +26,7 @@ export const mapping: Command = {
   async run(args, ctx) {
     const [subcommand, ...extra] = args.positionals;
     if (subcommand !== 'check' || extra.length > 0) {
-      throw new UsageError(`Usage: apaleo-abacus mapping ${mapping.usage}`);
+      throw new UsageError(`Usage: apaleo-odoo mapping ${mapping.usage}`);
     }
     const period = parseRangeFlags(stringOption(args.values, 'from'), stringOption(args.values, 'to'));
     const loaded = await loadCommandConfig(args.values, ctx);

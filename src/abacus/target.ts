@@ -46,7 +46,7 @@ export function createAbacusTarget(settingsOf: (meta: TargetFileMeta) => AbacusT
   return {
     id: 'abacus',
     currency: (config) => config.abacus.leitwaehrung,
-    protocolTitle: 'apaleo-abacus export protocol',
+    protocolTitle: 'apaleo-odoo export protocol',
     filePattern: ABACUS_FILE,
     fileName,
     render(bookings, meta) {

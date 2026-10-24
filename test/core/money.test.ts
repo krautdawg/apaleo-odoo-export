@@ -35,7 +35,7 @@ describe('toCents', () => {
     expect(() => toCents(10.005, 'source entry IHQNWLZL, grossAmount')).toThrow(
       'source entry IHQNWLZL, grossAmount: the amount 10.005 is not a whole number of cents. ' +
         'This cannot be fixed in apaleo or in your config. Please open an issue at ' +
-        'https://github.com/krautdawg/apaleo-abacus-export/issues and paste this message, but leave out guest names.',
+        'https://github.com/krautdawg/apaleo-odoo-export/issues and paste this message, but leave out guest names.',
     );
   });
 

@@ -17,7 +17,7 @@ Das Hotel bucht in CHF (Zeitzone `Europe/Zurich`) in den Mandanten `7777`, die N
 Die Abacus-Datei und das Protokoll sind das, was ein normaler Export der Demodaten in `examples/demo/` schreibt; ein Test schlägt fehl, sobald sie von dem abweichen, was der aktuelle Code schreibt. So erzeugst du die Datei selbst, ohne apaleo:
 
 ```sh
-apaleo-abacus export --month 2026-09 --demo
+apaleo-odoo export --month 2026-09 --demo
 ```
 
 Die Demo schreibt nach `./demo-output/` und markiert ihre Ausgabe mit `DEMO`: im Dateinamen (`…_BSP_DEMO.xml`), am Anfang jedes `Text1` und in der ersten Zeile des Protokolls. Sonst ist ihre Datei gleich wie die hier. Importiere eine Demodatei nie in einen echten Mandanten.

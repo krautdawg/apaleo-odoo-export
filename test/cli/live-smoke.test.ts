@@ -13,7 +13,7 @@ async function smoke(argv: string[], server: FixtureServerOptions = {}, now?: Da
   return { code, out: ctx.out(), err: ctx.err(), ctx };
 }
 
-describe('apaleo-abacus live-smoke', () => {
+describe('apaleo-odoo live-smoke', () => {
   it('reports account counts, ledger lines and totals for the day and exits 0', async () => {
     const { code, out, ctx } = await smoke(['--property', 'BSP', '--date', '2026-09-14']);
     expect(code).toBe(0);
@@ -30,7 +30,7 @@ describe('apaleo-abacus live-smoke', () => {
     expect(out).toMatch(/^ {8}RevenueAccommodation_VeryReduced:10\.00\s+Revenues\s+net\s+0\.00\s+89\.09\s+-89\.09\s+-89\.09\s+yes$/m);
     expect(out).toMatch(/^ {8}1102\s+Payments\s+gross\s+220\.00\s+0\.00\s+220\.00\s+220\.00\s+yes$/m);
     expect(out).toContain('Result: every required step passed for business day 2026-09-14.');
-    expect(readdirSync(ctx.cwd)).toEqual(['apaleo-abacus.config.yaml']);
+    expect(readdirSync(ctx.cwd)).toEqual(['apaleo-odoo.config.yaml']);
   });
 
   it('answers the open live questions', async () => {

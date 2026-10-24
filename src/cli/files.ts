@@ -40,10 +40,10 @@ export async function writeFileAtomic(ctx: CommandContext, path: string, bytes: 
   }
 }
 
-export const LOCK_FILE = '.apaleo-abacus.lock';
+export const LOCK_FILE = '.apaleo-odoo.lock';
 
 /**
- * Runs `fn` while holding `<dir>/.apaleo-abacus.lock`, created exclusively, so
+ * Runs `fn` while holding `<dir>/.apaleo-odoo.lock`, created exclusively, so
  * only one run at a time changes the files of that folder. Another run that
  * finds the lock stops with a `UserError` instead of waiting. The lock is
  * removed when `fn` ends, also when it throws.
@@ -56,7 +56,7 @@ export async function withFolderLock<T>(ctx: CommandContext, dir: string, fn: ()
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
     throw new UserError(
-      `another apaleo-abacus run is writing into ${dir} (the lock file ${lock} exists). Nothing was written; run again when it has finished. ` +
+      `another apaleo-odoo run is writing into ${dir} (the lock file ${lock} exists). Nothing was written; run again when it has finished. ` +
         'If no other run is active, a run was interrupted while writing: delete the lock file and run again',
     );
   }

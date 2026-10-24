@@ -1,14 +1,14 @@
 # Konfiguration: alle Einstellungen
 
-Das Tool liest eine Konfigurationsdatei im Format YAML oder JSON und dazu ein paar Umgebungsvariablen. Fang mit [`apaleo-abacus.config.example.yaml`](../apaleo-abacus.config.example.yaml) an: Kopiere die Datei nach `apaleo-abacus.config.yaml` und füll sie aus.
+Das Tool liest eine Konfigurationsdatei im Format YAML oder JSON und dazu ein paar Umgebungsvariablen. Fang mit [`apaleo-odoo.config.example.yaml`](../apaleo-odoo.config.example.yaml) an: Kopiere die Datei nach `apaleo-odoo.config.yaml` und füll sie aus.
 
 ## Wo die Datei liegt
 
 1. `--config <Pfad>` auf der Kommandozeile, sonst
-2. die Umgebungsvariable `APALEO_ABACUS_CONFIG`, sonst
-3. `./apaleo-abacus.config.yaml` im Arbeitsverzeichnis.
+2. die Umgebungsvariable `APALEO_ODOO_CONFIG`, sonst
+3. `./apaleo-odoo.config.yaml` im Arbeitsverzeichnis.
 
-Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`mandant:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `abacus`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-abacus doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
+Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`mandant:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `abacus`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
 
 ## Secrets
 
@@ -16,15 +16,15 @@ Das Client-Secret der apaleo Custom App kommt nur aus der Umgebung: `APALEO_CLIE
 
 ## Umgebungsvariablen
 
-Das Tool liest nur diese Variablen. Jede andere Variable, die mit `APALEO_ABACUS_` beginnt, lehnt es mit einer Meldung ab, damit eine falsch geschriebene nicht still wirkungslos bleibt. Listen wie `properties` lassen sich nur in der Datei setzen.
+Das Tool liest nur diese Variablen. Jede andere Variable, die mit `APALEO_ODOO_` beginnt, lehnt es mit einer Meldung ab, damit eine falsch geschriebene nicht still wirkungslos bleibt. Listen wie `properties` lassen sich nur in der Datei setzen.
 
 | Variable | Setzt | Typ |
 |---|---|---|
 | `APALEO_CLIENT_SECRET` | das Client-Secret der Custom App (nie in der Datei) | Text |
-| `APALEO_ABACUS_CONFIG` | den Pfad der Konfigurationsdatei | Pfad |
+| `APALEO_ODOO_CONFIG` | den Pfad der Konfigurationsdatei | Pfad |
 | `APALEO_CLIENT_ID` | `apaleo.clientId` | Text |
-| `APALEO_ABACUS_OUTPUT_DIR` | `output.dir` | Pfad |
-| `APALEO_ABACUS_TIMEZONE` | `schedule.timezone` (Standard `Europe/Zurich`) | IANA-Zeitzone, zum Beispiel `Europe/Zurich` |
+| `APALEO_ODOO_OUTPUT_DIR` | `output.dir` | Pfad |
+| `APALEO_ODOO_TIMEZONE` | `schedule.timezone` (Standard `Europe/Zurich`) | IANA-Zeitzone, zum Beispiel `Europe/Zurich` |
 
 Ein Wert aus der Umgebung geht dem Wert in der Datei vor.
 
@@ -70,7 +70,7 @@ Schreib einen Code mit führender Null, Buchstaben `x` oder `e` in Anführungsze
 
 ### `properties`
 
-Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` exportieren jedes hier eingetragene Hotel, ausser du gibst `--property` an. Die IDs, die die Custom App lesen darf, listet `apaleo-abacus properties`.
+Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` exportieren jedes hier eingetragene Hotel, ausser du gibst `--property` an. Die IDs, die die Custom App lesen darf, listet `apaleo-odoo properties`.
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
@@ -95,7 +95,7 @@ properties:
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `output.dir` | `./exports` | Ordner für die Abacus-Dateien, relativ zum Arbeitsverzeichnis. Jede Datei landet in `<output.dir>/<Hotel>/<JJJJ-MM>/`. Auch über `APALEO_ABACUS_OUTPUT_DIR`. |
+| `output.dir` | `./exports` | Ordner für die Abacus-Dateien, relativ zum Arbeitsverzeichnis. Jede Datei landet in `<output.dir>/<Hotel>/<JJJJ-MM>/`. Auch über `APALEO_ODOO_OUTPUT_DIR`. |
 
 ### `checks`
 
@@ -109,7 +109,7 @@ Nur für `schedule --once`. Was jede Einstellung bewirkt, mit Beispielen: [docke
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `schedule.timezone` | `Europe/Zurich` | «Heute» ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in der Schweiz passt der Standard; `apaleo-abacus doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ABACUS_TIMEZONE`. |
+| `schedule.timezone` | `Europe/Zurich` | «Heute» ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in der Schweiz passt der Standard; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
 | `schedule.cadence` | `monthly` | `monthly` (eine Datei pro Monat) oder `daily` (eine Datei pro Tag). Ein Rhythmus pro Installation. |
 | `schedule.monthly` | | Einstellungen für `cadence: monthly`. |
 | `schedule.monthly.dayOfMonth` | `3` | Ein Monat ist ab diesem Tag des Folgemonats fällig, 1 bis 5. |
@@ -154,5 +154,5 @@ Das Secret kommt in die Umgebung, nicht in diese Datei:
 
 ```sh
 export APALEO_CLIENT_SECRET='das Secret aus apaleo'
-apaleo-abacus doctor
+apaleo-odoo doctor
 ```

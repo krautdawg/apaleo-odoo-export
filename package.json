@@ -1,7 +1,7 @@
 {
-  "name": "apaleo-abacus-export",
-  "version": "0.1.0",
-  "description": "Free open-source export from the apaleo hotel PMS to Abacus Finanzbuchhaltung (AbaConnect XML Buchungen) for Swiss hotels.",
+  "name": "apaleo-odoo-export",
+  "version": "0.0.0",
+  "description": "Free open-source export from the apaleo hotel PMS to Odoo Accounting journal entries (import file) for hotels in Germany.",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,7 @@
   },
   "packageManager": "pnpm@11.1.1",
   "bin": {
-    "apaleo-abacus": "dist/cli/main.js"
+    "apaleo-odoo": "dist/cli/main.js"
   },
   "files": [
     "dist",

@@ -26,7 +26,7 @@ Die Schnittstellenversion steht in der Datei (`abacus.version`, Standard `2015.0
 
 Die Datei nennt den Mandanten in `Parameter/Mandant` und in jeder Buchung (`abacus.mandant`). Mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus eine Datei im falschen Mandanten ab; lass sie eingeschaltet.
 
-Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-abacus doctor` und das Protokoll warnen dann mit `W-MANDANT-SHARED`.
+Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-odoo doctor` und das Protokoll warnen dann mit `W-MANDANT-SHARED`.
 
 ```yaml
 abacus:
@@ -64,8 +64,8 @@ Abacus legt importierte Buchungen standardmässig in einem Nebenjournal ab. Dort
 Abacus erkennt eine schon importierte Datei nicht: Ein zweiter Import bucht dieselben Buchungen doppelt. Das Tool schreibt einen Zeitraum nur einmal. Kommt später eine Nachbuchung, lehnt es den Zeitraum mit `E-FILE-EXISTS` ab. Dann löscht dein Treuhänder zuerst die Buchungen der alten Datei in Abacus: im Nebenjournal, solange sie nicht übernommen sind, sonst storniert er sie. Die Belegnummern der alten Datei stehen in ihrem Protokoll. Erst danach schreibt `export --overwrite` die neue Datei.
 
 ```sh
-apaleo-abacus export --month 2026-10 --dry-run      # was hat sich geändert?
-apaleo-abacus export --month 2026-10 --overwrite    # erst wenn die Buchungen der alten Datei in Abacus entfernt sind
+apaleo-odoo export --month 2026-10 --dry-run      # was hat sich geändert?
+apaleo-odoo export --month 2026-10 --overwrite    # erst wenn die Buchungen der alten Datei in Abacus entfernt sind
 ```
 
 Mehr dazu in [export.md](export.md#noch-einmal-exportieren).

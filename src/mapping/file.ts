@@ -6,7 +6,7 @@ import { MAPPING_COLUMNS, ROW_FIELDS, rowKey, type MappingColumn, type MappingRo
 /** The comment line on top of a written mapping file: the template and the MWST-Codes it was written with. */
 export function mappingHeaderComment(template: Template, { mwstCodes }: TemplateSettings): string {
   return (
-    `apaleo-abacus Kontenzuordnung, Vorlage ${template.id}, MWST-Codes ${mwstCodes.normal} (8,1 %), ${mwstCodes.reduziert} (2,6 %), ` +
+    `apaleo-odoo Kontenzuordnung, Vorlage ${template.id}, MWST-Codes ${mwstCodes.normal} (8,1 %), ${mwstCodes.reduziert} (2,6 %), ` +
     `${mwstCodes.beherbergung} (3,8 %). Alle Vorschläge mit dem Treuhänder prüfen. Spalten abacus_account und mwst_code in Excel als Text formatieren.`
   );
 }

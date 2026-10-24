@@ -16,7 +16,7 @@ const MAPPING = readFileSync(new URL(`../fixtures/mapping/${CH_MAPPING_FILE}`, i
 const ACCOMMODATION_ROW = /^RevenueAccommodation_Special:3\.80;Revenues;Revenues Accommodation \(3\.8%\);3\.8;3400;313;3\.8;/m;
 
 function chMonth(mapping = MAPPING) {
-  return createApaleoContext({ chMonth: true }, { files: { 'apaleo-abacus.config.yaml': chMonthConfig(), 'mapping-ENG.csv': mapping } });
+  return createApaleoContext({ chMonth: true }, { files: { 'apaleo-odoo.config.yaml': chMonthConfig(), 'mapping-ENG.csv': mapping } });
 }
 
 /** The 1-based line of the mapping file that starts with `prefix`. */

@@ -18,8 +18,8 @@ import { VIE_MAPPING } from '../helpers/live-mapping.js';
 /** After the recorded days, so both are closed. */
 const AFTER_THE_DAY = new Date('2026-10-25T08:00:00Z');
 function liveContext(extraConfig = '', files: Record<string, string> = {}) {
-  const config = `${FIXTURE_FILES['apaleo-abacus.config.yaml']}properties:\n  - id: VIE\n  - id: BER\n    geschaeftsbereich: 2\n${extraConfig}`;
-  return createApaleoContext({ live: true }, { files: { 'apaleo-abacus.config.yaml': config, 'mapping-VIE.csv': VIE_MAPPING, ...files }, now: AFTER_THE_DAY });
+  const config = `${FIXTURE_FILES['apaleo-odoo.config.yaml']}properties:\n  - id: VIE\n  - id: BER\n    geschaeftsbereich: 2\n${extraConfig}`;
+  return createApaleoContext({ live: true }, { files: { 'apaleo-odoo.config.yaml': config, 'mapping-VIE.csv': VIE_MAPPING, ...files }, now: AFTER_THE_DAY });
 }
 
 describe('mapping check on the recorded VIE day', () => {

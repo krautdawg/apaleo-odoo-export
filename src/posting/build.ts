@@ -111,7 +111,7 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
       return fail(
         'E-VAT-RATE-MISSING',
         `${rowText(side.row)} has the MWST-Code "${side.row.mwstCode}" but no valid mwst_percent ("${side.row.mwstPercent}"), so the rate Abacus books is unknown. ` +
-          'Fill in mwst_percent on that line, and run "apaleo-abacus mapping check"',
+          'Fill in mwst_percent on that line, and run "apaleo-odoo mapping check"',
       );
     }
     if (side.kind === 'no-tax-type') {
@@ -119,7 +119,7 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
         'E-MWST-CODE-NOT-ALLOWED',
         `${accountText(side.ref)} uses ${rowText(side.row)}, which has the MWST-Code ${side.row.mwstCode}, but a ${side.ref.type} account books no MWST: ` +
           'Abacus would book the MWST on it instead of the revenue or deposit account. Leave mwst_code and mwst_percent empty on that line, ' +
-          'put the MWST-Code on the revenue or deposit row, and run "apaleo-abacus mapping check"',
+          'put the MWST-Code on the revenue or deposit row, and run "apaleo-odoo mapping check"',
       );
     }
   }

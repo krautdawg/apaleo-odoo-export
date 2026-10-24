@@ -27,7 +27,7 @@ const ABACUS_DEFAULTS = {
 };
 const APALEO_DEFAULTS = { baseUrl: 'https://api.apaleo.com', identityUrl: 'https://identity.apaleo.com' };
 
-async function load(content: string, env: Env = {}, fileName = 'apaleo-abacus.config.yaml') {
+async function load(content: string, env: Env = {}, fileName = 'apaleo-odoo.config.yaml') {
   const ctx = createTestContext({ files: { [fileName]: content }, env });
   return loadConfig({ path: join(ctx.cwd, fileName), env: ctx.env, readFile: ctx.fs.readFile });
 }
@@ -39,13 +39,15 @@ async function loadError(content: string, env: Env = {}, fileName?: string): Pro
 }
 
 describe('config path resolution', () => {
-  it('prefers --config, then APALEO_ABACUS_CONFIG, then the default file', () => {
-    const env = { APALEO_ABACUS_CONFIG: 'from-env.yaml' };
+  it('prefers --config, then APALEO_ODOO_CONFIG, then the default file', () => {
+    const env = { APALEO_ODOO_CONFIG: 'from-env.yaml' };
     expect(resolveConfigPath('flag.yaml', env, '/work')).toBe(resolve('/work/flag.yaml'));
     expect(resolveConfigPath(undefined, env, '/work')).toBe(resolve('/work/from-env.yaml'));
-    expect(resolveConfigPath(undefined, {}, '/work')).toBe(resolve('/work/apaleo-abacus.config.yaml'));
+    expect(resolveConfigPath(undefined, {}, '/work')).toBe(resolve('/work/apaleo-odoo.config.yaml'));
     expect(resolveConfigPath('/abs/c.json', env, '/work')).toBe('/abs/c.json');
-    expect(resolveConfigPath(undefined, { APALEO_BMD_CONFIG: 'old.yaml' }, '/work')).toBe(resolve('/work/apaleo-abacus.config.yaml'));
+    for (const old of ['APALEO_ABACUS_CONFIG', 'APALEO_BMD_CONFIG', 'APALEO_DATEV_CONFIG']) {
+      expect(resolveConfigPath(undefined, { [old]: 'old.yaml' }, '/work'), old).toBe(resolve('/work/apaleo-odoo.config.yaml'));
+    }
   });
 });
 
@@ -73,10 +75,10 @@ describe('loading', () => {
   it.each([
     ['bmd:\n  buchsymbol: HO\n', 'bmd'],
     ['datev:\n  beraternummer: 1234567\n  mandantennummer: 42\n', 'datev'],
-  ])('Old BMD or DATEV section: rejects %j, saying the section is not one of apaleo-abacus and naming abacus', async (text, section) => {
+  ])('Old BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming abacus', async (text, section) => {
     for (const file of [text, `${VALID}${text}`]) {
       const error = await loadError(file);
-      expect(error.message).toContain(`${section} is not a section of apaleo-abacus`);
+      expect(error.message).toContain(`${section} is not a section of apaleo-odoo`);
       expect(error.message).toContain('abacus section');
       expect(error.message).toContain('abacus.mandant');
     }
@@ -110,7 +112,7 @@ describe('loading', () => {
     expect(secrets.apaleoClientSecret).toBe('abc');
   });
 
-  const example = readFileSync(new URL('../../apaleo-abacus.config.example.yaml', import.meta.url), 'utf8');
+  const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
 
   it('accepts the example config, whose abacus section holds the defaults and the example Mandant 1234', async () => {
     expect(example).toMatch(/abacus:\n[\s\S]*mandant: 1234/);
@@ -194,7 +196,7 @@ describe('validation errors name the key path', () => {
 
   it('reports YAML syntax errors with the file path', async () => {
     const error = await loadError('abacus: [unclosed\n');
-    expect(error.message).toMatch(/Cannot parse config file .*apaleo-abacus\.config\.yaml: line \d+, column \d+: /);
+    expect(error.message).toMatch(/Cannot parse config file .*apaleo-odoo\.config\.yaml: line \d+, column \d+: /);
   });
 
   it('does not quote neighbouring lines, such as a secret, in a YAML syntax error', async () => {
@@ -306,7 +308,7 @@ describe('abacus section', () => {
   });
 
   it('the abacus section of the example config holds the defaults and has no "ß"', async () => {
-    const example = readFileSync(new URL('../../apaleo-abacus.config.example.yaml', import.meta.url), 'utf8');
+    const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
     const lines = example.split('\n');
     const start = lines.indexOf('abacus:');
     const end = lines.findIndex((line, i) => i > start && /^\S/.test(line));
@@ -444,47 +446,53 @@ describe('secrets', () => {
 });
 
 describe('environment overrides', () => {
-  it('APALEO_ABACUS_OUTPUT_DIR wins over output.dir in the file', async () => {
-    const { config } = await load(`${VALID}output:\n  dir: ./out\n`, { APALEO_ABACUS_OUTPUT_DIR: '/data/out' });
+  it('APALEO_ODOO_OUTPUT_DIR wins over output.dir in the file', async () => {
+    const { config } = await load(`${VALID}output:\n  dir: ./out\n`, { APALEO_ODOO_OUTPUT_DIR: '/data/out' });
     expect(config.output.dir).toBe('/data/out');
   });
 
   it('applies every allow-listed scalar override', async () => {
-    const { config } = await load(VALID, { APALEO_CLIENT_ID: 'client-1', APALEO_ABACUS_OUTPUT_DIR: '/data/out', APALEO_ABACUS_TIMEZONE: 'Europe/Berlin' });
+    const { config } = await load(VALID, { APALEO_CLIENT_ID: 'client-1', APALEO_ODOO_OUTPUT_DIR: '/data/out', APALEO_ODOO_TIMEZONE: 'Europe/Berlin' });
     expect(config.apaleo.clientId).toBe('client-1');
     expect(config.output.dir).toBe('/data/out');
     expect(config.schedule.timezone).toBe('Europe/Berlin');
   });
 
   it('no longer reads the DATEV overrides of the Berater- and Mandantennummer', async () => {
-    const error = await loadError(VALID, { APALEO_ABACUS_BERATERNUMMER: '7654321', APALEO_ABACUS_MANDANTENNUMMER: '99' });
-    expect(error.message).toContain('APALEO_ABACUS_BERATERNUMMER: unknown variable');
-    expect(error.message).toContain('APALEO_ABACUS_MANDANTENNUMMER: unknown variable');
+    const error = await loadError(VALID, { APALEO_ODOO_BERATERNUMMER: '7654321', APALEO_ODOO_MANDANTENNUMMER: '99' });
+    expect(error.message).toContain('APALEO_ODOO_BERATERNUMMER: unknown variable');
+    expect(error.message).toContain('APALEO_ODOO_MANDANTENNUMMER: unknown variable');
   });
 
-  it('APALEO_ABACUS_TIMEZONE sets schedule.timezone and is validated like the file value', async () => {
-    const { config } = await load(VALID, { APALEO_ABACUS_TIMEZONE: 'Europe/Berlin' });
+  it('APALEO_ODOO_TIMEZONE sets schedule.timezone and is validated like the file value', async () => {
+    const { config } = await load(VALID, { APALEO_ODOO_TIMEZONE: 'Europe/Berlin' });
     expect(config.schedule.timezone).toBe('Europe/Berlin');
-    const error = await loadError(VALID, { APALEO_ABACUS_TIMEZONE: 'Mars/Olympus' });
+    const error = await loadError(VALID, { APALEO_ODOO_TIMEZONE: 'Mars/Olympus' });
     expect(error.message).toContain('schedule.timezone: must be an IANA time zone name');
-    expect(error.message).toContain('from APALEO_ABACUS_TIMEZONE');
+    expect(error.message).toContain('from APALEO_ODOO_TIMEZONE');
   });
 
   it('ignores empty override values', async () => {
-    const { config } = await load(VALID, { APALEO_ABACUS_OUTPUT_DIR: '' });
+    const { config } = await load(VALID, { APALEO_ODOO_OUTPUT_DIR: '' });
     expect(config.output.dir).toBe('./exports');
   });
 
-  it('rejects an unknown APALEO_ABACUS_* variable and names it', async () => {
-    const error = await loadError(VALID, { APALEO_ABACUS_OUTPUTDIR: '/x' });
-    expect(error.message).toContain('APALEO_ABACUS_OUTPUTDIR: unknown variable');
-    expect(error.message).toContain('APALEO_ABACUS_OUTPUT_DIR');
+  it('rejects an unknown APALEO_ODOO_* variable and names it', async () => {
+    const error = await loadError(VALID, { APALEO_ODOO_OUTPUTDIR: '/x' });
+    expect(error.message).toContain('APALEO_ODOO_OUTPUTDIR: unknown variable');
+    expect(error.message).toContain('APALEO_ODOO_OUTPUT_DIR');
   });
 
   it('rejects an array key set from the environment', async () => {
-    const error = await loadError(VALID, { APALEO_ABACUS_PROPERTIES: 'BER,MUC' });
-    expect(error.message).toContain('APALEO_ABACUS_PROPERTIES');
+    const error = await loadError(VALID, { APALEO_ODOO_PROPERTIES: 'BER,MUC' });
+    expect(error.message).toContain('APALEO_ODOO_PROPERTIES');
     expect(error.message).toContain('"properties" is an array and can only be set in the config file');
+  });
+
+  it('ignores the old APALEO_ABACUS_* names of the Abacus project', async () => {
+    const { config } = await load(VALID, { APALEO_ABACUS_CONFIG: '/x/old.yaml', APALEO_ABACUS_OUTPUT_DIR: '/old', APALEO_ABACUS_PROPERTIES: 'BER', APALEO_ABACUS_TIMEZONE: 'nope' });
+    expect(config.output.dir).toBe('./exports');
+    expect(config.schedule.timezone).not.toBe('nope');
   });
 
   it('ignores the old APALEO_BMD_* names of the BMD project', async () => {
@@ -504,9 +512,9 @@ describe('environment overrides', () => {
 
   it('only allow-lists scalar keys', () => {
     expect(ENV_OVERRIDES.map((o) => o.variable)).toEqual([
-      'APALEO_ABACUS_OUTPUT_DIR',
+      'APALEO_ODOO_OUTPUT_DIR',
       'APALEO_CLIENT_ID',
-      'APALEO_ABACUS_TIMEZONE',
+      'APALEO_ODOO_TIMEZONE',
     ]);
   });
 });
@@ -514,11 +522,11 @@ describe('environment overrides', () => {
 describe('missing config file', () => {
   it('throws ConfigNotFoundError with the path and how to create the file', async () => {
     const ctx = createTestContext();
-    const path = join(ctx.cwd, 'apaleo-abacus.config.yaml');
+    const path = join(ctx.cwd, 'apaleo-odoo.config.yaml');
     const error = await loadConfig({ path, env: {}, readFile: ctx.fs.readFile }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ConfigNotFoundError);
     expect((error as Error).message).toContain(path);
-    expect((error as Error).message).toContain('apaleo-abacus.config.example.yaml');
+    expect((error as Error).message).toContain('apaleo-odoo.config.example.yaml');
   });
 
   it('makes a command that needs config exit 1 with the path it looked for', async () => {
@@ -535,7 +543,7 @@ describe('missing config file', () => {
     };
     const ctx = createTestContext();
     expect(await runCli(['needs-config'], ctx, [needsConfig])).toBe(1);
-    expect(ctx.err()).toContain(`No config file found at ${join(ctx.cwd, 'apaleo-abacus.config.yaml')}`);
+    expect(ctx.err()).toContain(`No config file found at ${join(ctx.cwd, 'apaleo-odoo.config.yaml')}`);
     expect(ctx.err()).toContain('--config <path>');
     expect(ctx.err()).not.toMatch(/\n\s+at /);
   });

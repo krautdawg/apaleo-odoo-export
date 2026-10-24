@@ -16,12 +16,12 @@ const PENDING_IMPORT = 'Die Datei folgt der dokumentierten AbaConnect-Schnittste
 const ORIGIN_PROJECTS = ['](https://github.com/krautdawg/apaleo-bmd-export)', '](https://github.com/krautdawg/apaleo-datev-export)'];
 /** The install block of the German quick start (s09 design decision 3), which CI runs. */
 const INSTALL_BLOCK = [
-  'git clone https://github.com/krautdawg/apaleo-abacus-export.git',
-  'cd apaleo-abacus-export',
+  'git clone https://github.com/krautdawg/apaleo-odoo-export.git',
+  'cd apaleo-odoo-export',
   'corepack enable',
   'pnpm install --frozen-lockfile',
   'pnpm build',
-  'node dist/cli/main.js --help        # oder: pnpm link --global, dann apaleo-abacus --help',
+  'node dist/cli/main.js --help        # oder: pnpm link --global, dann apaleo-odoo --help',
 ];
 
 /** The text from the start up to the first `## ` heading. */
@@ -52,7 +52,7 @@ describe('README first screen', () => {
     expect(rest.find((line) => line.trim() !== '')).toContain('](README.en.md)');
     expect(firstScreen).toContain(GERMAN_TAGLINE);
     for (const badge of ['actions/workflows/ci.yml/badge.svg', 'licence-MIT', 'node.js-24']) expect(firstScreen).toContain(badge);
-    expect(firstScreen).toMatch(/apaleo-abacus-export ist .*Hotels in der Schweiz.*Treuhänder/);
+    expect(firstScreen).toMatch(/apaleo-odoo-export ist .*Hotels in der Schweiz.*Treuhänder/);
     expect(firstScreen).toContain('Keine Gewähr, keine Steuerberatung');
     expect(firstScreen).toContain('Lass deine Kontenzuordnung von deinem Treuhänder prüfen');
     expect(firstScreen).toContain('](DISCLAIMER.md)');
@@ -121,7 +121,7 @@ describe('README quick start', () => {
     expect(section(README, '## Schnellstart mit Docker')).toContain('docker compose -f docker-compose.example.yml build');
     expect(README).toContain('Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du installierst aus dem Quellcode.');
     for (const text of [README, ENGLISH_README]) {
-      expect(text).not.toMatch(/npx\s+apaleo-abacus/);
+      expect(text).not.toMatch(/npx\s+apaleo-odoo/);
       expect(text).not.toContain('docker pull');
     }
   });
@@ -173,7 +173,7 @@ describe('README scope and comparison', () => {
   });
 
   it('names the origin projects in one sentence and links both for BMD and DATEV users', () => {
-    const origin = README.split('\n').filter((line) => /^apaleo-abacus-export baut auf .* auf/.test(line));
+    const origin = README.split('\n').filter((line) => /^apaleo-odoo-export baut auf .* auf/.test(line));
     expect(origin).toHaveLength(1);
     for (const link of ORIGIN_PROJECTS) expect(origin[0]).toContain(link);
     expect(origin[0]).toMatch(/wer .*mit BMD .*mit DATEV bucht/);
@@ -221,7 +221,7 @@ describe('README FAQ', () => {
 describe('README.en.md', () => {
   it('is a short English README that links the German one, the disclaimer and the licence', () => {
     expect(ENGLISH_README.split('\n').length).toBeLessThanOrEqual(80);
-    expect(ENGLISH_README.startsWith('# apaleo-abacus-export\n')).toBe(true);
+    expect(ENGLISH_README.startsWith('# apaleo-odoo-export\n')).toBe(true);
     for (const phrase of ['Abacus Finanzbuchhaltung', 'AbaConnect "XML Buchungen"', 'Swiss hotels', 'a first test import with a Treuhänder is still pending', 'only Swiss MWST rules apply']) {
       expect(ENGLISH_README).toContain(phrase);
     }
@@ -298,7 +298,7 @@ describe('docs folder', () => {
     const text = readRepoFile('docs/configuration.md');
     for (const path of configPaths()) expect(text, path).toContain(`\`${path}\``);
     for (const { variable } of [...ENV_OVERRIDES, ...SECRET_KEYS]) expect(text, variable).toContain(`\`${variable}\``);
-    expect(text).toContain('`APALEO_ABACUS_CONFIG`');
+    expect(text).toContain('`APALEO_ODOO_CONFIG`');
   });
 
   it('has the topic sections and, as its last section, the sign-off checklist for the Treuhänder in the mapping guide, and no English summary', () => {
@@ -427,16 +427,25 @@ describe('docs folder', () => {
     expect(section(MAINTAINERS, '## Testimporte')).toContain('| Datum | Abacus-Version | Schnittstellenversion | Programm | Ergebnis |');
   });
 
-  it('plans later only items inside this product, no other target formats and no BMD-only items', () => {
+  it('plans later only items inside this product, no other target formats and no BMD-only or Abacus-only items', () => {
     const backlog = section(MAINTAINERS, '## Später geplant');
-    for (const item of ['Saldosteuersatz', 'Debitoren-Schnittstelle', 'Wöchentlicher Rhythmus', 'Sammelbuchung pro Tag', 'Gebühren aus Abrechnungsdateien', 'E-Mail-Versand', 'Dauerprozess mit eigenem Zeitplan', 'Überwachung und Alarme', 'Dependabot', 'Veröffentlichung auf npm oder in einer Registry']) {
+    for (const item of ['Wöchentlicher Rhythmus', 'Gebühren aus Abrechnungsdateien', 'E-Mail-Versand', 'Dauerprozess mit eigenem Zeitplan', 'Überwachung und Alarme', 'Dependabot', 'Veröffentlichung auf npm oder in einer Registry']) {
       expect(backlog).toContain(item);
     }
     expect(backlog).not.toMatch(/DATEV|RZL|lexoffice|Mews|Smoobu|Zielformat/);
     expect(backlog).not.toMatch(/\bBMD\b|Personenkonten-Datei|BMD Com/);
+    expect(backlog).not.toMatch(/Saldosteuersatz|Debitoren-Schnittstelle|Sammelbuchung pro Tag/);
   });
 
-  it('Metadata applied: records the gh repo edit command with the Swiss description and every topic, removes BMD and DATEV topics and leaves the visibility alone', () => {
+  it('Odoo push later: plans the direct transfer through the external API, drafts only, with the reasons of the research', () => {
+    const backlog = section(MAINTAINERS, '## Später geplant');
+    const item = backlog.split('\n').find((line) => line.startsWith('- **Direkte Übertragung in Odoo')) ?? '';
+    expect(item).toContain('**Direkte Übertragung in Odoo über die externe API (JSON-2 ab Odoo 19, XML-RPC für 17 und 18), nur Entwürfe**');
+    for (const reason of ['„Custom“', 'zwei Protokolle', 'Odoo 22', 'API-Schlüssel mit Schreibrechten', 'Steuerzeilen']) expect(item, reason).toContain(reason);
+    expect(item).not.toMatch(/Treuhänder|MWST|Rappen|«|»/);
+  });
+
+  it('Metadata applied: records the a08 gh repo edit command for apaleo-abacus-export with the Swiss description and every topic, removes BMD and DATEV topics, leaves the visibility alone and defers this repo\'s metadata to o08', () => {
     const topics = ['apaleo', 'abacus', 'abacus-export', 'abaconnect', 'abacus-fibu', 'mwst', 'kmu-kontenrahmen', 'hotel', 'hospitality', 'accounting', 'buchhaltung', 'treuhand', 'switzerland', 'schweiz'];
     const privateSection = section(MAINTAINERS, '## Das Repository ist vorerst privat');
     expect(privateSection).toContain(`--add-topic ${topics.join(',')}`);
@@ -444,7 +453,10 @@ describe('docs folder', () => {
     expect(privateSection).toMatch(/--remove-topic [^\n]*\bbmd\b[^\n]*\bdatev\b/);
     expect(privateSection).not.toMatch(/--description "[^"]*\b(BMD|DATEV)\b|--add-topic [^\n]*\b(bmd|datev|ekr|austria|oesterreich)\b/);
     expect(privateSection).not.toContain('--visibility');
+    expect(privateSection).toContain('gh repo edit krautdawg/apaleo-abacus-export \\\n');
     expect(privateSection).toContain('gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility');
+    expect(privateSection).not.toMatch(/gh repo edit krautdawg\/apaleo-odoo-export\b/);
+    expect(privateSection).toMatch(/krautdawg\/apaleo-odoo-export\) hat bisher nur die Beschreibung "apaleo Odoo Export \(in Arbeit\)" und keine Themen\. Beschreibung und Themen für Odoo setzt erst die OpenSpec-Änderung o08\./);
   });
 });
 

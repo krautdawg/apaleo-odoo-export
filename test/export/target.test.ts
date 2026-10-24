@@ -41,7 +41,7 @@ const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' } as const;
 
 async function runWith(setup: ExportSetup, request: Partial<ExportRequest>, target: TargetWriter<PostedBooking>) {
   const { ctx, fake } = setup;
-  const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-abacus.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+  const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
   const full: ExportRequest = { period: SEPTEMBER, propertyIds: [BSP], dryRun: false, overwrite: false, ...request };
   const [outcome] = await runExport(full, { loaded, source: fake, ctx, target });
   if (!outcome) throw new Error('no outcome');
@@ -68,7 +68,7 @@ const CONTRACT_CASES: [string, ContractCase][] = [
       target: abacusTarget,
       name: (from, to) => `ABACUS_Buchungen_${from}-${to}_BSP.xml`,
       count: (text) => text.match(/<Transaction /g)?.length ?? 0,
-      protocolTitle: /^apaleo-abacus export protocol\. No warranty/,
+      protocolTitle: /^apaleo-odoo export protocol\. No warranty/,
     },
   ],
 ];
@@ -193,7 +193,7 @@ describe('the Abacus target through the export', () => {
 
   it('takes the Mandant and the Geschäftsbereich of the property for the file', async () => {
     const setup = exportSetup();
-    const loaded = await loadConfig({ path: join(setup.ctx.cwd, 'apaleo-abacus.config.yaml'), env: setup.ctx.env, readFile: setup.ctx.fs.readFile });
+    const loaded = await loadConfig({ path: join(setup.ctx.cwd, 'apaleo-odoo.config.yaml'), env: setup.ctx.env, readFile: setup.ctx.fs.readFile });
     const config = { ...loaded.config, properties: [{ id: BSP, mandant: '42', geschaeftsbereich: 7 }] };
     expect(settingsFromConfig({ config, propertyId: BSP })).toMatchObject({ mandant: '42', geschaeftsbereich: 7, leitwaehrung: 'EUR' });
     const outcome = await runWith(setup, {}, createAbacusTarget(() => ({ ...settingsFromConfig({ config, propertyId: BSP }) })));
@@ -218,7 +218,7 @@ describe('the Abacus target through the export', () => {
 });
 
 /** The fixture config with property BSP and the given Leitwährung. */
-const exportConfigWith = (leitwaehrung: string) => `${FIXTURE_FILES['apaleo-abacus.config.yaml'].replace('leitwaehrung: EUR', `leitwaehrung: ${leitwaehrung}`)}properties:\n  - id: BSP\n`;
+const exportConfigWith = (leitwaehrung: string) => `${FIXTURE_FILES['apaleo-odoo.config.yaml'].replace('leitwaehrung: EUR', `leitwaehrung: ${leitwaehrung}`)}properties:\n  - id: BSP\n`;
 
 describe('the currency of the target (export-run, "Currency of the target")', () => {
   /** The fake target, booking in CHF. */
@@ -234,7 +234,7 @@ describe('the currency of the target (export-run, "Currency of the target")', ()
 
   it('asks the target for its currency: the Abacus target books in abacus.leitwaehrung', async () => {
     const { ctx } = exportSetup();
-    const { config } = await loadConfig({ path: join(ctx.cwd, 'apaleo-abacus.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+    const { config } = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
     expect(DEFAULT_TARGET.currency(config)).toBe('EUR');
     expect(DEFAULT_TARGET.currency({ ...config, abacus: { ...config.abacus, leitwaehrung: 'CHF' } })).toBe('CHF');
   });
@@ -257,7 +257,7 @@ describe('the currency of the target (export-run, "Currency of the target")', ()
     expect(outcome.status).toBe('written');
     expect(readdirSync(folderOf(setup))).toContain('FAKE_20260901-20260930_BSP.txt');
     const chf = swissSetup();
-    await chf.ctx.fs.writeFile(join(chf.ctx.cwd, 'apaleo-abacus.config.yaml'), exportConfigWith('CHF'));
+    await chf.ctx.fs.writeFile(join(chf.ctx.cwd, 'apaleo-odoo.config.yaml'), exportConfigWith('CHF'));
     const standard = await runWith(chf, {}, DEFAULT_TARGET);
     expect(standard.status).toBe('written');
     expect(readFileSync(join(folderOf(chf), 'ABACUS_Buchungen_20260901-20260930_BSP.xml'), 'utf8')).toContain('<KeyCurrency>CHF</KeyCurrency>');
@@ -282,7 +282,7 @@ describe('the currency of the target (export-run, "Currency of the target")', ()
           for (const [i, line] of (data.ledger[BSP] ?? []).entries()) line.currency = i < eurLines || propertyCurrency === 'EUR' ? 'EUR' : 'CHF';
         },
       });
-      await setup.ctx.fs.writeFile(join(setup.ctx.cwd, 'apaleo-abacus.config.yaml'), exportConfigWith('CHF'));
+      await setup.ctx.fs.writeFile(join(setup.ctx.cwd, 'apaleo-odoo.config.yaml'), exportConfigWith('CHF'));
       return setup;
     }
 
@@ -322,15 +322,15 @@ describe('the currency of the target (export-run, "Currency of the target")', ()
 
 describe('the checks and the summary do not depend on the target (recorded VIE day 2026-10-21)', () => {
   const MAPPING = VIE_MAPPING;
-  const CONFIG = `${FIXTURE_FILES['apaleo-abacus.config.yaml']}properties:\n  - id: VIE\nchecks:\n  aggregates: true\n`;
+  const CONFIG = `${FIXTURE_FILES['apaleo-odoo.config.yaml']}properties:\n  - id: VIE\nchecks:\n  aggregates: true\n`;
 
   async function exportVie(target: TargetWriter<PostedBooking> | undefined) {
     const ctx = createApaleoContext(
       { live: true },
-      { files: { 'apaleo-abacus.config.yaml': CONFIG, 'mapping-VIE.csv': MAPPING }, now: new Date('2026-10-25T08:00:00Z') },
+      { files: { 'apaleo-odoo.config.yaml': CONFIG, 'mapping-VIE.csv': MAPPING }, now: new Date('2026-10-25T08:00:00Z') },
     );
     const { source } = createFixtureSource({ live: true }, {}, ctx);
-    const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-abacus.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+    const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
     const request: ExportRequest = { period: { from: '2026-10-21', to: '2026-10-21' }, propertyIds: ['VIE'], dryRun: false, overwrite: false };
     const [outcome] = await runExport(request, { loaded, source, ctx, ...(target ? { target } : {}) });
     if (!outcome) throw new Error('no outcome');

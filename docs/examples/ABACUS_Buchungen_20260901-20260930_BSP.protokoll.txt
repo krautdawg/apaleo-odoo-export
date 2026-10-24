@@ -1,4 +1,4 @@
-apaleo-abacus export protocol. No warranty, not tax advice: have your Treuhänder check the bookings.
+apaleo-odoo export protocol. No warranty, not tax advice: have your Treuhänder check the bookings.
 
 Property BSP, 2026-09-01 to 2026-09-30: 26 apaleo lines, 21 Abacus bookings
 
@@ -72,6 +72,6 @@ Findings:
 
 File: ABACUS_Buchungen_20260901-20260930_BSP.xml
 SHA-256: 20992d81a76cf8a272facf2303062b6592bc045cc74275a3c4e78fcbfd68c587
-Mapping SHA-256: 9180aa66b7ba81e05263ec6ccc75fc2022c372ddc2a051db5b51c1a1bfde25fb
-Tool: apaleo-abacus 0.1.0
+Mapping SHA-256: 69b497297a1d50c3323ff978664c6efe5eb4a3e2d24709f8c58ebcae8469bef2
+Tool: apaleo-odoo 0.0.0
 Created: 2026-10-05T08:00:00.000Z

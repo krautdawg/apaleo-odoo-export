@@ -7,8 +7,9 @@ import { configSchema } from '../../src/core/config.js';
 
 /**
  * The docs consistency rules (s08 design decision 5, extended in s09 design
- * decision 7, b08 design decisions 1 and 4, and for Switzerland in a08 design
- * decisions 1, 5 and 6). Each check takes
+ * decision 7, b08 design decisions 1 and 4, a08 design decisions 1, 5 and 6,
+ * and o01 design decision 3: the Swiss spelling checks are gone, so every doc
+ * may be German as written in Germany). Each check takes
  * the text of one Markdown file and returns one problem per stale mention,
  * naming the file, so a failing test says exactly what to fix.
  */
@@ -19,10 +20,10 @@ export const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const ROOT_DOCS = ['README.md', 'README.en.md', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'DISCLAIMER.md', 'CHANGELOG.md'];
 
 /** The checked documentation: root files, every Markdown file under `docs/`, and the demo README, relative to the repository root. */
-export function documentationFiles(): string[] {
-  const docs = readdirSync(join(ROOT, 'docs'), { recursive: true, withFileTypes: true })
+export function documentationFiles(root: string = ROOT): string[] {
+  const docs = readdirSync(join(root, 'docs'), { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)));
+    .map((entry) => relative(root, join(entry.parentPath, entry.name)));
   return [...ROOT_DOCS, ...docs.sort(), 'examples/demo/README.md'];
 }
 
@@ -40,9 +41,9 @@ export function sourceFiles(): string[] {
 
 // --- Commands --------------------------------------------------------------
 
-const PROGRAMS = ['apaleo-abacus ', 'node dist/cli/main.js '];
-/** The binaries of the projects this tool was copied from: a doc that still shows one is stale (a01). */
-const OLD_PROGRAM = /(?:^|\s)(apaleo-bmd|apaleo-datev)(?=\s|$)/;
+const PROGRAMS = ['apaleo-odoo ', 'node dist/cli/main.js '];
+/** The binaries of the projects this tool was copied from: a doc that still shows one is stale (a01, o01). */
+const OLD_PROGRAM = /(?:^|\s)(apaleo-abacus|apaleo-bmd|apaleo-datev)(?=\s|$)/;
 /** Flags the CLI accepts before or instead of a command, and on every command. */
 const TOP_LEVEL_FLAGS = new Set(['help', 'version']);
 const GLOBAL_FLAGS = new Set(Object.keys(COMMON_OPTIONS));
@@ -77,16 +78,16 @@ export function commandPhrases(commands: readonly Command[]): Map<string, Comman
   return phrases;
 }
 
-/** Problems with the `apaleo-abacus` command lines in the shell fences of one file. */
+/** Problems with the `apaleo-odoo` command lines in the shell fences of one file. */
 export function checkCommandLines(file: string, markdown: string, commands: readonly Command[]): string[] {
   const phrases = commandPhrases(commands);
   const problems: string[] = [];
   for (const raw of shellLines(markdown)) {
     const old = OLD_PROGRAM.exec(raw.split(/\s#/)[0] ?? '')?.[1];
-    if (old) problems.push(`${file}: "${raw}": ${old} is the binary of another project; write apaleo-abacus`);
+    if (old) problems.push(`${file}: "${raw}": ${old} is the binary of another project; write apaleo-odoo`);
     const program = PROGRAMS.find((p) => raw.startsWith(p));
     if (!program) continue;
-    // A shell comment, pipe, redirection or second command ends the apaleo-abacus part.
+    // A shell comment, pipe, redirection or second command ends the apaleo-odoo part.
     const line = raw.slice(program.length).split(/\s(?:#|&&|\|\||\||>>?|;)/)[0]?.trim() ?? '';
     const words = line.split(/\s+/).filter(Boolean);
     const flags = [...line.matchAll(/(?:^|[\s[])--([A-Za-z][\w-]*)/g)].map((m) => m[1] ?? '');
@@ -117,7 +118,7 @@ export function checkCommandLines(file: string, markdown: string, commands: read
  * A backticked config key. The design's pattern plus an optional `[]` after the
  * section, so `properties[].mapping` is checked too and not silently ignored.
  */
-export const CONFIG_KEY = /^(apaleo|abacus|output|posting|properties|schedule|checks)(\[\])?(\.[A-Za-z[\]]+)+$/;
+export const CONFIG_KEY = /^(apaleo|odoo|abacus|output|posting|properties|schedule|checks)(\[\])?(\.[A-Za-z[\]]+)+$/;
 
 interface SchemaDef {
   type: string;
@@ -346,35 +347,16 @@ export function checkInformalAddress(file: string, markdown: string): string[] {
   return problems;
 }
 
-// --- Swiss Standard German ------------------------------------------------------
+// --- Practice terms --------------------------------------------------------------
 
 /**
- * Terms of German DATEV practice that have no place in a Swiss Abacus doc: a
- * copied DATEV paragraph, a German levy or a German VAT rate. `Kurtaxe` and
- * `Mandantennummer` are not on the list: both are the words Swiss Treuhänder
- * and Abacus use (a01).
+ * Terms of Austrian BMD practice that have no place in these docs. The terms of
+ * German practice (`SKR03`, `UStVA`, `Kanzlei`, `7 %`, `19 %`) are allowed since
+ * o01 design decision 3: the product is German now. o08 adds the Swiss practice
+ * terms and the ban on « and » for every German file once the Abacus-era docs
+ * are rewritten.
  */
-export const GERMAN_PRACTICE_TERMS = [
-  'Buchungsstapel',
-  'BU-Schlüssel',
-  'SKR03',
-  'SKR04',
-  'Automatikkonto',
-  'Beherbergungssteuer',
-  'Übernachtungssteuer',
-  'Beraternummer',
-  'EXTF',
-  'Belegfeld',
-  'Festschreibung',
-  'UStVA',
-  'ELSTER',
-  '19 %',
-  '7 %',
-] as const;
-
-/** Terms of Austrian BMD practice that have no place in a Swiss Abacus doc. */
 export const AUSTRIAN_PRACTICE_TERMS = [
-  'Kanzlei',
   'Steuercode',
   'Buchungssymbol',
   'Einheitskontenrahmen',
@@ -407,10 +389,7 @@ const WORD_START = String.raw`(?<![\p{L}\p{N}])`;
 const termPattern = (term: string) =>
   /^\d/.test(term) ? new RegExp(`(?<![\\d,.])${escapeRegExp(term).replace(' ', '\\s?')}`, 'u') : new RegExp(`${WORD_START}${escapeRegExp(term)}`, 'u');
 
-const PRACTICE_PATTERNS = [
-  ...GERMAN_PRACTICE_TERMS.map((term) => ({ term, pattern: termPattern(term), practice: 'German DATEV' })),
-  ...AUSTRIAN_PRACTICE_TERMS.map((term) => ({ term, pattern: termPattern(term), practice: 'Austrian BMD' })),
-];
+const PRACTICE_PATTERNS = AUSTRIAN_PRACTICE_TERMS.map((term) => ({ term, pattern: termPattern(term) }));
 const TARGET_PATTERNS = ORIGIN_TARGETS.map((token) => ({ token, pattern: new RegExp(`${WORD_START}${token}(?![\\p{L}\\p{N}])`, 'u') }));
 
 interface ProseLine {
@@ -447,8 +426,8 @@ const ALLOWED_ORIGIN_MENTIONS: Record<string, (line: ProseLine) => boolean> = {
 const FILES_ABOUT_THE_ORIGIN = new Set(['CHANGELOG.md']);
 
 /**
- * Problems where a German file uses a term of German DATEV or Austrian BMD
- * practice, or names BMD or DATEV, outside the allowed places.
+ * Problems where a German file uses a term of Austrian BMD practice, or names
+ * BMD or DATEV, outside the allowed places.
  */
 export function checkPracticeTerms(file: string, markdown: string): string[] {
   if (FILES_ABOUT_THE_ORIGIN.has(file)) return [];
@@ -457,31 +436,12 @@ export function checkPracticeTerms(file: string, markdown: string): string[] {
   for (const line of proseLines(markdown)) {
     if (allowed(line)) continue;
     const quoted = line.text.trim();
-    for (const { term, pattern, practice } of PRACTICE_PATTERNS) {
-      if (pattern.test(line.text)) problems.push(`${file}: "${quoted}": "${term}" is a term of ${practice} practice; use the Swiss Abacus term`);
+    for (const { term, pattern } of PRACTICE_PATTERNS) {
+      if (pattern.test(line.text)) problems.push(`${file}: "${quoted}": "${term}" is a term of Austrian BMD practice`);
     }
     for (const { token, pattern } of TARGET_PATTERNS) {
       if (pattern.test(line.text)) problems.push(`${file}: "${quoted}": "${token}" is named outside a link to an origin project, the other target formats and the findings for a copied setup`);
     }
-  }
-  return problems;
-}
-
-/** A rate in prose that is not written `8,1 %`: with a decimal point, or without the space before `%`. */
-const NON_SWISS_RATE = /(?<![\p{L}\p{N}.,])\d+(?:\.\d+\s?%|(?:,\d+)?%)/gu;
-
-/**
- * Problems with the Swiss spelling of a German file: the letter ß anywhere, and
- * a rate in prose that is not in the Swiss notation `8,1 %` (code spans and
- * fences excepted).
- */
-export function checkSwissSpelling(file: string, markdown: string): string[] {
-  const problems: string[] = [];
-  for (const [i, line] of markdown.split('\n').entries()) {
-    if (line.includes('ß')) problems.push(`${file}:${i + 1}: "${line.trim()}": the letter "ß" is not Swiss; write "ss"`);
-  }
-  for (const { text } of proseLines(markdown)) {
-    for (const [rate] of text.matchAll(NON_SWISS_RATE)) problems.push(`${file}: "${text.trim()}": "${rate}" is not the Swiss rate notation; write it like "8,1 %"`);
   }
   return problems;
 }

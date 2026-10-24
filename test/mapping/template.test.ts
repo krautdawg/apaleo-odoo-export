@@ -187,7 +187,7 @@ describe('KMU hotel template', () => {
 
   it('writes the header comment with the template and the MWST-Codes', () => {
     expect(mappingHeaderComment(template, SETTINGS)).toBe(
-      'apaleo-abacus Kontenzuordnung, Vorlage kmu-hotel@1, MWST-Codes 311 (8,1 %), 312 (2,6 %), 313 (3,8 %). ' +
+      'apaleo-odoo Kontenzuordnung, Vorlage kmu-hotel@1, MWST-Codes 311 (8,1 %), 312 (2,6 %), 313 (3,8 %). ' +
         'Alle Vorschläge mit dem Treuhänder prüfen. Spalten abacus_account und mwst_code in Excel als Text formatieren.',
     );
   });

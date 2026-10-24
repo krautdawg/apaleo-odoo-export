@@ -23,7 +23,7 @@ export const ACCESS_TOKEN = 'fixture-access-token-77a1';
 
 /** A config file and environment that pass validation and point at the fixtures. */
 export const FIXTURE_FILES = {
-  'apaleo-abacus.config.yaml': `apaleo:\n  clientId: ${CLIENT_ID}\nabacus:\n  mandant: 1234\n  leitwaehrung: EUR\n`,
+  'apaleo-odoo.config.yaml': `apaleo:\n  clientId: ${CLIENT_ID}\nabacus:\n  mandant: 1234\n  leitwaehrung: EUR\n`,
 };
 export const FIXTURE_ENV = { APALEO_CLIENT_SECRET: CLIENT_SECRET };
 

@@ -1,6 +1,6 @@
 # Zeitplan und Docker
 
-`apaleo-abacus schedule --once` ermittelt, welche Zeiträume fällig sind, schreibt für jeden, der noch nicht im Ausgabeordner liegt, die Abacus-Datei (AbaConnect «XML Buchungen») und endet. Im Tool läuft keine eigene Uhr: Cron, ein systemd-Timer, ein Kubernetes CronJob oder die Schleife in `docker-compose.example.yml` ruft es auf. Du kannst es so oft aufrufen, wie du willst, zum Beispiel stündlich: Ein Zeitraum, dessen Datei schon existiert, kostet keine Anfrage an apaleo.
+`apaleo-odoo schedule --once` ermittelt, welche Zeiträume fällig sind, schreibt für jeden, der noch nicht im Ausgabeordner liegt, die Abacus-Datei (AbaConnect «XML Buchungen») und endet. Im Tool läuft keine eigene Uhr: Cron, ein systemd-Timer, ein Kubernetes CronJob oder die Schleife in `docker-compose.example.yml` ruft es auf. Du kannst es so oft aufrufen, wie du willst, zum Beispiel stündlich: Ein Zeitraum, dessen Datei schon existiert, kostet keine Anfrage an apaleo.
 
 Keine Gewähr, keine Steuerberatung, lass deine Kontenzuordnung von deinem Treuhänder prüfen. Lass ihn auch die ersten Importe in Abacus prüfen, bevor das Tool allein läuft.
 
@@ -10,7 +10,7 @@ Es gibt kein Image in einer Registry. Du baust es selbst aus diesem Repository, 
 
 ```yaml
 schedule:
-  timezone: Europe/Zurich   # IANA-Zeitzone (Standard Europe/Zurich); auch APALEO_ABACUS_TIMEZONE
+  timezone: Europe/Zurich   # IANA-Zeitzone (Standard Europe/Zurich); auch APALEO_ODOO_TIMEZONE
   cadence: monthly          # monthly (Standard) oder daily
   monthly:
     dayOfMonth: 3           # 1 bis 5
@@ -20,7 +20,7 @@ schedule:
   catchUpDays: 40           # mindestens 3 (monatlich) oder 5 (täglich)
 ```
 
-- «Heute» ist das Datum in `schedule.timezone` (Standard `Europe/Zurich`), nie eine Schätzung in UTC: Am 3. November um 00:30 Uhr ist in Zürich der 3. November, auch wenn in UTC noch der 2. November ist. Ein Hotel in der Schweiz braucht den Schlüssel also nicht; setz ihn nur, wenn dein Rechner und deine Hotels woanders stehen. `apaleo-abacus doctor` zeigt die Zeitzone, mit der das Tool rechnet.
+- «Heute» ist das Datum in `schedule.timezone` (Standard `Europe/Zurich`), nie eine Schätzung in UTC: Am 3. November um 00:30 Uhr ist in Zürich der 3. November, auch wenn in UTC noch der 2. November ist. Ein Hotel in der Schweiz braucht den Schlüssel also nicht; setz ihn nur, wenn dein Rechner und deine Hotels woanders stehen. `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet.
 - `cadence: monthly` (Standard): Ein Kalendermonat ist ab `schedule.monthly.dayOfMonth` des Folgemonats fällig. Mit Tag 3 wird der Oktober ab dem 3. November exportiert, und dein Treuhänder bekommt eine Abacus-Datei pro Monat, früh im Folgemonat.
 - `cadence: daily`: Ein Tag ist `schedule.daily.offsetDays` Tage später fällig. Mit 2 (Standard) wird der 18. Oktober am 20. Oktober ab 06:00 Uhr exportiert. Täglich heisst für deinen Treuhänder etwa 30 Importe im Monat; stimm das also vorher mit ihm ab.
 - Ein geplanter Lauf schreibt nie einen Zeitraum, der noch nicht abgeschlossen ist. apaleo kann auf einen Tag noch buchen, bis der Tagesabschluss (Night Audit) den *folgenden* Tag schliesst (ein Gast, der um 04:00 Uhr eincheckt, wird auf den Vortag gebucht), und dieser Abschluss läuft nach Mitternacht. Ein Zeitraum, der am Tag T endet, gilt deshalb erst ab `schedule.finalAfter` (Standard 06:00 Uhr) am Tag T+2 als abgeschlossen, nicht früher: Sobald die Datei existiert, überspringt jeder spätere Lauf den Zeitraum, spätere Buchungen kämen also nie in Abacus an. Bis dahin meldet das Tool den Zeitraum als `not yet final` (Hinweis `N-NOT-FINAL`), ohne apaleo zu fragen, und der erste Lauf nach dieser Uhrzeit exportiert ihn. Beispiele mit den Standardwerten: Der 18. Oktober wird am 20. Oktober ab 06:00 Uhr geschrieben; mit `offsetDays: 1` wartet der 19. Oktober bis zum 21. Oktober 06:00 Uhr; mit `dayOfMonth: 1` oder `2` wartet der Oktober bis zum 2. November 06:00 Uhr. Setz `finalAfter` auf die Uhrzeit, zu der dein Tagesabschluss sicher fertig ist (gern früher, nie später als 12:00 Uhr). Ob ein Zeitraum abgeschlossen ist, prüft das Tool in `schedule.timezone` und noch einmal in der Zeitzone des Hotels aus apaleo.
@@ -58,20 +58,20 @@ Jede Zeile erscheint, sobald ihr Hotel und Zeitraum fertig sind; ein Lauf, der m
 ## Docker Compose (empfohlen)
 
 ```sh
-git clone https://github.com/krautdawg/apaleo-abacus-export.git
-cd apaleo-abacus-export
+git clone https://github.com/krautdawg/apaleo-odoo-export.git
+cd apaleo-odoo-export
 cp .env.example .env                 # APALEO_CLIENT_SECRET eintragen
 mkdir -p config data
-cp apaleo-abacus.config.example.yaml config/apaleo-abacus.config.yaml   # dann bearbeiten
+cp apaleo-odoo.config.example.yaml config/apaleo-odoo.config.yaml   # dann bearbeiten
 # die Kontenzuordnung(en) nach config/ legen, zum Beispiel config/mapping-BSP.csv
 sudo chown 1000:1000 data            # der Container läuft als Benutzer node (uid 1000)
 docker compose -f docker-compose.example.yml up -d --build
 docker compose -f docker-compose.example.yml logs -f
 ```
 
-Der Dienst `apaleo-abacus` (Image `apaleo-abacus-export:local`, aus diesem Repository gebaut) ruft `schedule --once` auf, wartet eine Stunde und wiederholt das. Die Dateien erscheinen in `./data/<Hotel>/<JJJJ-MM>/`; wie sie zu deinem Treuhänder kommen, steht unten in [Wo dein Treuhänder die Dateien findet](#wo-dein-treuhänder-die-dateien-findet).
+Der Dienst `apaleo-odoo` (Image `apaleo-odoo-export:local`, aus diesem Repository gebaut) ruft `schedule --once` auf, wartet eine Stunde und wiederholt das. Die Dateien erscheinen in `./data/<Hotel>/<JJJJ-MM>/`; wie sie zu deinem Treuhänder kommen, steht unten in [Wo dein Treuhänder die Dateien findet](#wo-dein-treuhänder-die-dateien-findet).
 
-Die Zeitzone für «heute» ist `Europe/Zurich`. Stehen deine Hotels woanders, setz sie in der Konfiguration (`schedule.timezone`) oder nimm im Compose-Beispiel die auskommentierte Zeile `APALEO_ABACUS_TIMEZONE` unter `environment:` hinein.
+Die Zeitzone für «heute» ist `Europe/Zurich`. Stehen deine Hotels woanders, setz sie in der Konfiguration (`schedule.timezone`) oder nimm im Compose-Beispiel die auskommentierte Zeile `APALEO_ODOO_TIMEZONE` unter `environment:` hinein.
 
 Lässt du das `chown` weg, legt Docker `./data` mit root als Besitzer an, und jeder Zeitraum scheitert mit `E-EXPORT` und `EACCES: permission denied`, gefolgt von dem `chown`-Befehl, den du ausführen musst (`sudo chown -R 1000:1000 data` neben `docker-compose.example.yml`). Der Lauf macht mit den anderen Hotels und Zeiträumen weiter und endet mit 1; es geht nichts verloren, der nächste Lauf nach der Korrektur exportiert sie.
 
@@ -81,25 +81,25 @@ So ist der Container aufgebaut:
 
 | Pfad | Inhalt | Einbindung |
 | --- | --- | --- |
-| `/config` | `apaleo-abacus.config.yaml` und die Kontenzuordnungen (CSV); auch das Arbeitsverzeichnis | `./config`, nur lesbar |
-| `/data` | die Exporte (`APALEO_ABACUS_OUTPUT_DIR=/data`, geht `output.dir` vor) | `./data` |
+| `/config` | `apaleo-odoo.config.yaml` und die Kontenzuordnungen (CSV); auch das Arbeitsverzeichnis | `./config`, nur lesbar |
+| `/data` | die Exporte (`APALEO_ODOO_OUTPUT_DIR=/data`, geht `output.dir` vor) | `./data` |
 | `/app` | das gebaute Tool | im Image |
 
 Weil das Arbeitsverzeichnis `/config` ist, zeigt ein Pfad zur Kontenzuordnung in der Konfiguration wie `./mapping-BSP.csv` (der Standard für `properties[].mapping`) in den Ordner `config/`.
 
 ### Secrets und Umgebung
 
-Die eingebundene Konfiguration braucht kein Secret: `APALEO_CLIENT_SECRET` kommt aus `.env`, und Git ignoriert diese Datei. Schreib es nie in die Konfigurationsdatei; das Tool lehnt das ab. Neben dem Secret lassen sich nur diese einzelnen Werte aus der Umgebung setzen: `APALEO_ABACUS_CONFIG`, `APALEO_ABACUS_OUTPUT_DIR`, `APALEO_CLIENT_ID` und `APALEO_ABACUS_TIMEZONE`. Im Image sind `APALEO_ABACUS_CONFIG=/config/apaleo-abacus.config.yaml` und `APALEO_ABACUS_OUTPUT_DIR=/data` schon gesetzt. Listen wie `properties` bleiben in der Konfigurationsdatei: `APALEO_ABACUS_PROPERTIES` lehnt das Tool mit einer entsprechenden Meldung ab.
+Die eingebundene Konfiguration braucht kein Secret: `APALEO_CLIENT_SECRET` kommt aus `.env`, und Git ignoriert diese Datei. Schreib es nie in die Konfigurationsdatei; das Tool lehnt das ab. Neben dem Secret lassen sich nur diese einzelnen Werte aus der Umgebung setzen: `APALEO_ODOO_CONFIG`, `APALEO_ODOO_OUTPUT_DIR`, `APALEO_CLIENT_ID` und `APALEO_ODOO_TIMEZONE`. Im Image sind `APALEO_ODOO_CONFIG=/config/apaleo-odoo.config.yaml` und `APALEO_ODOO_OUTPUT_DIR=/data` schon gesetzt. Listen wie `properties` bleiben in der Konfigurationsdatei: `APALEO_ODOO_PROPERTIES` lehnt das Tool mit einer entsprechenden Meldung ab.
 
 ### Einmalige Befehle
 
 Mit Argumenten führt der Compose-Dienst genau diesen einen Befehl aus und endet, statt in der Schleife zu laufen:
 
 ```sh
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus export --month 2026-10 --dry-run
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus export --month 2026-10
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus mapping check --property BSP
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus doctor
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo export --month 2026-10 --dry-run
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo export --month 2026-10
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo mapping check --property BSP
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo doctor
 ```
 
 So schliesst du eine Lücke nach einem Ausfall, der länger als `schedule.catchUpDays` war, oder startest `export --overwrite` nach einer Nachbuchung.
@@ -131,13 +131,13 @@ Wenn dir Cron auf dem Host lieber ist als ein Container, der dauerhaft läuft, b
 docker compose -f docker-compose.example.yml build
 crontab -e
 # diese Zeile eintragen (Pfad anpassen):
-0 * * * * cd /opt/apaleo-abacus-export && docker compose -f docker-compose.example.yml run --rm apaleo-abacus schedule --once >> schedule.log 2>&1
+0 * * * * cd /opt/apaleo-odoo-export && docker compose -f docker-compose.example.yml run --rm apaleo-odoo schedule --once >> schedule.log 2>&1
 ```
 
 Ohne Docker, nach der Installation aus dem Quellcode (`pnpm install --frozen-lockfile && pnpm build`), lautet die Cron-Zeile:
 
 ```sh
-0 * * * * cd /opt/apaleo-abacus-export && node dist/cli/main.js schedule --once >> schedule.log 2>&1
+0 * * * * cd /opt/apaleo-odoo-export && node dist/cli/main.js schedule --once >> schedule.log 2>&1
 ```
 
 Cron rechnet in der Zeitzone des Rechners, das Tool in `schedule.timezone`. Das stört nicht: Weil jeder Lauf nur exportiert, was fällig und abgeschlossen ist, genügt ein stündlicher Aufruf zu jeder Minute. Cron schickt die Ausgabe per E-Mail an den Benutzer des Rechners, wenn das eingerichtet ist; sonst behalte `./schedule.log` im Blick. Ein fehlgeschlagener Lauf endet mit 1 und nennt den Befund-Code. Eine Alarm-E-Mail gibt es in dieser Version nicht.
@@ -145,26 +145,26 @@ Cron rechnet in der Zeitzone des Rechners, das Tool in `schedule.timezone`. Das 
 ## Einfaches docker run
 
 ```sh
-docker build -t apaleo-abacus-export:local .
-docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-abacus-export:local
-docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-abacus-export:local export --month 2026-10
+docker build -t apaleo-odoo-export:local .
+docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-odoo-export:local
+docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-odoo-export:local export --month 2026-10
 ```
 
-Der Standardbefehl des Image ist `schedule --once`; Argumente ersetzen ihn. Das Image läuft als Benutzer node (uid 1000), deshalb das `chown` für `./data` aus dem Abschnitt Docker Compose. Welche Version läuft, zeigt `docker run --rm apaleo-abacus-export:local --version`; die OCI-Labels (`docker inspect apaleo-abacus-export:local`) nennen apaleo und Abacus, das Repository und die MIT-Lizenz.
+Der Standardbefehl des Image ist `schedule --once`; Argumente ersetzen ihn. Das Image läuft als Benutzer node (uid 1000), deshalb das `chown` für `./data` aus dem Abschnitt Docker Compose. Welche Version läuft, zeigt `docker run --rm apaleo-odoo-export:local --version`; die OCI-Labels (`docker inspect apaleo-odoo-export:local`) nennen apaleo und Abacus, das Repository und die MIT-Lizenz.
 
 ### Die Demo im Image
 
 `export --demo` braucht keine Konfiguration und kein Secret: Es exportiert den September 2026 des erfundenen Schweizer Hotels `BSP` «Hotel Beispiel» in CHF. Der Probelauf funktioniert so, wie er ist:
 
 ```sh
-docker run --rm apaleo-abacus-export:local export --month 2026-09 --demo --dry-run
+docker run --rm apaleo-odoo-export:local export --month 2026-09 --demo --dry-run
 ```
 
 Ohne `--dry-run` schreibt die Demo nach `./demo-output/` unterhalb des Arbeitsverzeichnisses, und das ist im Image `/config`, das root gehört (und das Compose nur lesbar einbindet). Der Lauf würde mit `E-EXPORT` und `EACCES` scheitern, und die Meldung nennt `-w /data`. Setz das Arbeitsverzeichnis mit `-w /data` auf einen Datenordner, in den der Benutzer node (uid 1000) schreiben darf:
 
 ```sh
 mkdir -p data && sudo chown 1000:1000 data
-docker run --rm -w /data -v "$PWD/data:/data" apaleo-abacus-export:local export --month 2026-09 --demo
+docker run --rm -w /data -v "$PWD/data:/data" apaleo-odoo-export:local export --month 2026-09 --demo
 ```
 
 Die Datei landet als `./data/demo-output/BSP/2026-09/ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml`, daneben ihr Protokoll und die `manifest.json`. Lösch `./data/demo-output/` danach; importiere nie eine Demodatei in einen echten Mandanten.

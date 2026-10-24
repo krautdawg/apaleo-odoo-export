@@ -43,7 +43,6 @@ describe('contribution and conduct files', () => {
     }
     expect(text).toContain('https://github.com/krautdawg');
     expect(text).not.toContain('[KONTAKTMETHODE EINFÜGEN]');
-    expect(text).not.toContain('ß');
     expect(text).toContain('Massnahmen');
   });
 
@@ -61,14 +60,13 @@ describe('CHANGELOG.md', () => {
   const unreleased = text.split(/^## \[0\.1\.0\] - \d{4}-\d{2}-\d{2}$/m)[1]?.split(/^## /m)[0] ?? '';
   const part = (heading: string) => unreleased.split(new RegExp(`^### ${heading}$`, 'm'))[1]?.split(/^### /m)[0] ?? '';
 
-  it('follows the German edition of Keep a Changelog with an Unveröffentlicht section, in Swiss Standard German', () => {
+  it('follows the German edition of Keep a Changelog with an Unveröffentlicht section', () => {
     expect(text).toContain('[Keep a Changelog](https://keepachangelog.com/de/1.1.0/)');
     expect(text).toMatch(/^## \[Unveröffentlicht\]$/m);
     expect(text).not.toMatch(/^##+ (\[Unreleased\]|Added|Changed|Removed|Fixed)$/m);
-    expect(text).not.toContain('ß');
   });
 
-  it('starts the history of apaleo-abacus-export and names apaleo-bmd-export v0.1.0 as its origin instead of repeating its entries', () => {
+  it('starts the history of apaleo-abacus-export (rewritten in o08) and names apaleo-bmd-export v0.1.0 as its origin instead of repeating its entries', () => {
     expect(text).toContain('Die Geschichte von apaleo-abacus-export beginnt hier.');
     expect(text).toContain('[apaleo-bmd-export](https://github.com/krautdawg/apaleo-bmd-export) v0.1.0');
     expect(text.match(/^## \[0\.1\.0\]/gm)).toHaveLength(1);
@@ -116,12 +114,11 @@ describe('issue and pull-request templates', () => {
     expect(readRepoFile('.github/ISSUE_TEMPLATE/feature_request.yml')).not.toMatch(/\bBMD\b|DATEV/);
   });
 
-  it('the forms and the pull-request template speak of Abacus and Swiss accounting, in Swiss orthography, not of BMD or DATEV practice', () => {
+  it('the forms and the pull-request template speak of Abacus and Swiss accounting, not of BMD or DATEV practice', () => {
     const files = ['ISSUE_TEMPLATE/bug_report.yml', 'ISSUE_TEMPLATE/feature_request.yml', 'ISSUE_TEMPLATE/new_source_or_target.yml', 'pull_request_template.md'];
     for (const file of files) {
       const text = readRepoFile(`.github/${file}`);
-      expect(text, file).not.toContain('ß');
-      expect(text, file).not.toMatch(/Kanzlei|Steuercode|Buchungssymbol|\bEKR\b|\bUSt\b|SKR0|Berater|BU-Schlüssel|BMD-Mandant/);
+      expect(text, file).not.toMatch(/Steuercode|Buchungssymbol|\bEKR\b|Berater|BU-Schlüssel|BMD-Mandant/);
     }
     for (const file of files.slice(0, 2)) expect(readRepoFile(`.github/${file}`), file).not.toMatch(/\bBMD\b|DATEV/);
     expect(readRepoFile('.github/pull_request_template.md')).not.toMatch(/\bBMD\b|DATEV/);

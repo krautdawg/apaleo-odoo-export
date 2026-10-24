@@ -1,11 +1,11 @@
 ## Docker Compose (recommended)
 
 ```sh
-git clone https://github.com/krautdawg/apaleo-abacus-export.git
-cd apaleo-abacus-export
+git clone https://github.com/krautdawg/apaleo-odoo-export.git
+cd apaleo-odoo-export
 cp .env.example .env                 # fill in APALEO_CLIENT_SECRET
 mkdir -p config data
-cp apaleo-abacus.config.example.yaml config/apaleo-abacus.config.yaml   # then edit it
+cp apaleo-odoo.config.example.yaml config/apaleo-odoo.config.yaml   # then edit it
 # put your mapping file(s) into config/, for example config/mapping-BSP.csv
 sudo chown 1000:1000 data            # the container runs as user node (uid 1000)
 docker compose -f docker-compose.example.yml up -d --build
@@ -22,24 +22,24 @@ How the container is laid out:
 
 | Path | What | Mount |
 | --- | --- | --- |
-| `/config` | `apaleo-abacus.config.yaml` and the mapping CSVs; also the working directory | `./config`, read-only |
-| `/data` | the exports (`APALEO_ABACUS_OUTPUT_DIR=/data`, overrides `output.dir`) | `./data` |
+| `/config` | `apaleo-odoo.config.yaml` and the mapping CSVs; also the working directory | `./config`, read-only |
+| `/data` | the exports (`APALEO_ODOO_OUTPUT_DIR=/data`, overrides `output.dir`) | `./data` |
 | `/app` | the built tool | in the image |
 
 Because the working directory is `/config`, a mapping path in the config such as `./mapping-BSP.csv` (the default for `properties[].mapping`) points into `config/`.
 
 ### Secrets and environment
 
-The mounted config needs no secret: `APALEO_CLIENT_SECRET` comes from `.env`, which is git-ignored. Never put it in the config file; the tool refuses that. Besides the secret, only these scalar settings can come from the environment: `APALEO_ABACUS_CONFIG`, `APALEO_ABACUS_OUTPUT_DIR`, `APALEO_CLIENT_ID`, `APALEO_ABACUS_BERATERNUMMER`, `APALEO_ABACUS_MANDANTENNUMMER` and `APALEO_ABACUS_TIMEZONE`. Lists such as `properties` stay in the config file: `APALEO_ABACUS_PROPERTIES` is refused with a message saying so.
+The mounted config needs no secret: `APALEO_CLIENT_SECRET` comes from `.env`, which is git-ignored. Never put it in the config file; the tool refuses that. Besides the secret, only these scalar settings can come from the environment: `APALEO_ODOO_CONFIG`, `APALEO_ODOO_OUTPUT_DIR`, `APALEO_CLIENT_ID`, `APALEO_ODOO_BERATERNUMMER`, `APALEO_ODOO_MANDANTENNUMMER` and `APALEO_ODOO_TIMEZONE`. Lists such as `properties` stay in the config file: `APALEO_ODOO_PROPERTIES` is refused with a message saying so.
 
 ### One-off commands
 
 With arguments, the compose service runs that single command and exits instead of looping:
 
 ```sh
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus export --month 2026-10 --dry-run
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus export --month 2026-10
-docker compose -f docker-compose.example.yml run --rm apaleo-abacus mapping check --property BSP
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo export --month 2026-10 --dry-run
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo export --month 2026-10
+docker compose -f docker-compose.example.yml run --rm apaleo-odoo mapping check --property BSP
 ```
 
 Use this to fill a gap after downtime longer than `schedule.catchUpDays`, or for `export --overwrite` after a late posting.
