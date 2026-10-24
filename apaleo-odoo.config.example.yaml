@@ -84,9 +84,9 @@ checks:
 # im Ausgabeordner liegt, und endet. Starte es per Cron oder mit der Docker-Compose-
 # Schleife (docs/docker.md); stündlich ist unbedenklich.
 schedule:
-  # "Heute" ist das Datum in dieser IANA-Zeitzone (Standard Europe/Zurich).
+  # "Heute" ist das Datum in dieser IANA-Zeitzone (Standard Europe/Berlin).
   # Auch APALEO_ODOO_TIMEZONE.
-  timezone: Europe/Zurich
+  timezone: Europe/Berlin
   # Ein Rhythmus pro Installation, damit nie tägliche und monatliche Dateien bei
   # Odoo ankommen: "monthly" (eine Importdatei pro Monat für die Kanzlei) oder "daily"
   # (etwa 30 Importe im Monat).

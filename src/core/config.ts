@@ -134,7 +134,7 @@ export const checksSection = z.strictObject({
   aggregates: z.boolean({ error: 'must be true or false' }).default(false),
 });
 
-const TIME_ZONE_MESSAGE = 'must be an IANA time zone name, for example "Europe/Zurich"';
+const TIME_ZONE_MESSAGE = 'must be an IANA time zone name, for example "Europe/Berlin"';
 
 /** An IANA zone name. Fixed offsets such as `+01:00` are refused: they ignore summer time. */
 const ianaTimeZone = z.string({ error: TIME_ZONE_MESSAGE }).refine((value) => {
@@ -172,7 +172,7 @@ export const MIN_CATCH_UP_DAYS = { daily: 5, monthly: 3 } as const;
 export const scheduleSection = z
   .strictObject({
     /** "Today" for the due-period computation is the date in this zone. */
-    timezone: ianaTimeZone.default('Europe/Zurich'),
+    timezone: ianaTimeZone.default('Europe/Berlin'),
     cadence: z.enum(['monthly', 'daily'], { error: 'must be "monthly" or "daily"' }).default('monthly'),
     /** A day is due this many days after it (2 = the day before yesterday). With 1 it waits one more day for the next night audit. */
     daily: z.strictObject({ offsetDays: wholeNumber(1, 3).default(2) }).prefault({}),

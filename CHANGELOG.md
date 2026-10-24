@@ -15,6 +15,7 @@ Die Geschichte von apaleo-abacus-export beginnt hier. Das Projekt ist eine Kopie
 
 ### Geändert
 
+- **Zeitplan und Docker für Deutschland** (o07): `schedule.timezone` ist jetzt standardmäßig `Europe/Berlin` statt `Europe/Zurich`; die Regeln für Fälligkeit, Abschluss und Nachholfenster bleiben gleich, und weil beide Zeitzonen dieselben Uhrzeiten und Sommerzeiten haben, verschiebt sich kein Termin. Wer die alte Zeitzone braucht, setzt `schedule.timezone` oder `APALEO_ODOO_TIMEZONE`. Die Kommentare von `docker-compose.example.yml`, `.env.example` und `Dockerfile` und die Anleitung [docs/docker.md](docs/docker.md) sind auf Deutsch für deutsche Hotels: wo die Odoo-Datei mit ihrem Protokoll liegt (`/data/<Hotel>/<JJJJ-MM>/ODOO_Buchungen_*.csv`), dass die Übergabe an die Kanzlei und der Import in Odoo Sache des Hotels sind ([docs/odoo-import.md](docs/odoo-import.md)), und die Demo im Image. Die CI prüft im Docker-Job die Odoo-Demodatei und ihr Protokoll.
 - **SKR-Hotelvorlagen `skr03-hotel@2` und `skr04-hotel@2`** (o05): Zeilen und Kommentare für No-Show- und Stornogebühren zu 7 % und 0 % (Entgelt oder Schadenersatz), den Speisensatz nach Leistungsdatum, die Kurtaxe nach § 10 UStG und Forderungsverluste nach § 17 UStG mit der geminderten Kennzahl. Anzahlungen buchen mit der Steuer ihres Satzes, Auflösung und Erstattung auf der Seite einer Gutschrift; Forderungsverluste als Basiszeile mit der Umsatzsteuer im Soll, wie Odoos eigene Abgleichsmodelle.
 
 ### Entfernt

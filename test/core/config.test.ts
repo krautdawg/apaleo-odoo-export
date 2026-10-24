@@ -52,7 +52,7 @@ describe('loading', () => {
       posting: { text2: 'receipt' },
       properties: [],
       checks: { aggregates: false },
-      schedule: { timezone: 'Europe/Zurich', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 },
+      schedule: { timezone: 'Europe/Berlin', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 },
     });
     expect(secrets.apaleoClientSecret).toBeUndefined();
   });
@@ -128,7 +128,7 @@ describe('loading', () => {
     expect(config).not.toHaveProperty('abacus');
     expect(config.posting).toEqual({ text2: 'receipt' });
     expect(config.checks).toEqual({ aggregates: false });
-    expect(config.schedule).toEqual({ timezone: 'Europe/Zurich', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 });
+    expect(config.schedule).toEqual({ timezone: 'Europe/Berlin', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 });
   });
 
   it('treats a section whose keys are all commented out as missing, with or without env overrides', async () => {
@@ -355,7 +355,7 @@ describe('schedule section', () => {
   it('refuses a fixed UTC offset or an unknown zone as schedule.timezone', async () => {
     for (const zone of ['"+01:00"', 'Berlin', 'CEST+1']) {
       const error = await loadError(`${VALID}schedule:\n  timezone: ${zone}\n`);
-      expect(error.message).toContain('schedule.timezone: must be an IANA time zone name, for example "Europe/Zurich"');
+      expect(error.message).toContain('schedule.timezone: must be an IANA time zone name, for example "Europe/Berlin"');
       expect(error.message).not.toContain('Vienna');
     }
   });

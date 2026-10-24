@@ -73,7 +73,7 @@ export function eachDay(from: LocalDate, toExclusive: LocalDate): LocalDate[] {
   return days;
 }
 
-/** The calendar date of an instant in an IANA time zone, for example `Europe/Zurich`. */
+/** The calendar date of an instant in an IANA time zone, for example `Europe/Berlin`. */
 export function localDateIn(instant: Date, timeZone: string): LocalDate {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
     .formatToParts(instant);

@@ -94,7 +94,7 @@ Es gibt noch kein npm-Paket und kein Container-Image zum Herunterladen. Du insta
 
 ## Schnellstart mit Docker
 
-Das Image wird auf deinem Rechner aus diesem Repository gebaut; nichts wird aus einer Registry geladen. Der Container ruft stündlich `schedule --once` auf und exportiert jeden Monat, sobald er fällig ist (Oktober am 3. November, in der Zeitzone `Europe/Zurich`).
+Das Image wird auf deinem Rechner aus diesem Repository gebaut; nichts wird aus einer Registry geladen. Der Container ruft stündlich `schedule --once` auf und exportiert jeden Monat, sobald er fällig ist (Oktober am 3. November, in der Zeitzone `Europe/Berlin`).
 
 ```sh
 cp .env.example .env                 # APALEO_CLIENT_SECRET eintragen

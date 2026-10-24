@@ -24,7 +24,7 @@ Das Tool liest nur diese Variablen. Jede andere Variable, die mit `APALEO_ODOO_`
 | `APALEO_ODOO_CONFIG` | den Pfad der Konfigurationsdatei | Pfad |
 | `APALEO_CLIENT_ID` | `apaleo.clientId` | Text |
 | `APALEO_ODOO_OUTPUT_DIR` | `output.dir` | Pfad |
-| `APALEO_ODOO_TIMEZONE` | `schedule.timezone` (Standard `Europe/Zurich`) | IANA-Zeitzone, zum Beispiel `Europe/Zurich` |
+| `APALEO_ODOO_TIMEZONE` | `schedule.timezone` (Standard `Europe/Berlin`) | IANA-Zeitzone, zum Beispiel `Europe/Berlin` |
 
 Ein Wert aus der Umgebung geht dem Wert in der Datei vor.
 
@@ -109,7 +109,7 @@ Nur für `schedule --once`. Was jede Einstellung bewirkt, mit Beispielen: [docke
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `schedule.timezone` | `Europe/Zurich` | «Heute» ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in der Schweiz passt der Standard; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
+| `schedule.timezone` | `Europe/Berlin` | „Heute“ ist das Datum in dieser IANA-Zeitzone. Für ein Hotel in Deutschland passt der Standard; setz den Schlüssel nur, wenn dein Rechner und deine Hotels in einer anderen Zeitzone stehen; `apaleo-odoo doctor` zeigt die Zeitzone, mit der das Tool rechnet; ob ein Zeitraum abgeschlossen ist, prüft das Tool zusätzlich in der Zeitzone des Hotels aus apaleo. Auch über `APALEO_ODOO_TIMEZONE`. |
 | `schedule.cadence` | `monthly` | `monthly` (eine Datei pro Monat) oder `daily` (eine Datei pro Tag). Ein Rhythmus pro Installation. |
 | `schedule.monthly` | | Einstellungen für `cadence: monthly`. |
 | `schedule.monthly.dayOfMonth` | `3` | Ein Monat ist ab diesem Tag des Folgemonats fällig, 1 bis 5. |
@@ -118,16 +118,16 @@ Nur für `schedule --once`. Was jede Einstellung bewirkt, mit Beispielen: [docke
 | `schedule.finalAfter` | `"06:00"` | Ortszeit, ab der ein Zeitraum, der vorgestern endete, als abgeschlossen gilt, `"00:00"` bis `"12:00"`, in Anführungszeichen. |
 | `schedule.catchUpDays` | `40` | Wie viele Tage zurück ein verpasster Zeitraum noch exportiert wird, mindestens 3 (monatlich) oder 5 (täglich), höchstens 366. |
 
-Wann was fällig ist, mit den Standardwerten und der Zeitzone `Europe/Zurich` (06:00 Uhr ist `schedule.finalAfter`):
+Wann was fällig ist, mit den Standardwerten und der Zeitzone `Europe/Berlin` (06:00 Uhr ist `schedule.finalAfter`):
 
 | Rhythmus | Einstellung | Zeitraum | wird geschrieben ab |
 |---|---|---|---|
-| monatlich (Standard) | `schedule.monthly.dayOfMonth: 3` | Oktober 2026 | 3. November 2026, 00:00 Uhr in Zürich |
-| monatlich | `schedule.monthly.dayOfMonth: 1` | Oktober 2026 | 2. November 2026, 06:00 Uhr in Zürich (vorher `not yet final`) |
-| täglich | `schedule.daily.offsetDays: 2` (Standard) | 18. Oktober 2026 | 20. Oktober 2026, 06:00 Uhr in Zürich |
-| täglich | `schedule.daily.offsetDays: 1` | 19. Oktober 2026 | 21. Oktober 2026, 06:00 Uhr in Zürich (vorher `not yet final`) |
+| monatlich (Standard) | `schedule.monthly.dayOfMonth: 3` | Oktober 2026 | 3. November 2026, 00:00 Uhr in Berlin |
+| monatlich | `schedule.monthly.dayOfMonth: 1` | Oktober 2026 | 2. November 2026, 06:00 Uhr in Berlin (vorher `not yet final`) |
+| täglich | `schedule.daily.offsetDays: 2` (Standard) | 18. Oktober 2026 | 20. Oktober 2026, 06:00 Uhr in Berlin |
+| täglich | `schedule.daily.offsetDays: 1` | 19. Oktober 2026 | 21. Oktober 2026, 06:00 Uhr in Berlin (vorher `not yet final`) |
 
-Ein Zeitraum, der am Tag T endet, ist erst ab `schedule.finalAfter` am Tag T+2 abgeschlossen, nach dem Tagesabschluss (Night Audit), der den Folgetag schliesst. Mit den Standardwerten bekommt dein Treuhänder die Monatsdatei am 3. des Folgemonats. Mehr dazu in [docker.md](docker.md#was-fällig-ist).
+Ein Zeitraum, der am Tag T endet, ist erst ab `schedule.finalAfter` am Tag T+2 abgeschlossen, nach dem Tagesabschluss (Night Audit), der den Folgetag schließt. Mit den Standardwerten liegt die Monatsdatei für deine Kanzlei am 3. des Folgemonats bereit. Mehr dazu in [docker.md](docker.md#was-fällig-ist).
 
 ## Ein vollständiges Beispiel
 
@@ -147,7 +147,7 @@ output:
 checks:
   aggregates: false
 schedule:
-  timezone: Europe/Zurich
+  timezone: Europe/Berlin
   cadence: monthly
 ```
 

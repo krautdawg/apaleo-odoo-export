@@ -529,36 +529,56 @@ describe('the compatibility claim check', () => {
   });
 });
 
-describe('docs/docker.md (a07)', () => {
+describe('docs/docker.md (o07)', () => {
   const docker = readRepoFile('docs/docker.md');
 
-  it('names the path of the monthly Abacus file and its protocol for one property, and that nothing is sent by e-mail or to a cloud', () => {
+  it('Where the files are: names the path of the monthly Odoo file and its protocol for one property, the Odoo import guide, and that nothing is sent by e-mail, to a cloud or to Odoo', () => {
     expect(docker).toContain('/data/<Hotel>/<JJJJ-MM>/');
-    expect(docker).toContain('`/data/BSP/2026-10/ABACUS_Buchungen_20261001-20261031_BSP.xml`');
-    expect(docker).toContain('`/data/BSP/2026-10/ABACUS_Buchungen_20261001-20261031_BSP.protokoll.txt`');
-    expect(docker).toContain('Das Tool verschickt nichts per E-Mail und lädt nichts in eine Cloud');
+    expect(docker).toContain('`/data/BSP/2026-10/ODOO_Buchungen_20261001-20261031_BSP.csv`');
+    expect(docker).toContain('`/data/BSP/2026-10/ODOO_Buchungen_20261001-20261031_BSP.protokoll.txt`');
+    expect(docker).toContain('Das Tool verschickt nichts per E-Mail, lädt nichts in eine Cloud und überträgt nichts nach Odoo');
+    expect(docker).toContain('](odoo-import.md#datei-importieren)');
   });
 
-  it('leaves the handover to the hotel: a shared folder or the Treuhänder\'s own transfer', () => {
-    const section = docker.slice(docker.indexOf('## Wo dein Treuhänder die Dateien findet'), docker.indexOf('## Cron auf dem Host'));
-    expect(section).toContain('entscheidet ihr im Hotel');
+  it('leaves the handover and the import to the hotel: a shared folder or the Kanzlei\'s own transfer', () => {
+    const section = docker.slice(docker.indexOf('## Wo du die Odoo-Dateien findest'), docker.indexOf('## Cron auf dem Host'));
+    expect(section).toContain('wer sie in Odoo importiert, entscheidet ihr im Hotel');
     expect(section).toContain('freigegebenen Ordner');
-    expect(section).toContain('Datenaustausch, den dein Treuhänder ohnehin anbietet');
+    expect(section).toContain('Datenaustausch, den deine Kanzlei ohnehin anbietet');
   });
 
-  it('documents the compose loop, the host-cron alternative, the default time zone Europe/Zurich and the demo in the image', () => {
+  it('documents the build, the compose loop with Europe/Berlin, the host-cron alternative, one-off commands, the demo in the image and updates', () => {
+    expect(docker).toContain('docker build -t apaleo-odoo-export:local .');
     expect(docker).toContain('docker compose -f docker-compose.example.yml up -d --build');
+    expect(docker).toContain('(Standard `Europe/Berlin`)');
     expect(docker).toContain('## Cron auf dem Host statt der Schleife');
     expect(docker).toContain('docker compose -f docker-compose.example.yml run --rm apaleo-odoo schedule --once >> schedule.log 2>&1');
-    expect(docker).toContain('(Standard `Europe/Zurich`)');
-    expect(docker).not.toContain('Vienna');
+    for (const command of ['export --month 2026-10', 'mapping check --property BSP', 'doctor']) {
+      expect(docker).toContain(`docker compose -f docker-compose.example.yml run --rm apaleo-odoo ${command}\n`);
+    }
     expect(docker).toContain('docker run --rm -w /data -v "$PWD/data:/data" apaleo-odoo-export:local export --month 2026-09 --demo');
     expect(docker).toContain('uid 1000');
-    expect(docker).toContain('ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml');
+    expect(docker).toContain('./data/demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv');
+    expect(docker).toContain('docker compose -f docker-compose.example.yml build --pull');
   });
 
   it('gives the chown command for E-EXPORT as the export prints it', () => {
     expect(docker).toContain('`E-EXPORT`');
     expect(docker).toContain('`sudo chown -R 1000:1000 data`');
+  });
+
+  it('shows the German findings of the scheduler on the output lines', () => {
+    expect(docker).toMatch(/ written \/data\/BSP4\/2026-10\/ODOO_Buchungen_20261001-20261031_BSP4\.csv W-FOOD-RATE\n {2}W-FOOD-RATE: /);
+    expect(docker).toMatch(/ written \/data\/BSP\/2026-10\/ODOO_Buchungen_20261001-20261031_BSP\.csv N-ODOO-ROUNDING-LINE\n {2}N-ODOO-ROUNDING-LINE /);
+  });
+
+  it('Docker guide in German as used in Germany: no Swiss or Austrian practice terms, no « », no Abacus and no Europe/Zurich', () => {
+    for (const term of ['Treuhänder', 'Europe/Zurich', 'Zürich', 'MWST', 'Rappen', 'Mandant', 'Leitwährung', 'grösser', 'ausserhalb', 'schliesst', 'heisst', 'standardmässig', '«', '»', 'Abacus', 'AbaConnect', 'CHF', 'Vienna']) {
+      expect(docker, term).not.toContain(term);
+    }
+    expect(checkPracticeTerms('docs/docker.md', docker)).toEqual([]);
+    expect(checkGerman('docs/docker.md', docker)).toEqual([]);
+    expect(checkCommandLines('docs/docker.md', docker, COMMANDS)).toEqual([]);
+    expect(docker).toContain('ß');
   });
 });
