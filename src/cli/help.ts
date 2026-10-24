@@ -4,7 +4,7 @@ import { VERSION } from './version.js';
 
 export const BIN = 'apaleo-odoo';
 const DISCLAIMER_LINE =
-  'No warranty, not tax advice: have your Treuhänder check the mapping and the first imports. See DISCLAIMER.md.';
+  'No warranty, not tax advice: have your Steuerberater check the mapping and the first imports. See DISCLAIMER.md.';
 
 export function renderHelp(commands: readonly Command[]): string {
   const width = Math.max(15, ...commands.map((c) => c.name.length + 2));

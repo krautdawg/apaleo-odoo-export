@@ -2,7 +2,6 @@ import { extname, resolve } from 'node:path';
 import { isMap, isScalar, isSeq, LineCounter, parseDocument, type ErrorCode } from 'yaml';
 import { z } from 'zod';
 import { UserError } from './errors.js';
-import type { Finding } from './findings.js';
 import { parseClockTime } from './date.js';
 
 export type Env = Readonly<Record<string, string | undefined>>;
@@ -14,7 +13,7 @@ const ENV_PREFIX = 'APALEO_ODOO_';
 
 // ---------------------------------------------------------------------------
 // Schema. Each section is exported so later slices can extend it, for example
-// `abacusSection.extend({ ... })`, and add new sections to `configSections`.
+// `odooSection.extend({ ... })`, and add new sections to `configSections`.
 // ---------------------------------------------------------------------------
 
 function wholeNumber(min: number, max: number) {
@@ -52,8 +51,8 @@ export const outputSection = z.strictObject({
 });
 
 /**
- * Digits or letters written as YAML numbers (`mandant: 1234`, `mwstKonto: 2200`,
- * `normal: 311`) are read as text, so `pattern` decides alone and a number with
+ * Digits or letters written as YAML numbers (`journal: 100`, `roundingAccount: 2700`)
+ * are read as text, so `pattern` decides alone and a number with
  * a sign, a decimal point or too many digits is refused. A number whose source
  * text is not its decimal form (`011`, `0x1F`, `1e2`) never gets here: the YAML
  * parser would already have lost the digits, so `rejectRewrittenCodes` refuses it
@@ -62,52 +61,6 @@ export const outputSection = z.strictObject({
 function codeText(pattern: RegExp, message: string) {
   return z.preprocess((value) => (typeof value === 'number' ? String(value) : value), z.string({ error: message }).regex(pattern, message));
 }
-
-const MANDANT_MESSAGE = 'must be the Mandantennummer in Abacus: 1 to 6 digits';
-const mandant = codeText(/^\d{1,6}$/, MANDANT_MESSAGE);
-const ABACUS_ACCOUNT_MESSAGE = 'must be an Abacus account number: 1 to 11 digits';
-const abacusAccount = codeText(/^\d{1,11}$/, ABACUS_ACCOUNT_MESSAGE);
-const MWST_CODE_MESSAGE = 'must be an MWST-Code of the Mandant: 1 to 3 characters of A-Z, a-z and 0-9';
-const mwstCode = codeText(/^[A-Za-z0-9]{1,3}$/, MWST_CODE_MESSAGE);
-const geschaeftsbereich = wholeNumber(0, 99_999_999);
-
-export const ABACUS_LEITWAEHRUNGEN = ['CHF', 'EUR'] as const;
-export const ABRECHNUNGSARTEN = ['vereinbart', 'vereinnahmt'] as const;
-export const ABACUS_VERSIONS = ['2015.00', '2020.00', '2022.00', '2024.00'] as const;
-
-const VERSION_MESSAGE = `must be an AbaConnect interface version: ${ABACUS_VERSIONS.map((v) => `"${v}"`).join(', ')}`;
-
-/** `version: 2015.00` without quotes is the YAML number 2015; it means the text "2015.00". */
-const abacusVersion = z.preprocess(
-  (value) => (typeof value === 'number' ? value.toFixed(2) : value),
-  z.enum(ABACUS_VERSIONS, { error: VERSION_MESSAGE }),
-);
-
-/** What the Abacus Mandant decides about every file of the Abacus writer, which stays until o04 removes it (docs/abacus-format.md). */
-export const abacusSection = z.strictObject({
-  /** The Mandantennummer, written into `Parameter/Mandant` and every `Client`. No default. */
-  mandant,
-  /** The Mandant's Leitwährung: every property must book in it, the tool does not convert. */
-  leitwaehrung: z.enum(ABACUS_LEITWAEHRUNGEN, { error: 'must be "CHF" or "EUR" (the Leitwährung of the Mandant)' }).default('CHF'),
-  /** MWST-Abrechnungsart: `UseCode` 0 or 1 and the Collective `TaxAccount`. */
-  abrechnungsart: z.enum(ABRECHNUNGSARTEN, { error: 'must be "vereinbart" or "vereinnahmt"' }).default('vereinbart'),
-  /** The AbaConnect interface version in `Parameter/Version`. */
-  version: abacusVersion.default('2015.00'),
-  /** Steuerkonto of the MWST-Codes (KMU sample Mandant: 2200), the Collective `TaxAccount` with `vereinbart`. */
-  mwstKonto: abacusAccount.default('2200'),
-  /** Hilfskonto of the MWST-Codes (KMU sample Mandant: 2202), the Collective `TaxAccount` with `vereinnahmt`. */
-  mwstHilfskonto: abacusAccount.default('2202'),
-  /** The MWST-Codes of the Mandant's MWST-Tabelle that the template writes (KMU sample Mandant: 311, 312, 313). */
-  mwstCodes: z
-    .strictObject({
-      normal: mwstCode.default('311'),
-      reduziert: mwstCode.default('312'),
-      beherbergung: mwstCode.default('313'),
-    })
-    .prefault({}),
-  /** Geschäftsbereich (`Division`), 0 when the Mandant uses none. */
-  geschaeftsbereich: geschaeftsbereich.default(0),
-});
 
 const ODOO_JOURNAL_MESSAGE = 'must be the code of the Odoo journal: 1 to 5 characters of A-Z and 0-9 (Odoo allows at most 5 characters)';
 const odooJournal = codeText(/^[A-Z0-9]{1,5}$/, ODOO_JOURNAL_MESSAGE);
@@ -167,10 +120,6 @@ export const propertyEntry = z.strictObject({
   id: z.string().trim().min(1, 'must not be empty'),
   /** The mapping CSV, relative to the working directory. Default `./mapping-<id>.csv`. */
   mapping: z.string().trim().min(1, 'must not be empty').optional(),
-  /** Overrides `abacus.mandant` for this property's file. */
-  mandant: mandant.optional(),
-  /** Overrides `abacus.geschaeftsbereich` for this property's file. */
-  geschaeftsbereich: geschaeftsbereich.optional(),
   /** Overrides `odoo.journal` for this property's file. */
   journal: odooJournal.optional(),
 });
@@ -219,7 +168,7 @@ const finalAfterTime = z.string({ error: FINAL_AFTER_MESSAGE }).refine((value) =
  */
 export const MIN_CATCH_UP_DAYS = { daily: 5, monthly: 3 } as const;
 
-/** When `schedule --once` exports what. One cadence per install, so daily and monthly files never both reach Abacus. */
+/** When `schedule --once` exports what. One cadence per install, so daily and monthly files never both reach Odoo. */
 export const scheduleSection = z
   .strictObject({
     /** "Today" for the due-period computation is the date in this zone. */
@@ -252,8 +201,6 @@ export const scheduleSection = z
 export const configSections = {
   apaleo: apaleoSection.prefault({}),
   output: outputSection.prefault({}),
-  /** Optional: read only by the Abacus writer, which stays with its own tests until o04 removes both. */
-  abacus: abacusSection.optional(),
   /** Required: `odoo.journal` and `odoo.version` have no default, so a missing section reports those keys. */
   odoo: odooSection.prefault({ journal: undefined, version: undefined }),
   posting: postingSection.prefault({}),
@@ -266,56 +213,13 @@ export const configSchema = z.strictObject(configSections);
 
 export type Config = z.infer<typeof configSchema>;
 export type PostingConfig = z.infer<typeof postingSection>;
-export type AbacusConfig = z.infer<typeof abacusSection>;
 export type OdooConfig = z.infer<typeof odooSection>;
 export type PropertyConfig = z.infer<typeof propertyEntry>;
 export type ScheduleConfig = z.infer<typeof scheduleSection>;
 
-/** The Abacus Mandant and Geschäftsbereich a property's file books into: its own, else the `abacus` section's. */
-export interface AbacusUnit {
-  mandant: string;
-  geschaeftsbereich: number;
-}
-
-export function abacusUnitOf(abacus: Pick<AbacusConfig, 'mandant' | 'geschaeftsbereich'>, properties: Config['properties'], propertyId: string): AbacusUnit {
-  const property = properties.find((p) => p.id === propertyId);
-  return { mandant: property?.mandant ?? abacus.mandant, geschaeftsbereich: property?.geschaeftsbereich ?? abacus.geschaeftsbereich };
-}
-
 /** The journal code a property's file is imported into: its own, else the `odoo` section's. */
 export function odooJournalOf(odoo: Pick<OdooConfig, 'journal'>, properties: Config['properties'], propertyId: string): string {
   return properties.find((p) => p.id === propertyId)?.journal ?? odoo.journal;
-}
-
-/** The `value` of a `W-MANDANT-SHARED` finding: Mandant and Geschäftsbereich. */
-export function abacusUnitKey({ mandant, geschaeftsbereich }: AbacusUnit): string {
-  return `${mandant}/${geschaeftsbereich}`;
-}
-
-/**
- * `W-MANDANT-SHARED` for each Mandant and Geschäftsbereich that two or more
- * configured properties book into: the Belegnummern of their files start alike
- * (`MMDD` and a counter), so in one Mandant and Geschäftsbereich they could repeat.
- */
-export function sharedMandantFindings(config: Pick<Config, 'abacus' | 'properties'>): Finding[] {
-  const { abacus } = config;
-  if (!abacus) return [];
-  const users = new Map<string, { unit: AbacusUnit; ids: string[] }>();
-  for (const { id } of config.properties) {
-    const unit = abacusUnitOf(abacus, config.properties, id);
-    const key = abacusUnitKey(unit);
-    users.set(key, { unit, ids: [...(users.get(key)?.ids ?? []), id] });
-  }
-  return [...users]
-    .filter(([, { ids }]) => ids.length > 1)
-    .map(([key, { unit, ids }]) => ({
-      code: 'W-MANDANT-SHARED',
-      message:
-        `the properties ${ids.join(', ')} all book into the Abacus Mandant ${unit.mandant}, Geschäftsbereich ${unit.geschaeftsbereich}. ` +
-        'Their Belegnummern could repeat there; give each property its own Geschäftsbereich (properties[].geschaeftsbereich) ' +
-        'or its own Mandant (properties[].mandant)',
-      value: key,
-    }));
 }
 
 // ---------------------------------------------------------------------------
@@ -411,7 +315,7 @@ async function readConfigFile(path: string, readFile: LoadConfigOptions['readFil
 }
 
 /**
- * Dotted key paths (`abacus.mwstCodes.normal`, `properties.0.mandant`) of the
+ * Dotted key paths (`odoo.roundingAccount`, `properties.0.journal`) of the
  * numbers in the file whose source text differs from their decimal form, each
  * with that source text: `011` (read as 11), `0x1F` (31), `1e2` (100), `311.0` (311).
  */
@@ -433,15 +337,11 @@ function parseConfigText(text: string, path: string): ParsedConfigText {
 }
 
 /**
- * The keys whose value is a code written as text (Mandantennummer, account,
- * MWST-Code, Odoo journal and account). `011` and `11` are different MWST-Codes in the Mandant's MWST-Tabelle,
- * so a number there is accepted only when its source text is its decimal form.
+ * The keys whose value is a code written as text (Odoo journal and account).
+ * `0480` and `480` are different account codes in the Kontenplan, so a number
+ * there is accepted only when its source text is its decimal form.
  */
-const CODE_KEYS = [
-  /^abacus\.(mandant|mwstKonto|mwstHilfskonto|mwstCodes\.(normal|reduziert|beherbergung))$/,
-  /^odoo\.(journal|roundingAccount)$/,
-  /^properties\.\d+\.(mandant|journal)$/,
-];
+const CODE_KEYS = [/^odoo\.(journal|roundingAccount)$/, /^properties\.\d+\.journal$/];
 
 /** A code written as `011`, `0x1F` or `1e2` without quotes: the parser has already changed its digits, so refuse it and ask for quotes. */
 function rejectRewrittenCodes(numberSources: NumberSources, path: string): void {
@@ -594,10 +494,10 @@ function rejectSecretsInFile(raw: Record<string, unknown>, path: string): void {
   }
 }
 
-/** The sections of the tools this one started from (apaleo-datev-export, apaleo-bmd-export). */
-const FOREIGN_SECTIONS = ['datev', 'bmd'] as const;
+/** The sections of the tools this one started from (apaleo-abacus-export, apaleo-bmd-export, apaleo-datev-export). */
+const FOREIGN_SECTIONS = ['abacus', 'bmd', 'datev'] as const;
 
-/** A config of the DATEV or BMD tool this one started from: say so instead of listing every key as unknown. */
+/** A config of the Abacus, BMD or DATEV tool this one started from: say so instead of listing every key as unknown. */
 function rejectForeignSections(raw: Record<string, unknown>, path: string): void {
   const section = FOREIGN_SECTIONS.find((name) => raw[name] !== undefined);
   if (!section) return;
@@ -610,7 +510,6 @@ function rejectForeignSections(raw: Record<string, unknown>, path: string): void
 
 /** Extra words for a missing required key: what to do before the key can be filled in. */
 const REQUIRED_HINTS: Readonly<Record<string, string>> = {
-  'abacus.mandant': 'name the Mandantennummer of the hotel in Abacus, for example 1234 (the Treuhänder knows it); see docs/configuration.md',
   'odoo.journal': 'name the code of the Odoo journal the entries are imported into, for example APA; see docs/configuration.md',
   'odoo.version': 'name the Odoo version of the database: 17, 18 or 19; see docs/configuration.md',
   'odoo.roundingAccount':

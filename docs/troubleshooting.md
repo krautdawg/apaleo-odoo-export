@@ -22,7 +22,6 @@ Keine Gewähr, keine Steuerberatung: Wenn eine Lösung die Kontenzuordnung ände
 | `E-PROPERTY-UNKNOWN` | Die Property-ID aus der Konfiguration oder aus `--property` ist für die apaleo Custom App nicht sichtbar. | Lass dir mit `apaleo-odoo properties` die IDs anzeigen, die die App lesen darf. Prüfe die Hotel-Auswahl der Custom App in apaleo ([setup-apaleo.md](setup-apaleo.md)). |
 | `E-CURRENCY` | Das Hotel oder eine Zeile im Buchungsjournal ist nicht in der Währung des Odoo-Unternehmens (`odoo.currency`, Standard EUR). Ein Buchungssatz in Odoo steht in der Währung des Unternehmens, und das Tool rechnet nicht um. Für ein Hotel in einer anderen Währung liest das Tool das Buchungsjournal gar nicht erst. | Setze `odoo.currency` auf die Währung des Hotels (EUR oder CHF), wenn sie die Währung des Unternehmens ist. Fremdwährungen unterstützt das Tool nicht. |
 | `N-NO-BOOKINGS` | apaleo hat für den Zeitraum keine Buchungen, also wurde keine Datei geschrieben. | Nichts zu tun, außer du hast Buchungen erwartet: Dann prüfe die Property-ID und die Daten. |
-| `W-MANDANT-SHARED` | Nur mit dem Abschnitt `abacus`, den bis zu seiner Entfernung nur der Abacus-Writer liest: Zwei oder mehr Hotels der Konfiguration buchen in denselben Abacus-Mandanten und Geschäftsbereich. `doctor` meldet das; der Odoo-Export liest den Abschnitt nicht und warnt im Protokoll nicht. | Gib jedem Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`), oder entferne den Abschnitt `abacus`, wenn du nur Odoo-Dateien schreibst. |
 
 ## Kontenzuordnung
 
@@ -91,28 +90,6 @@ Einzelheiten: [export.md](export.md).
 | `N-COMPANIONS-REPAIRED` | Die Datei war unverändert, aber ihr Protokoll oder ihr Eintrag in `manifest.json` fehlte oder war falsch (ein früherer Lauf wurde unterbrochen), und wurde neu geschrieben. | Nichts. |
 | `E-EXPORT` | Ein Schritt des Exports ist fehlgeschlagen: Das Dateisystem hat das Schreiben verweigert (Rechte, volle Festplatte, schreibgeschützter Mount), ein anderer Lauf hielt die Sperre des Ordners, oder ein Problem mit der Kontenzuordnung oder mit apaleo hat den Monat gestoppt. Die Meldung sagt, was. | Folge dem Hinweis in der Meldung. Mit Docker braucht ein Ordner `./data`, der root gehört, `sudo chown -R 1000:1000 data`. Eine übrig gebliebene `.apaleo-odoo.lock` aus einem abgebrochenen Lauf darfst du löschen, wenn kein anderer Lauf aktiv ist. |
 
-## Abacus-Datei (XML Buchungen)
-
-Der Writer für die AbaConnect-Datei «XML Buchungen» prüft jedes Feld, bevor er eine Datei schreibt, und meldet alle Fehler auf einmal, mit Buchungsnummer und Feld. Bei einem Fehler schreibt er keine Datei. Einzelheiten: [abacus-format.md](abacus-format.md).
-
-| Code | Ursache | Lösung |
-|---|---|---|
-| `E-ABACUS-ACCOUNT` | Ein Konto der Buchung besteht nicht aus 1 bis 11 Ziffern. Abacus-Konten sind Zahlen. | Korrigiere das Konto in der Kontenzuordnung, ohne Buchstaben, Leerzeichen oder Punkte. |
-| `E-ABACUS-SAME-ACCOUNT` | Konto und Gegenkonto einer Buchung sind gleich. | Prüf die Kontenzuordnung: Zwei apaleo-Konten derselben Buchung zeigen auf dasselbe Abacus-Konto. |
-| `E-ABACUS-AMOUNT` | Ein Betrag ist nicht grösser als 0, nicht auf den Rappen genau oder hat mehr als 11 Stellen vor dem Punkt. | Eröffne ein Issue: Zeilen mit Betrag 0 werden normalerweise vor dem Schreiben übersprungen. |
-| `E-ABACUS-TAX` | Die MWST einer Buchung ist nicht kleiner als ihr Bruttobetrag, nicht auf den Rappen genau, oder nicht 0 bei einem MWST-Code mit Satz 0. | Prüf Satz und MWST-Code der Zeile in der Kontenzuordnung; sonst eröffne ein Issue. |
-| `E-ABACUS-TAX-RATE` | Die MWST einer Buchung passt nicht zu ihrem Satz: Sie weicht um mehr als einen Rappen von `Brutto × Satz / (100 + Satz)` ab, auf den Rappen gerundet. Ohne «MWST berechnen» übernimmt Abacus die MWST so, wie sie in der Datei steht, und sie käme falsch in die MWST-Abrechnung. | Prüf Satz und MWST-Code der Zeile in der Kontenzuordnung; stimmen sie, eröffne ein Issue mit der Meldung (ohne Namen). |
-| `E-ABACUS-TAX-SIGN` | Die MWST hat das falsche Vorzeichen: negativ, wenn das Gegenkonto im Haben steht, positiv, wenn es im Soll steht. | Eröffne ein Issue mit der Meldung (ohne Namen). |
-| `E-ABACUS-RATE` | Der MWST-Satz ist negativ, grösser als 99,99 oder hat mehr als zwei Nachkommastellen. | Korrigiere den Satz in der Kontenzuordnung, zum Beispiel `8.1`, `3.8` oder `2.6`. |
-| `E-ABACUS-MWST-CODE` | Der MWST-Code hat nicht 1 bis 3 Zeichen aus `A-Z`, `a-z` und `0-9`. | Nimm den Code aus der MWST-Tabelle des Mandanten, zum Beispiel `313`; frag deinen Treuhänder. |
-| `E-ABACUS-KOST` | Die Kostenstelle hat nicht 1 bis 11 Ziffern. | Trag in der Kontenzuordnung eine Kostenstelle aus Ziffern ein, oder lass das Feld leer. |
-| `E-ABACUS-TEXT` | `Text1` einer Buchung ist leer, auch nach dem Bereinigen. Abacus braucht einen Buchungstext. | Eröffne ein Issue: Das Tool setzt den Text selbst. |
-| `E-ABACUS-DATE` | Das Datum einer Buchung ist ungültig oder liegt ausserhalb des Zeitraums der Datei. | Eröffne ein Issue: Der Export liest nur Buchungen des Zeitraums. |
-| `E-ABACUS-PERIOD` | Beginn oder Ende des Zeitraums ist kein gültiges Datum, oder der Zeitraum beginnt nach seinem letzten Tag. Die Meldung hat keine Buchungsnummer. | Prüf `--from` und `--to` (Format `JJJJ-MM-TT`, `--from` nicht nach `--to`). |
-| `E-ABACUS-BELEGNR` | Eine Datei hätte mehr als 999 999 Buchungen. Die Belegnummer hat sechs Stellen für den Zähler. | Exportiere kürzere Zeiträume, zum Beispiel mit `--from` und `--to` je eine Woche. |
-| `E-ABACUS-FILE-NAME` | Die Property-ID lässt sich nicht im Dateinamen verwenden (erlaubt sind nur Buchstaben, Ziffern, `_` und `-`). | Eröffne ein Issue mit der Property-ID (sie kommt aus apaleo). |
-| `N-ABACUS-TRUNCATED` | `Text1` oder `Text2` wurde auf 80 Zeichen gekürzt. | Nichts, ausser der gekürzte Text ist wichtig. Über die Protokolldatei findest du die Buchung in apaleo. |
-
 ## Odoo-Datei (Buchungssätze)
 
 Der Writer für die Importdatei der Odoo-Buchungssätze prüft jede Buchung und jeden Buchungssatz, bevor er eine Datei schreibt, und meldet alle Fehler auf einmal, mit Tag und Konten, nie mit einem Gästenamen. Bei einem Fehler schreibt er keine Datei. Einzelheiten: [odoo-format.md](odoo-format.md).
@@ -141,7 +118,7 @@ Dieses Tool baut auf apaleo-abacus-export, apaleo-datev-export und apaleo-bmd-ex
 | Code | Ursache | Lösung |
 |---|---|---|
 | `E-EXPORT` (beim Lesen der Kontenzuordnung) | Die Kontenzuordnung hat die Spalten der Abacus-Zuordnung von apaleo-abacus-export (`abacus_account`, `mwst_code`), der BMD-Zuordnung von apaleo-bmd-export (`bmd_account`, `steuercode`), der DATEV-Zuordnung von apaleo-datev-export (`datev_account`, `bu_key`) oder ist der Kontenexport eines kostenpflichtigen DATEV- oder Abacus-Connectors. `mapping check` und `init-mapping --update` brechen mit derselben Meldung ab. | Leg die Datei mit `apaleo-odoo init-mapping --property <id> --template skr03-hotel` (oder `skr04-hotel`) neu an. Die Kontonummern der DATEV-Hotelvorlagen für SKR03 und SKR04 sind in Odoo dieselben; übertrage eigene Konten von Hand, siehe [mapping-guide.md](mapping-guide.md#umstieg-von-einem-anderen-connector). |
-| kein Code, jeder Befehl bricht ab | Die Konfigurationsdatei hat einen Abschnitt `bmd` oder `datev` (aus der Konfiguration von apaleo-bmd-export oder apaleo-datev-export). | Ersetze ihn durch den Abschnitt `odoo` mit `odoo.journal` und `odoo.version`; siehe [configuration.md](configuration.md#odoo). |
+| kein Code, jeder Befehl bricht ab | Die Konfigurationsdatei hat einen Abschnitt `abacus`, `bmd` oder `datev` (aus der Konfiguration von apaleo-abacus-export, apaleo-bmd-export oder apaleo-datev-export). Das Tool nennt den Abschnitt, zum Beispiel „abacus is not a section of apaleo-odoo“. | Ersetze ihn durch den Abschnitt `odoo` mit `odoo.journal` und `odoo.version`; siehe [configuration.md](configuration.md#odoo). |
 
 ## Häufige Fragen nach dem ersten Live-Test
 

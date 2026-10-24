@@ -1,5 +1,4 @@
-import { ConfigNotFoundError, EXAMPLE_CONFIG_FILE, loadConfig, resolveConfigPath, sharedMandantFindings } from '../../core/config.js';
-import { formatFinding } from '../../core/findings.js';
+import { ConfigNotFoundError, EXAMPLE_CONFIG_FILE, loadConfig, resolveConfigPath } from '../../core/config.js';
 import { roundingMethodLabel } from '../../odoo/format.js';
 import { CONFIG_OPTION, EXIT_OK, stringOption, type Command } from '../command.js';
 import { VERSION } from '../version.js';
@@ -31,11 +30,8 @@ export const doctor: Command = {
         `The tax rounding must equal the rounding method of the Odoo company (Settings > Accounting > Taxes > Rounding Method: ` +
           `"${roundingMethodLabel(odoo.taxRounding, odoo.version)}"), or Odoo adds an "Automatic Balancing Line" to the entries.\n`,
       );
-      const { abacus } = loaded.config;
-      if (abacus) print('Abacus', `Mandant ${abacus.mandant}, Leitwährung ${abacus.leitwaehrung} (read only by the Abacus writer, removed in a later version)`);
       const { schedule } = loaded.config;
       print('Schedule', `cadence ${schedule.cadence}, time zone ${schedule.timezone}`);
-      for (const finding of sharedMandantFindings(loaded.config)) ctx.stdout.write(`${formatFinding(finding)}\n`);
     } catch (error) {
       if (!(error instanceof ConfigNotFoundError)) throw error;
       print('Config', `not found (copy ${EXAMPLE_CONFIG_FILE} to get started)`);

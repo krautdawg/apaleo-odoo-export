@@ -27,45 +27,45 @@ const mapping = mappingOf([
   mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes' }),
 ]);
 
-const abacus = (account: AccountRef, rate: number | undefined = 0, chart?: ChartIndex) =>
+const odooAccountOf = (account: AccountRef, rate: number | undefined = 0, chart?: ChartIndex) =>
   resolve(mapping, account, { rate, ...(chart ? { chart } : {}) })?.odooAccount;
 
 describe('resolution order', () => {
   it('(1) takes the exact number and type first', () => {
-    expect(abacus(ref(ACC10, 'Revenues', '5000'))).toBe('3400');
+    expect(odooAccountOf(ref(ACC10, 'Revenues', '5000'))).toBe('3400');
   });
 
   it('(2) then the number with any type', () => {
-    expect(abacus(ref('1102', 'Payments'))).toBe('1091');
+    expect(odooAccountOf(ref('1102', 'Payments'))).toBe('1091');
   });
 
   it('(3) then the parent chain from the chart, with the same type', async () => {
     const chart = new ChartIndex((await loadBeispielData()).charts[BSP] ?? []);
     const acc20 = 'RevenueAccommodation_Normal:20.00';
-    expect(abacus(ref(acc20, 'Revenues'), 20, chart)).toBe('3401');
+    expect(odooAccountOf(ref(acc20, 'Revenues'), 20, chart)).toBe('3401');
     // The chart wins over the line: the line names 5000, the chart RevenueAccommodation.
-    expect(abacus(ref(acc20, 'Revenues', '5000'), 20, chart)).toBe('3401');
-    expect(abacus(ref(acc20, 'Payments', 'RevenueAccommodation'))).toBe('1090');
+    expect(odooAccountOf(ref(acc20, 'Revenues', '5000'), 20, chart)).toBe('3401');
+    expect(odooAccountOf(ref(acc20, 'Payments', 'RevenueAccommodation'))).toBe('1090');
   });
 
   it('resolves a per-reservation account with a parent to the parent row', () => {
-    expect(abacus(ref('BSP-EXT-1_Receivables', 'Receivables', '1200'))).toBe('1101');
+    expect(odooAccountOf(ref('BSP-EXT-1_Receivables', 'Receivables', '1200'))).toBe('1101');
   });
 
   it('(4) uses the rate wildcard for VAT-relevant types', () => {
-    expect(abacus(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 10)).toBe('2030');
-    expect(abacus(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 20)).toBe('2031');
-    expect(abacus(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 0)).toBe('2039');
-    expect(abacus(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 13)).toBeUndefined();
+    expect(odooAccountOf(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 10)).toBe('2030');
+    expect(odooAccountOf(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 20)).toBe('2031');
+    expect(odooAccountOf(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 0)).toBe('2039');
+    expect(odooAccountOf(ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), 13)).toBeUndefined();
     expect(resolve(mapping, ref('BSP-ABCDEF-1_Liabilities', 'Liabilities'), { rate: undefined })).toBeUndefined();
   });
 
   it('(5) uses the plain wildcard for other types: a new payment method account', () => {
-    expect(abacus(ref('1106', 'Payments', '1000'))).toBe('1090');
+    expect(odooAccountOf(ref('1106', 'Payments', '1000'))).toBe('1090');
   });
 
   it('never wildcards a revenue account', () => {
-    expect(abacus(ref('RevenueOther_Normal:20.00', 'Revenues'), 20)).toBeUndefined();
+    expect(odooAccountOf(ref('RevenueOther_Normal:20.00', 'Revenues'), 20)).toBeUndefined();
   });
 
   it('returns a row with an empty Odoo account as it is (unmapped)', () => {
@@ -77,12 +77,12 @@ describe('resolution order', () => {
       { number: 'A', name: 'A', type: 'House', parentNumber: 'B', ledger: 'global', isArchived: false, hasChildren: true },
       { number: 'B', name: 'B', type: 'House', parentNumber: 'A', ledger: 'global', isArchived: false, hasChildren: true },
     ]);
-    expect(abacus(ref('A', 'House'), 0, chart)).toBeUndefined();
+    expect(odooAccountOf(ref('A', 'House'), 0, chart)).toBeUndefined();
   });
 });
 
 describe('empty parent rows', () => {
-  /** A file with the empty `3000;Liabilities` row a Treuhänder might keep, and the deposit wildcards. */
+  /** A file with the empty `3000;Liabilities` row a Kanzlei might keep, and the deposit wildcards. */
   const v1 = mappingOf([
     mappingRow({ apaleoAccount: 'RevenueNoShow_Reduced:13.00', apaleoType: 'Revenues', apaleoVatPercent: '13' }),
     mappingRow({ apaleoAccount: '3000', apaleoType: 'Liabilities', apaleoName: 'Liabilities' }),

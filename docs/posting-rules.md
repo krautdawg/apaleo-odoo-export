@@ -26,8 +26,6 @@ Jede Abacus-Buchung hat ein Konto in `CollectiveInformation` und eines in `Singl
 - Ein Erlös ohne MWST-Code steht in `SingleInformation`, damit die Kostenstelle (`kost`) auf der Leistung und auf ihrer Erlösminderung steht.
 - Ein MWST-Code auf einer Zahlung, einer Gästeforderung oder einem Debitor stoppt die Zeile (`E-MWST-CODE-NOT-ALLOWED`): Sonst bucht Abacus die MWST auf das Geld- oder Forderungskonto.
 
-`abacus.abrechnungsart` ändert in der Datei nur den `UseCode` und das Steuerkonto der `CollectiveInformation`, nie, welche Zeilen gebucht werden, ihre Konten, Beträge oder ihre MWST (siehe [Vereinnahmte Entgelte](#vereinnahmte-entgelte)).
-
 ## Prüfung der MWST pro Zeile
 
 Zuerst werden die `taxes[]` der Zeile bereinigt: Einträge mit Satz 0 und Betrag 0 (zum Beispiel `Without` bei der Kurtaxe) fallen weg. Dass Netto plus Steuer den Bruttobetrag ergibt, prüft schon das Lesen der apaleo-Daten auf den halben Rappen genau. Dann prüft das Tool:
@@ -124,10 +122,6 @@ So sieht die Anzahlung per Twint in der Datei aus (gekürzt):
   </TaxData>
 </SingleInformation>
 ```
-
-## Vereinnahmte Entgelte
-
-Mit `abacus.abrechnungsart: vereinnahmt` sind die Buchungen dieselben; nur der `UseCode` wird `1`, und das Steuerkonto der `CollectiveInformation` wird das Hilfskonto (`abacus.mwstHilfskonto`, Standard `2202`). Abacus bucht die MWST dieser Buchungen dann auf das Hilfskonto und überträgt sie erst auf das Steuerkonto, wenn eine Zahlung erfasst wird, normalerweise in der Debitorenbuchhaltung, die dieses Tool nicht bedient. Die Datei bucht die MWST am Tag der Leistung, nach vereinnahmten Entgelten entsteht sie aber mit der Zahlung (MWSTG Art. 40 Abs. 2); das betrifft Rechnungen, die am Periodenende offen sind. `doctor` und jeder Export, auch der Probelauf, warnen deshalb mit `W-ABRECHNUNGSART-VEREINNAHMT`, einmal pro Hotel und Monat: in der Ausgabe dieses Monats und in seinem Protokoll. Der Exit-Code bleibt 0. Wie dein Treuhänder das Hilfskonto am Periodenende korrigiert, steht in [abacus-format.md](abacus-format.md).
 
 ## Anzahlungen ohne MWST-Betrag
 

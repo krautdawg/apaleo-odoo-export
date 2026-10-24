@@ -8,7 +8,7 @@ Das Tool liest eine Konfigurationsdatei im Format YAML oder JSON und dazu ein pa
 2. die Umgebungsvariable `APALEO_ODOO_CONFIG`, sonst
 3. `./apaleo-odoo.config.yaml` im Arbeitsverzeichnis.
 
-Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`mandant:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `odoo`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
+Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`journal:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `abacus`, `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `odoo`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
 
 ## Secrets
 
@@ -39,32 +39,9 @@ Ein Wert aus der Umgebung geht dem Wert in der Datei vor.
 | `apaleo.baseUrl` | `https://api.apaleo.com` | Adresse der API. Ändere sie nur, um gegen eine andere apaleo-Umgebung zu testen. Muss https sein (einfaches http nur für localhost). |
 | `apaleo.identityUrl` | `https://identity.apaleo.com` | Adresse der Anmeldung, dieselben Regeln wie bei `apaleo.baseUrl`. |
 
-### `abacus`
-
-Optional, bis der Abacus-Writer entfernt ist: Diesen Abschnitt liest nur der Abacus-Writer, der Standardexport nach Odoo nutzt ihn nicht. Wenn er da ist, braucht `abacus.mandant` einen Wert. Was jedes Feld in der Datei bewirkt: [abacus-format.md](abacus-format.md). Wie dein Treuhänder die Datei importiert und was er beim ersten Import prüft: [abacus-import.md](abacus-import.md).
-
-| Schlüssel | Standard | Bedeutung |
-|---|---|---|
-| `abacus` | optional | Der Abschnitt für den Abacus-Writer. Wenn er da ist, braucht `abacus.mandant` einen Wert. |
-| `abacus.mandant` | Pflicht im Abschnitt | Die Mandantennummer in Abacus, 1 bis 6 Ziffern. Sie steht im Block `Parameter` und in jeder Buchung (`Client`); mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus die Datei in einem anderen Mandanten ab. |
-| `abacus.leitwaehrung` | `CHF` | Die Leitwährung des Mandanten, `CHF` oder `EUR`. Jedes Hotel muss in dieser Währung buchen; das Tool rechnet nicht um. |
-| `abacus.abrechnungsart` | `vereinbart` | Die MWST-Abrechnungsart: `vereinbart` oder `vereinnahmt`. Sie bestimmt den `UseCode` (0 oder 1) und das Steuer- oder Hilfskonto in der Buchung, nie die Beträge. Nur der Abacus-Writer liest den Wert. |
-| `abacus.version` | `2015.00` | Die Version der AbaConnect-Schnittstelle: `2015.00`, `2020.00`, `2022.00` oder `2024.00`. Ändere sie nur, wenn Abacus die Datei mit der Standardversion ablehnt. |
-| `abacus.mwstKonto` | `2200` | Das Steuerkonto der MWST-Codes (Umsatzsteuer), 1 bis 11 Ziffern; der Wert für die vereinbarte Abrechnung. |
-| `abacus.mwstHilfskonto` | `2202` | Das Hilfskonto der MWST-Codes (Umsatzsteuerausgleich Abrechnungsmethode), 1 bis 11 Ziffern; der Wert für die vereinnahmte Abrechnung. |
-| `abacus.mwstCodes` | | Die MWST-Codes des Mandanten für die drei Schweizer MWST-Sätze. |
-| `abacus.mwstCodes.normal` | `311` | Der MWST-Code für den Normalsatz in der MWST-Tabelle des Mandanten, 1 bis 3 Zeichen `A-Z`, `a-z` und `0-9`. Nur der Abacus-Writer liest den Wert. |
-| `abacus.mwstCodes.reduziert` | `312` | Der MWST-Code für den reduzierten Satz. |
-| `abacus.mwstCodes.beherbergung` | `313` | Der MWST-Code für den Sondersatz Beherbergung. |
-| `abacus.geschaeftsbereich` | `0` | Der Geschäftsbereich (`Division`), 0 bis 99999999; `0`, wenn der Mandant keine Geschäftsbereiche nutzt. |
-
-Die Standardwerte der Konten und Codes sind die des KMU-Mustermandanten von Abacus. Viele Mandanten nutzen dieselben; prüf sie trotzdem mit deinem Treuhänder in der MWST-Tabelle des Mandanten.
-
-Schreib einen Code mit führender Null, Buchstaben `x` oder `e` in Anführungszeichen, zum Beispiel `normal: "011"`. Ohne Anführungszeichen liest YAML `011` als Zahl 11, `0x1F` als 31 und `1e2` als 100, und `011` und `11` sind verschiedene MWST-Codes. Das Tool lehnt solche Werte bei Mandant, Konten und MWST-Codes ab und nennt den Schlüssel.
-
 ### `odoo`
 
-Wohin die Buchungssätze in Odoo gehen. Odoo ist das Standardziel des Tools, deshalb ist der Abschnitt Pflicht; fehlt er, nennt das Tool `odoo.journal`. `doctor` prüft ihn und zeigt die Werte. Die Version bestimmt auch die Codes für Kasse und Geldtransit, die `init-mapping` einträgt ([mapping-guide.md](mapping-guide.md#zahlungen-kasse-und-geldtransit)). Was jeder Wert in der Importdatei bewirkt, steht in [odoo-format.md](odoo-format.md).
+Wohin die Buchungssätze in Odoo gehen. Odoo ist das Standardziel des Tools, deshalb ist der Abschnitt Pflicht; fehlt er, nennt das Tool `odoo.journal`. `doctor` prüft ihn und zeigt die Werte. Die Version bestimmt auch die Codes für Kasse und Geldtransit, die `init-mapping` einträgt ([mapping-guide.md](mapping-guide.md#zahlungen-kasse-und-geldtransit)). Was jeder Wert in der Importdatei bewirkt, steht in [odoo-format.md](odoo-format.md). Wie dein Steuerberater die Datei in Odoo importiert und was er beim ersten Import prüft: [odoo-import.md](odoo-import.md).
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
@@ -103,11 +80,7 @@ Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` e
 | `properties` | leere Liste | Ein Eintrag pro Hotel. |
 | `properties[].id` | Pflicht | Die Property-ID in apaleo, zum Beispiel `BSP`. |
 | `properties[].mapping` | `./mapping-<id>.csv` | Die Kontenzuordnung (CSV) des Hotels, relativ zum Arbeitsverzeichnis. |
-| `properties[].mandant` | `abacus.mandant` | Ein eigener Abacus-Mandant für dieses Hotel. |
-| `properties[].geschaeftsbereich` | `abacus.geschaeftsbereich` | Ein eigener Geschäftsbereich für dieses Hotel im Abacus-Mandanten. |
 | `properties[].journal` | `odoo.journal` | Ein eigenes Odoo-Journal für dieses Hotel, 1 bis 5 Zeichen `A-Z` und `0-9`. |
-
-Bucht dein Treuhänder zwei Hotels in denselben Abacus-Mandanten, braucht jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`), sonst können sich ihre Belegnummern wiederholen. Teilen sich zwei Hotels Mandant und Geschäftsbereich, warnt `doctor` mit `W-MANDANT-SHARED`; der Odoo-Export liest den Abschnitt nicht.
 
 ```yaml
 properties:
@@ -115,14 +88,14 @@ properties:
     mapping: ./mapping-BSP.csv
   - id: BSP2
     mapping: ./mapping-BSP2.csv
-    geschaeftsbereich: 2
+    journal: APB
 ```
 
 ### `output`
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `output.dir` | `./exports` | Ordner für die Abacus-Dateien, relativ zum Arbeitsverzeichnis. Jede Datei landet in `<output.dir>/<Hotel>/<JJJJ-MM>/`. Auch über `APALEO_ODOO_OUTPUT_DIR`. |
+| `output.dir` | `./exports` | Ordner für die Odoo-Importdateien, relativ zum Arbeitsverzeichnis. Jede Datei landet in `<output.dir>/<Hotel>/<JJJJ-MM>/`. Auch über `APALEO_ODOO_OUTPUT_DIR`. |
 
 ### `checks`
 

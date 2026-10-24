@@ -52,7 +52,7 @@ export function importBlock(
     options.revision === 1
       ? '1 (first file of the period)'
       : `${options.revision} (Korrektur ${options.revision}, new External IDs): before importing, delete the draft entries of the earlier revision in Odoo ` +
-        `(filter by the reference "${prefix}") and reverse its posted entries`;
+        `(filter by the reference "${prefix}") and reverse its posted entries with the reversal date of each original entry, not today, so the month nets to zero in its own tax period`;
   const rounding = options.taxRounding === 'per_tax' ? `per_tax, rounding account ${options.roundingAccount ?? 'not set'}` : 'per_line';
   return [
     'Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):',

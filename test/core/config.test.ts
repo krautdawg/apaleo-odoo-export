@@ -6,7 +6,6 @@ import {
   ENV_OVERRIDES,
   loadConfig,
   resolveConfigPath,
-  sharedMandantFindings,
   type Env,
 } from '../../src/core/config.js';
 import { UserError } from '../../src/core/errors.js';
@@ -17,18 +16,6 @@ import { createTestContext } from '../helpers/context.js';
 /** The smallest valid config: the required odoo section. */
 const VALID = 'odoo:\n  journal: APA\n  version: 18\n';
 const ODOO_DEFAULTS = { journal: 'APA', version: 18, companyId: 1, currency: 'EUR', taxRounding: 'per_line' };
-/** The optional abacus section of the Abacus writer, Mandant 1234. */
-const ABACUS = 'abacus:\n  mandant: 1234\n';
-const ABACUS_DEFAULTS = {
-  mandant: '1234',
-  leitwaehrung: 'CHF',
-  abrechnungsart: 'vereinbart',
-  version: '2015.00',
-  mwstKonto: '2200',
-  mwstHilfskonto: '2202',
-  mwstCodes: { normal: '311', reduziert: '312', beherbergung: '313' },
-  geschaeftsbereich: 0,
-};
 const APALEO_DEFAULTS = { baseUrl: 'https://api.apaleo.com', identityUrl: 'https://identity.apaleo.com' };
 
 async function load(content: string, env: Env = {}, fileName = 'apaleo-odoo.config.yaml') {
@@ -78,22 +65,27 @@ describe('loading', () => {
     expect(error.message).not.toContain('abacus');
   });
 
-  it('Abacus section no longer needed: an odoo section without abacus section loads', async () => {
-    const { config } = await load(VALID);
-    expect(config.abacus).toBeUndefined();
-    expect(config.odoo).toEqual(ODOO_DEFAULTS);
-  });
-
   it.each([
+    ['abacus:\n  mandant: 1234\n', 'abacus'],
+    ['abacus:\n  leitwaehrung: CHF\n', 'abacus'],
+    ['abacus:\n  mandant: 1234\n  leitwaehrung: USD\n', 'abacus'],
+    ['abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: 011\n', 'abacus'],
     ['bmd:\n  buchsymbol: HO\n', 'bmd'],
     ['datev:\n  beraternummer: 1234567\n  mandantennummer: 42\n', 'datev'],
-  ])('Old BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming odoo', async (text, section) => {
+  ])('Old Abacus, BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming odoo', async (text, section) => {
     for (const file of [text, `${VALID}${text}`]) {
       const error = await loadError(file);
       expect(error.message).toContain(`${section} is not a section of apaleo-odoo`);
       expect(error.message).toContain('odoo section');
       expect(error.message).toContain('odoo.journal');
+      expect(error.message).not.toMatch(/unknown key|is required|is read as the number|must be/);
     }
+  });
+
+  it('Old Abacus section: an abacus section with all its keys commented out counts as missing and loads', async () => {
+    const { config } = await load(`${VALID}abacus:\n  # mandant: 1234\n`);
+    expect(config).not.toHaveProperty('abacus');
+    expect(config.odoo).toEqual(ODOO_DEFAULTS);
   });
 
   it('reads checks.aggregates and refuses the Buchungssymbol keys of the BMD tool on a property', async () => {
@@ -133,7 +125,7 @@ describe('loading', () => {
     expect(config.output.dir).toBe('./exports');
     expect(config.apaleo.clientId).toBe('client-1');
     expect(config.odoo).toEqual(ODOO_DEFAULTS);
-    expect(config.abacus).toBeUndefined();
+    expect(config).not.toHaveProperty('abacus');
     expect(config.posting).toEqual({ text2: 'receipt' });
     expect(config.checks).toEqual({ aggregates: false });
     expect(config.schedule).toEqual({ timezone: 'Europe/Zurich', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 });
@@ -153,7 +145,6 @@ describe('loading', () => {
     expect(error.message).toContain('odoo.journal: is required');
     expect(await loadError('odoo:\n  # journal: APA\n').then((e) => e.message)).toContain('odoo.version: is required');
     expect(await loadError('odoo:\n  journal:\n  version: 18\n', { APALEO_CLIENT_ID: 'x' }).then((e) => e.message)).toContain('odoo.journal: is required');
-    expect(await loadError(`${VALID}abacus:\n  mandant:\n`).then((e) => e.message)).toContain('abacus.mandant: is required');
   });
 });
 
@@ -192,9 +183,9 @@ describe('apaleo section', () => {
 });
 
 describe('validation errors name the key path', () => {
-  it('Invalid config value: abacus.geschaeftsbereich -1 names the key and the allowed range', async () => {
-    const error = await loadError(`${VALID}${ABACUS}  geschaeftsbereich: -1\n`);
-    expect(error.message).toContain('abacus.geschaeftsbereich: must be a whole number between 0 and 99999999 (got -1)');
+  it('Invalid config value: odoo.companyId 0 names the key and the allowed range', async () => {
+    const error = await loadError(`${VALID}  companyId: 0\n`);
+    expect(error.message).toContain('odoo.companyId: must be a whole number between 1 and 999999 (got 0)');
   });
 
   it('reports missing required keys', async () => {
@@ -209,7 +200,7 @@ describe('validation errors name the key path', () => {
   });
 
   it('reports YAML syntax errors with the file path', async () => {
-    const error = await loadError('abacus: [unclosed\n');
+    const error = await loadError('odoo: [unclosed\n');
     expect(error.message).toMatch(/Cannot parse config file .*apaleo-odoo\.config\.yaml: line \d+, column \d+: /);
   });
 
@@ -233,99 +224,6 @@ describe('validation errors name the key path', () => {
   it('rejects a top level that is not key/value settings', async () => {
     const error = await loadError('- a\n- b\n');
     expect(error.message).toContain('must contain key/value settings');
-  });
-});
-
-describe('abacus section (optional, read by the Abacus writer until o04)', () => {
-  it('is optional; a present section whose keys are all commented out counts as missing', async () => {
-    expect((await load(`${VALID}abacus:\n  # mandant: 1234\n`)).config.abacus).toBeUndefined();
-  });
-
-  it('Abacus defaults: only mandant set', async () => {
-    const { config } = await load(`${VALID}${ABACUS}`);
-    expect(config.abacus).toEqual(ABACUS_DEFAULTS);
-  });
-
-  it('Mandant missing: names abacus.mandant as required and says it is the Mandantennummer in Abacus', async () => {
-    const error = await loadError(`${VALID}abacus:\n  leitwaehrung: CHF\n`);
-    expect(error.message).toContain('abacus.mandant: is required');
-    expect(error.message).toContain('Mandantennummer of the hotel in Abacus');
-  });
-
-  it('Invalid Leitwährung: names abacus.leitwaehrung and the allowed values CHF and EUR', async () => {
-    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  leitwaehrung: USD\n`);
-    expect(error.message).toContain('abacus.leitwaehrung: must be "CHF" or "EUR"');
-    expect(error.message).toContain('(got "USD")');
-  });
-
-  it('reads every key, numbers and quoted text alike, and the version written as a YAML number', async () => {
-    const { config } = await load(
-      `${VALID}abacus:\n  mandant: "7777"\n  leitwaehrung: EUR\n  abrechnungsart: vereinnahmt\n  version: 2024.00\n` +
-        '  mwstKonto: "2200"\n  mwstHilfskonto: 2209\n  mwstCodes:\n    normal: V81\n    reduziert: 312\n    beherbergung: V38\n  geschaeftsbereich: 12\n',
-    );
-    expect(config.abacus).toEqual({
-      mandant: '7777',
-      leitwaehrung: 'EUR',
-      abrechnungsart: 'vereinnahmt',
-      version: '2024.00',
-      mwstKonto: '2200',
-      mwstHilfskonto: '2209',
-      mwstCodes: { normal: 'V81', reduziert: '312', beherbergung: 'V38' },
-      geschaeftsbereich: 12,
-    });
-    expect((await load(`${VALID}abacus:\n  mandant: 1\n  version: "2020.00"\n`)).config.abacus?.version).toBe('2020.00');
-  });
-
-  it.each([
-    ['mandant: 1234567', 'abacus.mandant: must be the Mandantennummer in Abacus: 1 to 6 digits'],
-    ['mandant: -12', 'abacus.mandant: must be the Mandantennummer in Abacus'],
-    ['mandant: 12.5', 'abacus.mandant: must be the Mandantennummer in Abacus'],
-    ['abrechnungsart: saldo', 'abacus.abrechnungsart: must be "vereinbart" or "vereinnahmt"'],
-    ['version: 2019.00', 'abacus.version: must be an AbaConnect interface version: "2015.00", "2020.00", "2022.00", "2024.00"'],
-    ['mwstKonto: 123456789012', 'abacus.mwstKonto: must be an Abacus account number: 1 to 11 digits'],
-    ['mwstHilfskonto: "22 02"', 'abacus.mwstHilfskonto: must be an Abacus account number'],
-    ['geschaeftsbereich: 100000000', 'abacus.geschaeftsbereich: must be a whole number between 0 and 99999999'],
-    ['geschaeftsbereich: -1', 'abacus.geschaeftsbereich: must be a whole number between 0 and 99999999'],
-  ])('rejects %s', async (line, message) => {
-    const section = line.startsWith('mandant:') ? `  ${line}\n` : `  mandant: 1234\n  ${line}\n`;
-    const error = await loadError(`${VALID}abacus:\n${section}`);
-    expect(error.message).toContain(message);
-  });
-
-  it('rejects an MWST-Code that is not 1 to 3 characters of A-Z, a-z and 0-9, and an unknown key', async () => {
-    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "3111"\n    reduziert: "V-2"\n  mwstcode: 311\n`);
-    expect(error.message).toContain('abacus.mwstCodes.normal: must be an MWST-Code of the Mandant: 1 to 3 characters of A-Z, a-z and 0-9');
-    expect(error.message).toContain('abacus.mwstCodes.reduziert: must be an MWST-Code');
-    expect(error.message).toContain('abacus.mwstcode: unknown key');
-  });
-
-  it.each([
-    ['normal: 011', 'abacus.mwstCodes.normal: 011 is read as the number 11, not as the text "011"; write it in quotes, for example normal: "011"'],
-    ['reduziert: 0x1F', 'abacus.mwstCodes.reduziert: 0x1F is read as the number 31, not as the text "0x1F"; write it in quotes, for example reduziert: "0x1F"'],
-    ['beherbergung: 1e2', 'abacus.mwstCodes.beherbergung: 1e2 is read as the number 100, not as the text "1e2"'],
-  ])('MWST-Code written as a rewritten YAML number: rejects %s with a hint to quote it', async (line, message) => {
-    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    ${line}\n`);
-    expect(error.message).toContain(message);
-  });
-
-  it('rejects a rewritten number as Mandant or account, also for a property and in JSON, and keeps quoted codes', async () => {
-    const yaml = await loadError(`${VALID}abacus:\n  mandant: 0x4D2\n  mwstKonto: 02200\nproperties:\n  - id: BSP\n    mandant: 1.0e3\n`);
-    expect(yaml.message).toContain('abacus.mandant: 0x4D2 is read as the number 1234');
-    expect(yaml.message).toContain('abacus.mwstKonto: 02200 is read as the number 2200');
-    expect(yaml.message).toContain('properties.0.mandant: 1.0e3 is read as the number 1000');
-    const json = await loadError(JSON.stringify({ odoo: { journal: 'APA', version: 18 }, abacus: { mandant: 1234 } }).replace('1234', '1e2'), {}, 'config.json');
-    expect(json.message).toContain('abacus.mandant: 1e2 is read as the number 100, not as the text "1e2"; write it in quotes, for example "mandant": "1e2"');
-    const { config } = await load(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "011"\n    reduziert: 312\n`);
-    expect(config.abacus?.mwstCodes).toEqual({ normal: '011', reduziert: '312', beherbergung: '313' });
-    const other = await load(`${VALID}abacus:\n  mandant: 1234\n  geschaeftsbereich: 0x0C\n`);
-    expect(other.config.abacus?.geschaeftsbereich).toBe(12);
-  });
-
-  it('lets each property override mandant and geschaeftsbereich', async () => {
-    const { config } = await load(`${VALID}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n    mandant: 4711\n    geschaeftsbereich: 2\n`);
-    expect(config.properties).toEqual([{ id: 'BSP' }, { id: 'BS2', mandant: '4711', geschaeftsbereich: 2 }]);
-    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n    mandant: 12A\n`);
-    expect(error.message).toContain('properties.0.mandant: must be the Mandantennummer in Abacus');
   });
 });
 
@@ -406,35 +304,6 @@ describe('odoo section', () => {
   });
 });
 
-describe('Abacus Mandanten of the properties', () => {
-  const abacus = {
-    mandant: '1234',
-    leitwaehrung: 'CHF',
-    abrechnungsart: 'vereinbart',
-    version: '2015.00',
-    mwstKonto: '2200',
-    mwstHilfskonto: '2202',
-    mwstCodes: { normal: '311', reduziert: '312', beherbergung: '313' },
-    geschaeftsbereich: 0,
-  } as const;
-
-  it('Two properties share a Mandant: W-MANDANT-SHARED names both, the Belegnummern and the fix', () => {
-    const [finding, ...rest] = sharedMandantFindings({ abacus, properties: [{ id: 'BSP' }, { id: 'BS2' }] });
-    expect(rest).toEqual([]);
-    expect(finding).toMatchObject({ code: 'W-MANDANT-SHARED', value: '1234/0' });
-    expect(finding?.message).toContain('the properties BSP, BS2 all book into the Abacus Mandant 1234, Geschäftsbereich 0');
-    expect(finding?.message).toContain('Belegnummern could repeat');
-    expect(finding?.message).toContain('its own Geschäftsbereich (properties[].geschaeftsbereich) or its own Mandant (properties[].mandant)');
-  });
-
-  it('does not warn when each property has its own Geschäftsbereich or Mandant', () => {
-    const own = (properties: { id: string; mandant?: string; geschaeftsbereich?: number }[]) => sharedMandantFindings({ abacus, properties });
-    expect(own([{ id: 'BSP' }, { id: 'BS2', geschaeftsbereich: 2 }])).toEqual([]);
-    expect(own([{ id: 'BSP' }, { id: 'BS2', mandant: '4711' }])).toEqual([]);
-    expect(own([{ id: 'BSP', geschaeftsbereich: 2 }, { id: 'BS2' }, { id: 'BS3', geschaeftsbereich: 2 }]).map((f) => f.value)).toEqual(['1234/2']);
-  });
-});
-
 describe('properties section', () => {
   it('reads properties with an optional mapping path', async () => {
     const { config } = await load(`${VALID}properties:\n  - id: BSP\n    mapping: ./maps/bsp.csv\n  - id: HBW\n`);
@@ -446,6 +315,12 @@ describe('properties section', () => {
     expect(error.message).toContain('properties.0.mapping: must not be empty');
     expect(error.message).toContain('properties.1.id: is required');
     expect(error.message).toContain('properties.1.mappin: unknown key');
+  });
+
+  it('refuses the Abacus Mandant and Geschäftsbereich of a property as unknown keys', async () => {
+    const error = await loadError(`${VALID}properties:\n  - id: BSP\n    mandant: "4711"\n    geschaeftsbereich: 2\n`);
+    expect(error.message).toContain('properties.0.mandant: unknown key');
+    expect(error.message).toContain('properties.0.geschaeftsbereich: unknown key');
   });
 
   it('rejects a property id listed twice', async () => {

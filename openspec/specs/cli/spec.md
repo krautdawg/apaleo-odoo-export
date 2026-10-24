@@ -45,39 +45,47 @@ Every subcommand SHALL receive a `CommandContext` (`env`, `stdout`, `stderr`, `c
 - **THEN** its output depends only on that instant, not on the machine clock
 
 ### Requirement: Config file and environment loading
-The CLI SHALL load configuration from the file given by `--config`, else from `APALEO_ODOO_CONFIG`, else from `./apaleo-odoo.config.yaml`, accepting YAML or JSON. Values SHALL be validated against a schema, and every validation error SHALL name the offending key path. Secrets SHALL only be read from environment variables, and a secret key present in the config file SHALL be rejected. Environment overrides SHALL be limited to a documented allow-list of scalar keys; any other `APALEO_ODOO_*` variable SHALL be rejected with an error naming it. A `bmd` or `datev` section SHALL be rejected with an error that names the `odoo` section. The `odoo` section SHALL be required (keys in "Odoo config section"). The `abacus` section SHALL be optional and is read only by the Abacus writer, which stays with its own tests until o04 removes both; when present it SHALL accept `mandant` (required, 1 to 6 digits, no default), `leitwaehrung` (`CHF` or `EUR`, default `CHF`), `abrechnungsart` (`vereinbart` or `vereinnahmt`, default `vereinbart`), `version` (`2015.00`, `2020.00`, `2022.00` or `2024.00`, default `2015.00`), `mwstKonto` (1 to 11 digits, default `2200`), `mwstHilfskonto` (1 to 11 digits, default `2202`), `mwstCodes.normal`, `mwstCodes.reduziert` and `mwstCodes.beherbergung` (1 to 3 characters of `A-Z`, `a-z`, `0-9`, defaults `311`, `312` and `313`) and `geschaeftsbereich` (0 to 99999999, default `0`), and each property MAY override `mandant` and `geschaeftsbereich`. `doctor` SHALL warn `W-MANDANT-SHARED` when two configured properties have the same effective Mandant and Geschäftsbereich; the Odoo export never reads the `abacus` section and SHALL NOT report `W-MANDANT-SHARED` or any other finding about it. Variables of the former names (`APALEO_ABACUS_*`, `APALEO_BMD_*`, `APALEO_DATEV_*`) SHALL NOT be read.
+The CLI SHALL load configuration from the file given by `--config`, else from `APALEO_ODOO_CONFIG`, else from `./apaleo-odoo.config.yaml`, accepting YAML or JSON. Values SHALL be validated against a schema, and every validation error SHALL name the offending key path. Secrets SHALL only be read from environment variables, and a secret key present in the config file SHALL be rejected. Environment overrides SHALL be limited to a documented allow-list of scalar keys; any other `APALEO_ODOO_*` variable SHALL be rejected with an error naming it. An `abacus`, `bmd` or `datev` section SHALL be rejected with an error that names the `odoo` section. The `odoo` section SHALL be required (keys in "Odoo config section"). Variables of the former names (`APALEO_ABACUS_*`, `APALEO_BMD_*`, `APALEO_DATEV_*`) SHALL NOT be read.
 
 #### Scenario: Invalid config value
-- **WHEN** the config file sets `abacus.geschaeftsbereich: -1`
-- **THEN** loading fails with an error that names `abacus.geschaeftsbereich` and the allowed range
+- **WHEN** the config file sets `odoo.companyId: 0`
+- **THEN** loading fails with an error that names `odoo.companyId` and the allowed range
 
-#### Scenario: Odoo section missing
-- **WHEN** the config file has no `odoo` section
-- **THEN** loading fails with an error that names `odoo.journal` and `odoo.version` as required and points to `docs/configuration.md`
+#### Scenario: Old Abacus section
+- **WHEN** the config file contains `abacus.mandant`
+- **THEN** loading fails with an error saying that `abacus` is not a section of apaleo-odoo and naming `odoo`
 
 #### Scenario: Abacus section no longer needed
 - **WHEN** the config file has an `odoo` section and no `abacus` section
 - **THEN** loading succeeds
 
+#### Scenario: Abacus section missing
+- **WHEN** the config file has an `odoo` section and no `abacus` section
+- **THEN** `doctor` reports the config as valid and prints no Abacus line
+
 #### Scenario: Mandant missing
 - **WHEN** the config file has an `abacus` section without `mandant`
-- **THEN** loading fails with an error that names `abacus.mandant` as required and says that it is the Mandantennummer in Abacus
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`, and does not report `abacus.mandant` as required
 
 #### Scenario: Invalid Leitwährung
 - **WHEN** the config file sets `abacus.leitwaehrung: USD`
-- **THEN** loading fails with an error that names `abacus.leitwaehrung` and the allowed values `CHF` and `EUR`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`; the currency of the file is `odoo.currency`
 
 #### Scenario: Abacus defaults
-- **WHEN** the `abacus` section sets only `mandant: 1234`
-- **THEN** the effective values are `leitwaehrung` `CHF`, `abrechnungsart` `vereinbart`, `version` `2015.00`, `mwstKonto` `2200`, `mwstHilfskonto` `2202`, `mwstCodes` `311`, `312`, `313` and `geschaeftsbereich` `0`
+- **WHEN** an `abacus` section sets only `mandant: 1234`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, and no Abacus default is applied
 
 #### Scenario: MWST-Code with a leading zero without quotes
 - **WHEN** the config has `abacus.mwstCodes.normal: 011`
-- **THEN** loading fails with an error naming `abacus.mwstCodes.normal`, saying that `011` is read as the number 11, and showing `normal: "011"`; with the quotes the code is `011`
+- **THEN** loading fails with the error that `abacus` is not a section of apaleo-odoo, naming `odoo`, before any check of the value
 
 #### Scenario: Two properties share a Mandant
-- **WHEN** properties `BSP` and `BS2` are configured with the same `abacus.mandant` and neither sets `geschaeftsbereich`
-- **THEN** `doctor` warns `W-MANDANT-SHARED` naming both properties, and explains that their Belegnummern could repeat and that each property needs its own Geschäftsbereich or Mandant
+- **WHEN** properties `BSP` and `BS2` set `mandant` or `geschaeftsbereich`
+- **THEN** loading fails naming `properties.0.mandant` or `properties.0.geschaeftsbereich` as an unknown key, and no command reports `W-MANDANT-SHARED`
+
+#### Scenario: Odoo section missing
+- **WHEN** the config file has no `odoo` section
+- **THEN** loading fails with an error that names `odoo.journal` and `odoo.version` as required and points to `docs/configuration.md`
 
 #### Scenario: Old BMD section
 - **WHEN** the config file contains `bmd.buchsymbol`
@@ -114,10 +122,6 @@ The CLI SHALL load configuration from the file given by `--config`, else from `A
 #### Scenario: Old variable names are not read
 - **WHEN** only `APALEO_ABACUS_CONFIG=/x/old.yaml` is set and `./apaleo-odoo.config.yaml` exists
 - **THEN** the CLI loads `./apaleo-odoo.config.yaml` and ignores the old variable
-
-#### Scenario: Abacus section missing
-- **WHEN** the config file has an `odoo` section and no `abacus` section
-- **THEN** loading succeeds, `doctor` shows no Abacus line, and only the Abacus writer, if a test or a later slice calls it, refuses to render with an error naming `abacus.mandant`
 
 ### Requirement: Odoo config section
 The config schema SHALL accept a section `odoo` with `journal` (required in the section, the code of the Odoo journal, 1 to 5 characters of `A-Z` and `0-9`), `companyId` (integer 1 to 999999, default `1`, the database id of the Odoo company that owns the taxes, for a branch company its root company, used in the tax and entry External IDs), `currency` (`EUR` or `CHF`, default `EUR`), `version` (`17`, `18` or `19`, required in the section), `taxRounding` (`per_line` or `per_tax`, default `per_line` for versions 17 and 18 and `per_tax` for 19) and `roundingAccount` (an Odoo account code matching `^[A-Za-z0-9.]{1,64}$`, no default, required when the effective `taxRounding` is `per_tax`), and each property MAY override `journal`. A number written without quotes where a code is expected (`journal: 100`) SHALL be read as text. The section SHALL be required; `doctor` SHALL print the effective `odoo` values and say that the rounding method must equal the Odoo company setting (Settings > Accounting > Taxes > Rounding Method).

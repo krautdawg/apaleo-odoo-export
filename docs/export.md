@@ -26,13 +26,13 @@ apaleo-odoo export --month 2026-09 --demo             # die Datei, nur nach ./de
 ## Einstellungen
 
 ```yaml
-abacus:
-  mandant: 1234         # die Mandantennummer in Abacus
-  leitwaehrung: CHF
+odoo:
+  journal: APA          # das Kürzel des Journals in Odoo
+  version: 18
 properties:
   - id: BSP
     mapping: ./mapping-BSP.csv
-    geschaeftsbereich: 2  # optional, ersetzt abacus.geschaeftsbereich für dieses Hotel
+    journal: APB        # optional, ersetzt odoo.journal für dieses Hotel
 output:
   dir: ./exports
 checks:
@@ -101,14 +101,13 @@ exports/
 
 Pro Hotel ein Ordner mit seiner apaleo-ID, darin pro Kalendermonat ein Ordner `JJJJ-MM`. Der Dateiname nennt den ersten und den letzten Tag und das Hotel; das Tool erkennt seine Dateien an diesem Namen. Ein Beispiel für alle drei Dateien liegt in [examples/](examples/).
 
-- Die Abacus-Datei ist das, was dein Treuhänder importiert ([abacus-format.md](abacus-format.md)). Benenne sie nicht um, und bearbeite sie nicht.
+- Die Abacus-Datei ist das, was dein Treuhänder importiert ([odoo-format.md](odoo-format.md), Import: [odoo-import.md](odoo-import.md)). Benenne sie nicht um, und bearbeite sie nicht.
 - Das Protokoll beginnt mit dem Hinweis «keine Gewähr», dem Hotel, dem Zeitraum und der Zahl der apaleo-Zeilen und Buchungen. Dann folgt der Block **Import into Abacus FIBU**, den der Treuhänder vor dem Import mit dem Mandanten vergleicht: Dateiname, Zahl der Buchungen, die Journalsumme (die Summe der Bruttobeträge; jede Einzelbuchung bewegt ihren Bruttobetrag einmal ins Soll und einmal ins Haben, und so sollte Abacus sie nach dem Import je im Soll und im Haben zeigen, was ein erster Testimport noch bestätigen muss), Programm, Schnittstelle und Version, Mandant, Geschäftsbereich, Leitwährung, Abrechnungsart, jeder MWST-Code mit seinen Sätzen und seiner Summe (mit dem Vorzeichen der Datei: negativ, wenn das Hotel die MWST schuldet), jedes Konto mit seinem MWST-Code, die `TaxAccount`-Regel und der Bereich der Belegnummern. Danach kommen die Summen: pro Abacus-Konto, Erlöse, Anzahlungen und Debitorenverluste mit ihrer MWST pro MWST-Code und Satz (mit der Ziffer der MWST-Abrechnung), Kurtaxe und andere Abgaben (gesamt und pro Abacus-Konto mit oder ohne MWST), Zahlungen pro Konto, erhaltene, aufgelöste und zurückbezahlte Anzahlungen, Debitoren, übersprungene Zeilen (mit Beträgen ohne Vorzeichen) und die Befunde. Am Ende stehen die SHA-256-Prüfsumme der Datei, die der Kontenzuordnung, die Version des Tools und die Erstellungszeit. Der Probelauf zeigt denselben Text ohne die Prüfsummen.
 - `manifest.json` listet jede Datei des Ordners, auch ersetzte, mit:
   - `sha256`: die Prüfsumme der ganzen Datei. Die Abacus-Datei hat keine Erstellungszeit, dieselben Buchungen ergeben also immer dieselbe Prüfsumme;
   - `bookings`: die Zahl der Buchungen;
-  - `journalTotalCents` und `currency`: die Journalsumme in Rappen und die Leitwährung. Jede Einzelbuchung bewegt ihren Bruttobetrag einmal ins Soll und einmal ins Haben; diese Summe vergleicht der Treuhänder mit dem Journal des Imports in Abacus (dass Abacus sie so ausweist, ist bis zum ersten Testimport offen, siehe [abacus-import.md](abacus-import.md#erster-testimport-offene-fragen));
+  - `journalTotalCents` und `currency`: die Journalsumme in Rappen und die Leitwährung. Jede Einzelbuchung bewegt ihren Bruttobetrag einmal ins Soll und einmal ins Haben; diese Summe vergleicht der Treuhänder mit dem Journal des Imports in Abacus (siehe [odoo-import.md](odoo-import.md#nach-dem-import-prüfen));
   - `taxByMwstCode`: die MWST der Buchungen pro MWST-Code und Satz in Rappen, als geschuldete MWST: positiv, was das Hotel schuldet, negativ, was eine Erlösminderung oder ein Debitorenverlust abzieht. Das ist das umgekehrte Vorzeichen der Zeile `MWST-Codes` im Protokoll, die die MWST zeigt, wie sie in der Datei steht (`TaxData`: negativ, wenn geschuldet); im Schweizer Testmonat steht dort `313 (3.8 %; tax -20.14 CHF)` und hier `taxCents` `2014`. Zum Abgleich mit dem MWST-Journal und der MWST-Abrechnung;
-  - `mandant` und `geschaeftsbereich`: der Mandant und der Geschäftsbereich, in die die Datei bucht, aus denselben Einstellungen wie der Block «Import into Abacus FIBU» im Protokoll;
   - `mappingSha256`, `toolVersion` und `createdAt`: die Prüfsumme der Kontenzuordnung, die Version des Tools und die Erstellungszeit; bei einer ersetzten Datei zusätzlich `replacedAt` und `replacedBy`.
 
   Felder, die das Tool nicht kennt (zum Beispiel `bodySha256` oder `taxByRate` aus einer früheren Version), stören nicht: Es liest sie nicht und lässt sie stehen.
@@ -118,7 +117,7 @@ Pro Hotel ein Ordner mit seiner apaleo-ID, darin pro Kalendermonat ein Ordner `J
 Abacus erkennt eine schon importierte Datei nicht wieder: Dieselben Buchungen zweimal zu importieren, bucht sie zweimal. Der Export nutzt deshalb den Ausgabeordner als Gedächtnis:
 
 - Dieselbe Datei wie die im Ordner (Byte für Byte): `unchanged`, nichts wird geschrieben, Exit-Code 0. Denselben Monat noch einmal zu exportieren, ist also immer sicher.
-- Ein anderer Inhalt, und sei es nur ein Byte: abgelehnt mit `E-FILE-EXISTS`. Das passiert nach einer Nachbuchung in apaleo, einer geänderten Kontenzuordnung oder einer geänderten Einstellung im Abschnitt `abacus` (zum Beispiel `abacus.geschaeftsbereich`). Hat der Treuhänder die alte Datei schon importiert, löscht er zuerst ihre Buchungen in Abacus: im Nebenjournal, bevor sie übertragen sind, sonst durch Stornobuchungen; Mandant und Bereich der Belegnummern stehen im Protokoll der alten Datei. Dann starte den Export noch einmal mit `--overwrite`. Mit `--overwrite` bleibt die alte Datei als `<name>.replaced-<Zeitstempel>.xml` erhalten (ihr Protokoll ebenso), die neue Datei wird geschrieben, und das Manifest verzeichnet beide.
+- Ein anderer Inhalt, und sei es nur ein Byte: abgelehnt mit `E-FILE-EXISTS`. Das passiert nach einer Nachbuchung in apaleo, einer geänderten Kontenzuordnung oder einer geänderten Einstellung im Abschnitt `odoo` (zum Beispiel `odoo.journal`). Hat dein Steuerberater die alte Datei schon importiert, löscht er zuerst ihre Entwürfe in Odoo und storniert ihre gebuchten Buchungssätze ([odoo-import.md](odoo-import.md#einen-monat-ersetzen)). Dann starte den Export noch einmal mit `--overwrite`. Mit `--overwrite` bleibt die alte Datei als `<name>.replaced-<Zeitstempel>.csv` erhalten (ihr Protokoll ebenso), die neue Datei wird geschrieben, und das Manifest verzeichnet beide.
 - Ein anderer Zeitraum, der einige derselben Tage abdeckt wie eine Datei im Ordner (zum Beispiel ein Monatsexport nach einem Teilexport vom 20. bis 30.): abgelehnt mit `E-PERIOD-OVERLAP`, und die Meldung nennt die vorhandene Datei, weil der Import beider Dateien diese Tage doppelt buchen würde. Exportiere denselben Zeitraum wie die vorhandene Datei, oder verschiebe sie zuerst, und lass deinen Treuhänder ihre Buchungen in Abacus löschen, falls sie importiert wurde.
 
 Der Vergleich liest die Datei selbst, er funktioniert also auch, wenn `manifest.json` gelöscht wurde. Ist die Datei unverändert, aber ihr Protokoll oder ihr Eintrag im Manifest fehlt oder beschreibt eine andere Datei (zum Beispiel weil `manifest.json` gelöscht oder ein Lauf nach dem Schreiben der Datei unterbrochen wurde), schreibt der Lauf beides neu und meldet den Hinweis `N-COMPANIONS-REPAIRED`; die Abacus-Datei selbst bleibt unberührt.

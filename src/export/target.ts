@@ -108,10 +108,6 @@ export interface TargetAdvice {
  * target its own optional fields.
  */
 export interface TargetManifestFields {
-  /** The Abacus Mandant the file books into. */
-  mandant?: string;
-  /** The Abacus Geschäftsbereich the file books into. */
-  geschaeftsbereich?: number;
   /** The Odoo company whose taxes the file names (`odoo.companyId`). */
   odooCompanyId?: number;
   /** The code of the Odoo journal the file is imported into. */

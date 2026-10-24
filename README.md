@@ -10,7 +10,7 @@ Kostenloser apaleo Abacus Export: XML-Buchungsimport für die Abacus Finanzbuchh
 
 apaleo-odoo-export ist ein kostenloser Abacus-Export für Hotels in der Schweiz, die mit apaleo arbeiten, und für ihren Treuhänder. Er liest das apaleo-Buchungsjournal eines Monats und schreibt pro Hotel eine AbaConnect-Datei «XML Buchungen», die dein Treuhänder oder deine Buchhaltung in die Abacus Finanzbuchhaltung (FIBU) importiert, mit MWST-Codes und einer Vorlage für die Kontenzuordnung nach dem KMU-Kontenrahmen. Das Tool ist Open Source (MIT-Lizenz) und läuft auf deinem eigenen Rechner mit deinem eigenen apaleo-Konto. Kein Abo, kein gehosteter Dienst, kein Konto bei uns.
 
-**Stand:** Die Datei folgt der dokumentierten AbaConnect-Schnittstelle «XML Buchungen»; ein erster Testimport mit einem Treuhänder steht noch aus. Was der Treuhänder dabei prüft, steht in [docs/abacus-import.md](docs/abacus-import.md).
+**Stand:** Die Datei folgt dem dokumentierten Import von Journalbuchungen in Odoo; ein erster Testimport mit einem Steuerberater steht noch aus. Wie dein Steuerberater die Datei importiert und was er dabei prüft, steht in [docs/odoo-import.md](docs/odoo-import.md).
 
 > **Keine Gewähr, keine Steuerberatung.** Lass deine Kontenzuordnung von deinem Treuhänder prüfen, ebenso die ersten Importe in Abacus. Lies den [Haftungsausschluss](DISCLAIMER.md).
 
@@ -162,15 +162,15 @@ apaleo-odoo-export baut auf [apaleo-bmd-export](https://github.com/krautdawg/apa
 
 **Wohin gehen meine Daten?** Nur auf deine eigene Festplatte. Das Tool liest apaleo mit deiner Custom App und schreibt Dateien in einen lokalen Ordner. Nichts ist gehostet, und es schickt nichts an uns oder an andere. Die Datei enthält keine Gästenamen: Buchungstexte nutzen Kontobezeichnungen, nie die Namen von Gastfolios.
 
-**Welche Abacus-Lizenz braucht mein Treuhänder?** Die Abacus Finanzbuchhaltung mit Buchungsschnittstellen (F11/F5534), keine Partnerschaft und keinen Webservice; der erste Testimport muss das noch bestätigen, siehe [docs/abacus-import.md](docs/abacus-import.md).
+**Welches Odoo brauche ich?** Odoo 17, 18 oder 19, Community oder Enterprise, auf Odoo Online, Odoo.sh oder selbst gehostet, mit der deutschen Lokalisierung (SKR03 oder SKR04). Der Standardimport von Odoo genügt, kein Modul und kein API-Zugang; siehe [docs/odoo-import.md](docs/odoo-import.md).
 
-**Kann es direkt an Abacus übertragen, etwa über AbaConnect-Webservices?** Nein. Dein Treuhänder importiert die Datei in Abacus; siehe [docs/abacus-import.md](docs/abacus-import.md).
+**Kann es direkt an Odoo übertragen, etwa über die externe API?** Nein. Dein Steuerberater importiert die Datei in Odoo; siehe [docs/odoo-import.md](docs/odoo-import.md). Die Übertragung über die API steht unter „Später geplant“ in [docs/maintainers.md](docs/maintainers.md#später-geplant).
 
-**Hat ein Treuhänder die Datei schon importiert?** Noch nicht. Die Datei folgt der veröffentlichten Beschreibung der AbaConnect-Schnittstelle «XML Buchungen»; die Quellen stehen in [docs/abacus-format.md](docs/abacus-format.md). Der erste Testimport wird mit Datum und Ergebnis in [docs/maintainers.md](docs/maintainers.md#testimporte) festgehalten.
+**Hat ein Steuerberater die Datei schon importiert?** Noch nicht. Die Datei folgt dem dokumentierten Import von Journalbuchungen in Odoo; die Quellen stehen in [docs/odoo-format.md](docs/odoo-format.md). Der Maintainer hat sie lokal in Odoo 17, 18 und 19 Community importiert; der erste Testimport mit einer Kanzlei wird mit Datum und Ergebnis in [docs/maintainers.md](docs/maintainers.md#testimporte) festgehalten.
 
-**Kann ich einen Import rückgängig machen?** Die Buchungen kommen in den Abacus-Mandanten aus `abacus.mandant`; eine falsch importierte Datei löscht dein Treuhänder im Nebenjournal oder storniert sie. Importiere nie eine Datei aus `--overwrite`, bevor die Buchungen der alten Datei entfernt sind; siehe [docs/export.md](docs/export.md#noch-einmal-exportieren).
+**Kann ich einen Import rückgängig machen?** Ja. Die Buchungssätze kommen als Entwürfe in das Journal aus `odoo.journal`; Entwürfe löscht dein Steuerberater, gebuchte Buchungssätze storniert er. Importiere nie eine Datei aus `--overwrite`, bevor die Buchungssätze der alten Datei gelöscht oder storniert sind; siehe [docs/odoo-import.md](docs/odoo-import.md#einen-monat-ersetzen).
 
-**Mehrere Hotels?** Trag sie unter `properties` in der Konfiguration ein. Jedes bekommt eine eigene Zuordnung und eine eigene Datei. Bucht dein Treuhänder sie in einen Mandanten, bekommt jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`).
+**Mehrere Hotels?** Trag sie unter `properties` in der Konfiguration ein. Jedes bekommt eine eigene Zuordnung und eine eigene Datei. Soll jedes Hotel ein eigenes Journal in Odoo bekommen, setz `properties[].journal`.
 
 **Ich nutze heute einen bezahlten Connector. Kann ich wechseln?** Ja. Leg die Zuordnung mit `init-mapping --template skr03-hotel` (oder `skr04-hotel`) an und übertrag Konten, die von der Vorlage abweichen, von Hand; prüf das Ergebnis mit deinem Steuerberater ([Umstieg von einem anderen Connector](docs/mapping-guide.md#umstieg-von-einem-anderen-connector)). Fang mit dem ersten Monat an, den der alte Connector nicht mehr geliefert hat, damit nichts doppelt importiert wird; siehe [docs/docker.md](docs/docker.md#der-erste-lauf).
 

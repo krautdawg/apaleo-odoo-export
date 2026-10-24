@@ -104,7 +104,8 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
       reimport: (file) =>
         'With --overwrite the new file gets the next revision and new External IDs, so importing it creates new entries in Odoo. Before importing it, delete the draft ' +
         `entries of the earlier revision in Odoo (filter by the reference "${referencePrefix(file)}") and reverse its posted entries, ` +
-        'because an import cannot change a posted entry and a reversal keeps its External ID.',
+        'because an import cannot change a posted entry and a reversal keeps its External ID. Set the reversal date to the date of each original entry, not today, ' +
+        'so the month nets to zero in its own tax period (docs/odoo-import.md).',
     },
   };
 }

@@ -14,7 +14,7 @@ async function lintAs(fixture: string, filePath: string) {
 }
 
 describe('core modules do not import source adapters', () => {
-  it.each(['src/abacus/writer.ts', 'src/odoo/writer.ts', 'src/core/x.ts', 'src/mapping/x.ts', 'src/posting/x.ts'])(
+  it.each(['src/odoo/writer.ts', 'src/core/x.ts', 'src/mapping/x.ts', 'src/posting/x.ts'])(
     'reports no-restricted-imports in %s',
     async (filePath) => {
       const messages = await lintAs('forbidden-source-import.ts', filePath);
@@ -24,10 +24,10 @@ describe('core modules do not import source adapters', () => {
     },
   );
 
-  it('names exactly core, abacus, odoo, mapping and posting as core modules, with no removed target', () => {
+  it('names exactly core, odoo, mapping and posting as core modules, with no removed target', () => {
     const config = readFileSync(new URL('../../eslint.config.js', import.meta.url), 'utf8');
-    expect(/export const CORE_MODULES = \[([^\]]*)\]/.exec(config)?.[1]).toBe("'src/core/**', 'src/abacus/**', 'src/odoo/**', 'src/mapping/**', 'src/posting/**'");
-    expect(config).not.toMatch(/\bbmd\b/i);
+    expect(/export const CORE_MODULES = \[([^\]]*)\]/.exec(config)?.[1]).toBe("'src/core/**', 'src/odoo/**', 'src/mapping/**', 'src/posting/**'");
+    expect(config).not.toMatch(/\b(bmd|abacus)\b/i);
   });
 
   it('allows the same import from src/export', async () => {
@@ -43,7 +43,6 @@ describe('commands use the injected context', () => {
     'src/schedule/x.ts',
     'src/sources/apaleo/client.ts',
     'src/core/x.ts',
-    'src/abacus/x.ts',
     'src/odoo/x.ts',
     'src/mapping/x.ts',
     'src/posting/x.ts',

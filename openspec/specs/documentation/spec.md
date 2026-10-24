@@ -204,15 +204,19 @@ The repository SHALL contain `README.en.md` of at most 80 lines with: what the t
 - **THEN** it fails if `README.en.md` exceeds 80 lines, contains the quickstart marker, or lists install commands that differ from the German quick-start block apart from shell comments
 
 ### Requirement: No unverified compatibility claim
-README and docs SHALL describe the file as following the documented AbaConnect interface "XML Buchungen" and SHALL say that a first test import with a Treuhänder is pending, and SHALL NOT claim that the file was tested with or is accepted by Abacus ("getestet mit Abacus", "kompatibel mit Abacus", "Abacus-zertifiziert") until `docs/maintainers.md` records a test import under `## Testimporte` with date, Abacus release, interface version, import program and result.
+README and docs SHALL describe the file as following Odoo's documented import of journal entries and SHALL say that a first test import with a Steuerberater is pending, and SHALL NOT claim that the file was tested with or is accepted by Odoo ("getestet mit Odoo", "kompatibel mit Odoo", "Odoo-zertifiziert", "tested with Odoo", "Odoo-compatible") until `docs/maintainers.md` records a test import under `## Testimporte` with date, Odoo version, edition and hosting, chart (SKR03 or SKR04), rounding method, result and "geprüft von" ("Maintainer, lokal" or the Kanzlei). The sentence that a first test import with a Steuerberater is pending SHALL stay until a row names a Kanzlei in "geprüft von".
 
 #### Scenario: Claim without a recorded import
-- **WHEN** the README says "getestet mit Abacus" and `## Testimporte` in `docs/maintainers.md` lists no import
+- **WHEN** the README says "getestet mit Odoo 18" and `## Testimporte` in `docs/maintainers.md` lists no import
 - **THEN** `pnpm test` fails naming the README and the phrase
 
+#### Scenario: Recorded import allows the claim
+- **WHEN** `## Testimporte` records a row with all seven fields filled for Odoo 18
+- **THEN** the README may say "getestet mit Odoo 18" and `pnpm test` passes
+
 #### Scenario: Pending test import
-- **WHEN** a Treuhänder reads the README first screen before any test import
-- **THEN** it says "Die Datei folgt der dokumentierten AbaConnect-Schnittstelle «XML Buchungen»; ein erster Testimport mit einem Treuhänder steht noch aus."
+- **WHEN** a reader opens the README before any test import
+- **THEN** it says that the file follows Odoo's documented import of journal entries and that a first test import with a Steuerberater is still pending
 
 ### Requirement: README FAQ
 The README SHALL contain a `## Häufige Fragen` section with one short answer per topic: Kosten, Daten (what leaves the hotel, nothing hosted), Lizenz ("Welche Abacus-Lizenz braucht mein Treuhänder?", answered in one line: Abacus Finanzbuchhaltung mit Buchungsschnittstellen (F11/F5534), keine Partnerschaft, kein Webservice, noch durch den ersten Testimport zu bestätigen, linking `docs/abacus-import.md`), Direktimport, Testimport, rückgängig, mehrere Hotels, wechseln (from a paid connector, linking the mapping guide section on `--accounts-from`), Saldosteuersatz, and BMD und DATEV (answered in a line that links apaleo-bmd-export and apaleo-datev-export). No answer SHALL name a vendor of a paid connector.
@@ -261,4 +265,23 @@ From this slice until o08 the docs test SHALL NOT report, in any file, the lette
 #### Scenario: Mapping guide in German as used in Germany
 - **WHEN** `pnpm test` and the release check run after this slice
 - **THEN** the docs test passes `docs/mapping-guide.md` with "ß", `SKR03` and `19 %`, and the release-check grep finds neither `MWST-Code` nor `Treuhänder` in it
+
+### Requirement: First import in Odoo
+`docs/odoo-import.md` (German as used in Germany; no Swiss or Austrian practice terms and no `«` `»`, grepped in this slice's release check) SHALL describe how the hotel or its Kanzlei imports the file and what to check, with Odoo menu names in German and the English label in parentheses where they differ: the preparation (a dedicated journal of type Sonstige with the code of `odoo.journal`, the installed chart SKR03 or SKR04, the taxes of the mapping and how to see their External IDs (developer mode, or export of the taxes with "External ID"), `odoo.companyId` as the id of the company that owns the taxes (for a branch company its root company), the company's rounding method compared with `odoo.taxRounding`, looking up in the Kontenplan the codes of the Kasse account of the cash journal and of the Liquiditätstransferkonto (fresh database: SKR03 `1001` and `1360`, Odoo 17 `13601`; SKR04 `1601` and `1460`, Odoo 17 `14601`) and entering them in the mapping when they differ, and in Community the user right "Show Full Accounting Features"); the import (only the target company active in the company switcher, because accounts and journals are matched in every active company and in Odoo 19 also by account code prefix and description; Accounting > Journal Entries > gear > Import records, upload the CSV, check the detected formatting, "Test", then "Import"; what the messages "No matching record found" and "Found multiple matches" mean); the checks after the import (all entries are drafts with the reference `apaleo <property> <date>`, no "Automatic Balancing Line" on the suspense account, Odoo's tax per rate and Kennzahl equals the protocol, the guest ledger and Geldtransit balances equal the protocol, then post); what a second import of the same file does (updates its own drafts through their External IDs and changes nothing); how to replace a month after `--overwrite` (the new file is a revision with new External IDs and the reference suffix „(Korrektur N)“: first delete the draft entries of the earlier revision, reverse its posted entries, because the audit trail of l10n_de forbids deleting them and a reversal keeps their External IDs, with the „Stornodatum“ (Reversal Date) set to the date of the original entry instead of today, which Odoo proposes, so the month nets to zero in its own period and UStVA, and with the date and a berichtigte UStVA left to the Kanzlei when that month's UStVA is filed, then import the new file, which creates new entries; until o06 makes the export choose the revision, a note that `--overwrite` still writes revision 1 with the same External IDs and so replaces only a month that has nothing but drafts in Odoo); how to undo a file (delete draft entries, reverse posted ones with the date of the original entry); Ist-Versteuerung and cash-basis taxes as a question for the Kanzlei; and the open questions of research §10, plus whether the reversal carries the date of the original entry, as a checklist for the first test import. README and `docs/configuration.md` SHALL link it.
+
+#### Scenario: First import
+- **WHEN** a Steuerberater imports the first file
+- **THEN** `docs/odoo-import.md` names the journal, the lookup of the Kasse and Geldtransit codes in the Kontenplan, the single active company, the menu path, the "Test" step, the check for an "Automatic Balancing Line", the comparison of the tax per rate with the protocol and how to undo an imported file
+
+#### Scenario: Corrected month after a posted import
+- **WHEN** September was imported and posted, a late posting changed it, and the hotel exported again with `--overwrite`
+- **THEN** `docs/odoo-import.md` says to reverse the posted entries with the reference `apaleo BSP` of the earlier revision and then import the new file, whose entries carry `_r2` External IDs and „(Korrektur 2)“ in the reference and are created as new drafts
+
+#### Scenario: Reversal in a later month
+- **WHEN** the Kanzlei reverses the posted September entries in October
+- **THEN** `docs/odoo-import.md` tells it to set the „Stornodatum“ (Reversal Date) to the date of each original entry rather than today, says that one date applies to all entries reversed at once, and that otherwise September counts both revisions in Kz 81 and 86 while October holds a negative copy, and leaves the date and a berichtigte UStVA to the Kanzlei when September's UStVA is filed
+
+#### Scenario: Abacus guides are gone
+- **WHEN** someone looks for `docs/abacus-import.md` or `docs/abacus-format.md`
+- **THEN** neither exists, and the README and every doc link `docs/odoo-import.md` and `docs/odoo-format.md` instead
 

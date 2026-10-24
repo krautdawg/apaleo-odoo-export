@@ -151,6 +151,7 @@ describe('odooTarget', () => {
     const odoo19 = config({ version: 19, roundingAccount: '2700' });
     const text = odooTarget.importBlock([...specDay(), drinks({ grossCents: 999, vat: vat('tax_ust_19_skr03', 19, 160) }), payment(999)], meta({ config: odoo19 }), 2).join('\n');
     expect(text).toContain('Revision: 2 (Korrektur 2, new External IDs): before importing, delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP") and reverse its posted entries');
+    expect(text).toContain('reverse its posted entries with the reversal date of each original entry, not today, so the month nets to zero in its own tax period');
     expect(text).toContain('Rounding method: per_tax, rounding account 2700; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Tax")');
     expect(text).toContain('Rounding lines: 1');
   });
@@ -161,6 +162,7 @@ describe('odooTarget', () => {
     expect(reimport).toMatch(/--overwrite the new file gets the next revision and new External IDs/);
     expect(reimport).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP")');
     expect(reimport).toContain('reverse its posted entries, because an import cannot change a posted entry and a reversal keeps its External ID');
+    expect(reimport).toContain('Set the reversal date to the date of each original entry, not today, so the month nets to zero in its own tax period');
     expect(advice.reimport({ propertyId: 'BSP', demo: true })).toContain('(filter by the reference "DEMO apaleo BSP")');
     expect(advice.overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
     expect(advice.currency).toMatch(/one currency \(odoo\.currency\).*does not convert/);

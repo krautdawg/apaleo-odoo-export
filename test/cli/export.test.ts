@@ -89,6 +89,15 @@ describe('apaleo-odoo export', () => {
     expect(manifestOf(setup).files[0]).toMatchObject({ file: FILE, odooCompanyId: 3, odooJournal: 'APB' });
   });
 
+  it('Old Abacus section: refuses a config with an abacus section before any apaleo call, naming the odoo section, and writes nothing', async () => {
+    const setup = exportSetup({ config: exportConfig().replace('properties:\n', 'abacus:\n  mandant: 1234\nproperties:\n') });
+    expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
+    expect(setup.ctx.err()).toContain('abacus is not a section of apaleo-odoo');
+    expect(setup.ctx.err()).toContain('odoo section (odoo.journal, odoo.version, odoo.companyId)');
+    expect(setup.fake.calls).toEqual([]);
+    expect(existsSync(join(setup.ctx.cwd, 'exports'))).toBe(false);
+  });
+
   it('exits 2 and explains --month and --from/--to when the period is missing', async () => {
     const setup = exportSetup();
     expect(await runCli(['export', '--property', BSP], setup.ctx)).toBe(2);

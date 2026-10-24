@@ -117,6 +117,8 @@ export function checkCommandLines(file: string, markdown: string, commands: read
 /**
  * A backticked config key. The design's pattern plus an optional `[]` after the
  * section, so `properties[].mapping` is checked too and not silently ignored.
+ * `abacus` stays a section name here although the section is gone (o04), so a
+ * doc that still names one of its keys is reported.
  */
 export const CONFIG_KEY = /^(apaleo|odoo|abacus|output|posting|properties|schedule|checks)(\[\])?(\.[A-Za-z[\]]+)+$/;
 
@@ -449,20 +451,24 @@ export function checkPracticeTerms(file: string, markdown: string): string[] {
 // --- Compatibility claims --------------------------------------------------------
 
 /**
- * The target named in a claim: Abacus, with up to two words between the name
- * and the verb, so "mit Abacus FIBU getestet" and "von Abacus 2024 akzeptiert" are caught.
+ * The target named in a claim: Odoo, then an optional list of versions (digits
+ * joined by `,`, `und`, `and`, `oder`, `or` or `/`), then up to two words before
+ * the verb, so "mit Odoo 18 getestet", "mit Odoo 17, 18 und 19 getestet" and
+ * "von Odoo Online akzeptiert" are caught.
  */
-const TARGET = String.raw`Abacus`;
-const NAMED = String.raw`${TARGET}(?:\s+[\w.]+){0,2}`;
+const TARGET = String.raw`Odoo`;
+const VERSION = String.raw`\d{2}(?:\.0)?`;
+const VERSION_LIST = String.raw`[\s-]+${VERSION}(?:\s*(?:,|und|and|oder|or|\/)\s*${VERSION})*`;
+const NAMED = String.raw`${TARGET}(?:${VERSION_LIST})?(?:\s+[\w.]+){0,2}`;
 
 /**
  * What the docs may say only after a recorded test import (b08 design decision
- * 4, Abacus since a05), case-insensitive, in German and English and in either
- * word order: tested with, compatible with, certified by or accepted by Abacus.
+ * 4, Odoo since o04 design decision 5), case-insensitive, in German and English
+ * and in either word order: tested with, compatible with, certified by or accepted by Odoo.
  */
 export const COMPATIBILITY_CLAIMS: readonly RegExp[] = [
-  new RegExp(String.raw`getestet\s+(?:mit|in|gegen)\s+${TARGET}`),
-  new RegExp(String.raw`(?:mit|in|gegen)\s+${NAMED}\s+getestet`),
+  new RegExp(String.raw`getestet\s+(?:mit|in|gegen|auf)\s+${TARGET}`),
+  new RegExp(String.raw`(?:mit|in|gegen|auf)\s+${NAMED}\s+getestet`),
   new RegExp(String.raw`${TARGET}-(?:getestet|kompatibel|zertifiziert)`),
   new RegExp(String.raw`kompatibel\s+(?:mit|zu)\s+${TARGET}`),
   new RegExp(String.raw`(?:mit|zu)\s+${NAMED}\s+kompatibel`),
@@ -475,13 +481,26 @@ export const COMPATIBILITY_CLAIMS: readonly RegExp[] = [
   new RegExp(String.raw`(?:certified|accepted|approved)\s+(?:by|for)\s+${TARGET}`),
 ].map((pattern) => new RegExp(String.raw`(?<![\p{L}\p{N}])(?:${pattern.source})`, 'giu'));
 
-/** Datum, Abacus-Version, Schnittstellenversion, Programm and Ergebnis: a row records an import only when all five are filled. */
-const RECORDED_IMPORT_FIELDS = 5;
+/**
+ * Datum, Odoo-Version, Edition und Hosting, Kontenrahmen, Rundungsmethode,
+ * Ergebnis and Geprüft von: a row records an import only when all seven are filled.
+ */
+const RECORDED_IMPORT_FIELDS = 7;
+const VERSION_FIELD = 1;
+const CHECKED_BY_FIELD = 6;
+
+/** The "Geprüft von" of the maintainer's own runs; any other value names a Kanzlei. */
+const MAINTAINER_CHECK = /^Maintainer\b/i;
+
+/**
+ * The sentence README.md keeps until a recorded import names a Kanzlei under
+ * "Geprüft von" (documentation, "No unverified compatibility claim").
+ */
+export const PENDING_IMPORT = 'Die Datei folgt dem dokumentierten Import von Journalbuchungen in Odoo; ein erster Testimport mit einem Steuerberater steht noch aus.';
 
 /**
  * The rows of the first table under `## Testimporte` in `docs/maintainers.md`
- * (the Abacus imports) that record an import (all five fields filled). The
- * local Odoo test imports of o02 follow in their own table and do not count.
+ * that record an import (all seven fields filled).
  */
 export function recordedTestImports(maintainers: string): string[][] {
   const start = maintainers.search(/^## Testimporte$/m);
@@ -504,10 +523,48 @@ export function recordedTestImports(maintainers: string): string[][] {
   return rows.filter((cells) => cells.length >= RECORDED_IMPORT_FIELDS && cells.slice(0, RECORDED_IMPORT_FIELDS).every((cell) => cell !== ''));
 }
 
-/** Problems where a file claims Abacus compatibility while no test import is recorded. */
-export function checkCompatibilityClaims(file: string, markdown: string, recordedImports: number): string[] {
-  if (recordedImports > 0) return [];
+/** The Odoo major versions of the recorded imports: `17.0 (odoo:17.0-…)` counts as 17. */
+export function recordedOdooVersions(rows: readonly (readonly string[])[]): Set<number> {
+  return new Set(rows.map((cells) => Number(/^\d+/.exec(cells[VERSION_FIELD] ?? '')?.[0])).filter((version) => Number.isInteger(version)));
+}
+
+/** The recorded imports that a Kanzlei checked, not the maintainer's local runs. */
+export function kanzleiTestImports(rows: readonly (readonly string[])[]): (readonly string[])[] {
+  return rows.filter((cells) => !MAINTAINER_CHECK.test(cells[CHECKED_BY_FIELD] ?? ''));
+}
+
+/** The Odoo versions a claim names right after "Odoo", for example 18 in "getestet mit Odoo 18" and 17 and 18 in "Odoo 17 und 18". */
+function claimedVersions(text: string): number[] {
+  const list = /Odoo[\s-]+(\d{2}(?:\.0)?(?:\s*(?:,|und|and|oder|or|\/)\s*\d{2}(?:\.0)?)*)/iu.exec(text)?.[1] ?? '';
+  return [...list.matchAll(/\d{2}(?:\.0)?/g)].map((match) => Number.parseInt(match[0], 10));
+}
+
+/**
+ * Problems where a file claims a tested or accepted Odoo import that
+ * `## Testimporte` does not record: a claim naming versions needs a row for
+ * each of them, a claim without a version needs any row.
+ */
+export function checkCompatibilityClaims(file: string, markdown: string, recorded: readonly (readonly string[])[]): string[] {
+  const versions = recordedOdooVersions(recorded);
   const text = prose(markdown);
-  const claims = COMPATIBILITY_CLAIMS.flatMap((pattern) => [...text.matchAll(pattern)].map((match) => match[0].replace(/\s+/g, ' ')));
-  return [...new Set(claims)].map((claim) => `${file}: "${claim}" claims a tested import, but docs/maintainers.md records no import under ## Testimporte`);
+  const problems = COMPATIBILITY_CLAIMS.flatMap((pattern) =>
+    [...text.matchAll(pattern)].flatMap((match) => {
+      const claim = match[0].replace(/\s+/g, ' ');
+      const named = claimedVersions(text.slice(match.index, match.index + match[0].length + 20));
+      const missing = named.filter((version) => !versions.has(version));
+      if (named.length === 0 ? recorded.length > 0 : missing.length === 0) return [];
+      const what = named.length === 0 ? 'no import' : `no import with Odoo ${missing.join(', ')}`;
+      return [`${file}: "${claim}" claims a tested import, but docs/maintainers.md records ${what} under ## Testimporte`];
+    }),
+  );
+  return [...new Set(problems)];
+}
+
+/**
+ * Problems where a file drops the sentence that a first test import with a
+ * Steuerberater is pending while no recorded import names a Kanzlei.
+ */
+export function checkPendingImport(file: string, markdown: string, recorded: readonly (readonly string[])[]): string[] {
+  if (kanzleiTestImports(recorded).length > 0 || markdown.includes(PENDING_IMPORT)) return [];
+  return [`${file}: must say "${PENDING_IMPORT}" until docs/maintainers.md records a test import checked by a Kanzlei under ## Testimporte`];
 }

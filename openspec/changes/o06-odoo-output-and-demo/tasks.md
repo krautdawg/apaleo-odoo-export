@@ -8,6 +8,7 @@
 
 - [ ] 2.1 `src/export/checks.ts`: wording of the movement model; the writer's `E-ODOO-*` findings reported like the other blocking checks; tests for "Side bug is caught", "Fitting bug is caught" and the BER aggregate scenario
 - [ ] 2.2 Re-run advice from `odooTarget.advice`; `.replaced-<timestamp>.csv`; revision in the `TargetWriter` render options, `revisionOf()` in the `TargetWriter` interface, revision in the manifest, next revision on `--overwrite`; tests for every scenario of "Idempotent re-runs", including a golden pair of revision 1 and revision 2 of the German month after a late posting
+- [ ] 2.3 Pipeline: pass the chosen revision to `target.render(...)` and `target.importBlock(...)` in `src/export/pipeline.ts` (today both fall back to revision 1); an export test that runs `export --overwrite` after a late posting and checks the `_r2` External IDs, „(Korrektur 2)“ in the references and `Revision: 2` in the protocol; then remove the „Noch nicht umgesetzt“ notes from `docs/odoo-import.md` (Einen Monat ersetzen) and `docs/odoo-format.md` (Korrekturen) and the test that requires them (from the o04 review)
 
 ## 3. Demo and examples
 
