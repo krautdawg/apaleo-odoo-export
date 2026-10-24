@@ -1,0 +1,4 @@
+id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/debit,line_ids/credit,line_ids/tax_ids/id
+apaleo_c1_BSP_20260914,apaleo BSP 2026-09-14,2026-09-14,APA,apaleo_c1_BSP_20260914_0001,1360,Zahlung Visa,95.00,0.00,
+,,,,apaleo_c1_BSP_20260914_0002,8300,Frühstück 7 %,0.00,88.78,account.1_tax_ust_7_skr03
+,,,,apaleo_c1_BSP_20260914_0003,8300,Frühstück 7 % (Rundungsausgleich),0.00,0.01,account.1_tax_ust_7_skr03

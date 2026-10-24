@@ -5,7 +5,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /** PMS-neutral modules: they must never depend on a source adapter. */
-export const CORE_MODULES = ['src/core/**', 'src/abacus/**', 'src/mapping/**', 'src/posting/**'];
+export const CORE_MODULES = ['src/core/**', 'src/abacus/**', 'src/odoo/**', 'src/mapping/**', 'src/posting/**'];
 
 /**
  * Code that must get the clock, network and environment from the CommandContext:
@@ -32,7 +32,7 @@ const SOURCE_IMPORT_PATTERNS = [
   {
     group: ['**/sources', '**/sources/**'],
     message:
-      'Core modules (core, abacus, mapping, posting) must not import source adapters. Wire sources in src/export or src/cli.',
+      'Core modules (core, abacus, odoo, mapping, posting) must not import source adapters. Wire sources in src/export or src/cli.',
   },
 ];
 

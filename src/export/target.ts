@@ -94,15 +94,18 @@ export interface TargetAdvice {
 }
 
 /**
- * The manifest fields a target may fill (`TargetWriter.manifestFields`). They
- * are named after the Abacus settings because Abacus is the only target; a
- * new target with other settings adds its own optional fields here.
+ * The manifest fields a target may fill (`TargetWriter.manifestFields`), each
+ * target its own optional fields.
  */
 export interface TargetManifestFields {
   /** The Abacus Mandant the file books into. */
   mandant?: string;
   /** The Abacus Geschäftsbereich the file books into. */
   geschaeftsbereich?: number;
+  /** The Odoo company whose taxes the file names (`odoo.companyId`). */
+  odooCompanyId?: number;
+  /** The code of the Odoo journal the file is imported into. */
+  odooJournal?: string;
 }
 
 /** The part of a target the output folder logic uses. */
