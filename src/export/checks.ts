@@ -5,7 +5,7 @@ import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import { formatCents, negateDecimal, sumDecimals } from '../core/money.js';
 import type { LedgerLine, SourceAdapter } from '../core/source.js';
-import { resolve, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
+import { FOOD_RATE_BEFORE, FOOD_RATE_CHANGE, FOOD_RATE_FROM, isFoodName, lineRate, resolve, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
 import {
   apaleoVatOf,
   inferReleaseRates,
@@ -229,6 +229,40 @@ function rowsWithTax(lines: readonly LedgerLine[], result: PostingResult, mappin
     }
   }
   return new Map([...rows].map(([tax, set]) => [tax, [...set].sort((a, b) => a - b)]));
+}
+
+/**
+ * `W-FOOD-RATE` once per business day on which a revenue line on a food account
+ * (its apaleo name matches the templates' food pattern and not the beverage
+ * pattern) carries 19 % on or after 2026-01-01, or 7 % before: Speisen are taxed
+ * at 7 % for services from 2026-01-01. The most likely error after the change is
+ * a food account still at 19 % in apaleo. A warning only: a food account can
+ * hold drinks, and the tool never changes the rate apaleo charged.
+ */
+export function checkFoodRate(lines: readonly LedgerLine[]): Finding[] {
+  const days = new Map<LocalDate, Map<string, string>>();
+  for (const line of lines) {
+    const revenue = line.credit.type === 'Revenues' ? line.credit : line.debit.type === 'Revenues' ? line.debit : undefined;
+    if (!revenue || !isFoodName(revenue.name)) continue;
+    const rate = lineRate(line);
+    const expected = line.businessDate < FOOD_RATE_CHANGE ? FOOD_RATE_BEFORE : FOOD_RATE_FROM;
+    if (rate === undefined || rate === expected || (rate !== FOOD_RATE_BEFORE && rate !== FOOD_RATE_FROM)) continue;
+    const accounts = days.get(line.businessDate) ?? new Map<string, string>();
+    accounts.set(revenue.number, `${revenue.number} ("${revenue.name}") at ${rate} %`);
+    days.set(line.businessDate, accounts);
+  }
+  return [...days].sort(([a], [b]) => a.localeCompare(b)).map(([day, accounts]) => {
+    const expected = day < FOOD_RATE_CHANGE ? FOOD_RATE_BEFORE : FOOD_RATE_FROM;
+    return {
+      code: 'W-FOOD-RATE',
+      message:
+        `on ${day} apaleo booked food revenue on ${[...accounts.keys()].sort().map((number) => accounts.get(number)).join(', ')}, ` +
+        `but Speisen are taxed at ${FOOD_RATE_FROM} % for services from ${FOOD_RATE_CHANGE} and at ${FOOD_RATE_BEFORE} % before (Steueränderungsgesetz 2025), ` +
+        `so ${expected} % is expected on ${day}; drinks stay at ${FOOD_RATE_BEFORE} %. Check the VAT setting of the service and the account in apaleo ` +
+        'with your Steuerberater (if the account also holds drinks, the rate can be right). The file is written with the rate apaleo charged',
+      value: day,
+    };
+  });
 }
 
 /** The three blocking checks, in order. */

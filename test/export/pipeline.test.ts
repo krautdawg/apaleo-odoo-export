@@ -6,7 +6,7 @@ import { runExport, type ExportRequest } from '../../src/export/index.js';
 import { buildBookings } from '../../src/posting/index.js';
 import { ApaleoPermissionError } from '../../src/sources/apaleo/index.js';
 import { BSP } from '../helpers/apaleo.js';
-import { DE_MONTH, DE_ROWS, deMonthConfig } from '../helpers/de-month.js';
+import { DE_MONTH, DE_ROWS, DE_TURN_OF_YEAR, deMonthConfig } from '../helpers/de-month.js';
 import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, withoutAustrianTaxes, type ExportSetup } from '../helpers/export.js';
 import { renderMappingFile } from '../../src/mapping/index.js';
 
@@ -210,7 +210,10 @@ describe('the period-part runner', () => {
     const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], swapped)) }, data: withoutNineteen });
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('failed');
-    expect(outcome?.findings.filter((f) => !f.code.startsWith('N-')).map((f) => [f.code, f.value])).toEqual([['E-TAX-RATE-WRONG', 'tax_ust_19_skr03']]);
+    expect(outcome?.findings.filter((f) => !f.code.startsWith('N-')).map((f) => [f.code, f.value])).toEqual([
+      ['E-TAX-RATE-WRONG', 'tax_ust_19_skr03'],
+      ['W-CITY-TAX-TAXED', 'tax_ust_7_skr03'],
+    ]);
     const line = swapped.findIndex((row) => row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00') + 2;
     const finding = outcome?.findings.find((f) => f.code === 'E-TAX-RATE-WRONG');
     expect(finding?.message).toContain(`line ${line} of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %`);
@@ -222,7 +225,11 @@ describe('the period-part runner', () => {
   it('Tax used at two rates: two rows with tax_ust_19_skr03 at 7 % and 19 % give E-TAX-RATES naming the tax, both rates and both rows, and no file', async () => {
     const twice = DE_ROWS.map((row) => (row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00' ? { ...row, odooTax: 'tax_ust_19_skr03' } : row));
     const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], twice)) }, data: (data) => Object.assign(data, structuredClone(DE_MONTH)) });
-    const lines = ['RevenueAccommodation_Reduced:7.00', 'RevenueFoodAndBeverages_Normal:19.00', 'RevenueOther_Normal:19.00'].map((n) => twice.findIndex((row) => row.apaleoAccount === n) + 2).sort((a, b) => a - b);
+    const lossAt19 = twice.findIndex((row) => row.apaleoAccount === '*' && row.apaleoType === 'LossOfAccountsReceivable' && row.apaleoVatPercent === '19') + 2;
+    const lines = [
+      ...['RevenueAccommodation_Reduced:7.00', 'RevenueFoodAndBeverages_Normal:19.00', 'RevenueOther_Normal:19.00'].map((n) => twice.findIndex((row) => row.apaleoAccount === n) + 2),
+      lossAt19,
+    ].sort((a, b) => a - b);
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('failed');
     const finding = outcome?.findings.find((f) => f.code === 'E-TAX-RATES');
@@ -234,9 +241,74 @@ describe('the period-part runner', () => {
     const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], DE_ROWS)) }, data: (data) => Object.assign(data, structuredClone(DE_MONTH)) });
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('written');
-    expect(outcome?.findings.map((f) => f.code)).toEqual(['N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE']);
+    expect(outcome?.findings.map((f) => f.code)).toEqual(['W-CITY-TAX-TAXED', 'N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE']);
     expect(readdirSync(join(exportsOf(setup), BSP, '2026-09')).sort()).toEqual([FILE, PROTOCOL, 'manifest.json'].sort());
     expect(readFileSync(join(exportsOf(setup), BSP, '2026-09', FILE), 'utf8')).toContain('account.1_tax_ust_7_skr03');
+  });
+
+  it('German special-case warnings for a month: the Übernachtungsteuer row with a tax gives W-CITY-TAX-TAXED in the dry run and the protocol, and the file is written', async () => {
+    const mapping = new TextDecoder().decode(renderMappingFile([], DE_ROWS));
+    const line = DE_ROWS.findIndex((row) => row.apaleoAccount === '3502') + 2;
+    const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': mapping }, data: (data) => Object.assign(data, structuredClone(DE_MONTH)) });
+    const [dry] = await run(setup, { dryRun: true });
+    const warning = dry?.findings.find((f) => f.code === 'W-CITY-TAX-TAXED');
+    expect(warning?.message).toMatch(new RegExp(`^line ${line} of the mapping file: the CityTaxes row for apaleo account 3502 books the Odoo tax tax_ust_7_skr03 at 7 %`));
+    expect(dry?.summary).toContain('W-CITY-TAX-TAXED');
+    const [written] = await run(setup);
+    expect(written?.status).toBe('written');
+    expect(readFileSync(join(exportsOf(setup), BSP, '2026-09', PROTOCOL), 'utf8')).toContain(`W-CITY-TAX-TAXED (odoo_tax): line ${line} of the mapping file`);
+  });
+
+  it('Food at 19 % in 2026: a breakfast line on 2026-09-14 on "Frühstück (19%)" at 19 % is written, and the output and the protocol carry W-FOOD-RATE', async () => {
+    const mapping = new TextDecoder().decode(renderMappingFile([], DE_ROWS));
+    const withBreakfast = (data: typeof DE_MONTH) => {
+      Object.assign(data, structuredClone(DE_MONTH));
+      const [template] = (data.ledger[BSP] ?? []).filter((l) => l.businessDate === '2026-09-14' && l.credit.type === 'Revenues');
+      if (!template) throw new Error('fixture line missing');
+      data.ledger[BSP]?.push({
+        ...structuredClone(template),
+        credit: { number: 'RevenueBreakfast_Normal:19.00', name: 'Frühstück (19%)', type: 'Revenues', parentNumber: 'RevenueBreakfast' },
+        grossCents: 2_380,
+        netCents: 2_000,
+        netPrecise: '20',
+        taxes: [{ vatType: 'Normal', percent: 19, amountCents: 380, amountPrecise: '3.8' }],
+        sourceEntryNumber: 'BSPE0099',
+      });
+    };
+    const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': mapping }, data: withBreakfast });
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('written');
+    const food = outcome?.findings.filter((f) => f.code === 'W-FOOD-RATE') ?? [];
+    expect(food.map((f) => f.value)).toEqual(['2026-09-14']);
+    expect(food[0]?.message).toContain('on 2026-09-14 apaleo booked food revenue on RevenueBreakfast_Normal:19.00 ("Frühstück (19%)") at 19 %');
+    expect(food[0]?.message).toContain('Speisen are taxed at 7 % for services from 2026-01-01');
+    expect(outcome?.summary).toContain('W-FOOD-RATE: on 2026-09-14');
+    expect(readFileSync(join(exportsOf(setup), BSP, '2026-09', PROTOCOL), 'utf8')).toContain('W-FOOD-RATE: on 2026-09-14');
+  });
+
+  it('Food rate around the change: exporting 2025-12-31 to 2026-01-01 with the SKR03 template mapping raises no W-FOOD-RATE, the swapped rates raise it once per day', async () => {
+    const mapping = new TextDecoder().decode(renderMappingFile([], DE_ROWS));
+    const period = { from: '2025-12-31', to: '2026-01-01' } as const;
+    const foodCodes = (outcomes: Awaited<ReturnType<typeof run>>) => outcomes.map((o) => [o.part.month, o.status, o.findings.filter((f) => f.code === 'W-FOOD-RATE').map((f) => f.value)]);
+    const turn = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': mapping }, data: (data) => Object.assign(data, structuredClone(DE_TURN_OF_YEAR)) });
+    expect(foodCodes(await run(turn, { period, dryRun: true }))).toEqual([
+      ['2025-12', 'checked', []],
+      ['2026-01', 'checked', []],
+    ]);
+    const swapped = exportSetup({
+      config: deMonthConfig(),
+      files: { 'mapping-BSP.csv': mapping },
+      data: (data) => {
+        Object.assign(data, structuredClone(DE_TURN_OF_YEAR));
+        const [before, after] = data.ledger[BSP] ?? [];
+        if (!before || !after) throw new Error('fixture lines missing');
+        [before.businessDate, after.businessDate] = [after.businessDate, before.businessDate];
+      },
+    });
+    expect(foodCodes(await run(swapped, { period, dryRun: true }))).toEqual([
+      ['2025-12', 'checked', ['2025-12-31']],
+      ['2026-01', 'checked', ['2026-01-01']],
+    ]);
   });
 
   it('EUR property in a CHF company: E-CURRENCY names EUR and CHF, says that the Odoo file books in the company currency, and reads no ledger', async () => {
