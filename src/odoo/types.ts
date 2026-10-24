@@ -96,7 +96,7 @@ export interface OdooRenderOptions {
   /** First and last day of the file period. */
   from: LocalDate;
   to: LocalDate;
-  /** The apaleo property id: 1 to 20 characters of `A-Z a-z 0-9 _ -`. */
+  /** The apaleo property id: 1 to 20 characters of `A-Z a-z 0-9 _ -`, not ending with `_DEMO`. */
   propertyId: string;
   /** `odoo.companyId`: in the tax and entry External IDs. */
   companyId: number;

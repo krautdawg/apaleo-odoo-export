@@ -58,6 +58,7 @@ describe('Booking validation', () => {
     ['E-ODOO-JOURNAL', odooOptions({ journal: 'apa' })],
     ['E-ODOO-PROPERTY-ID', odooOptions({ propertyId: 'BSP.1' })],
     ['E-ODOO-PROPERTY-ID', odooOptions({ propertyId: 'A'.repeat(21) })],
+    ['E-ODOO-PROPERTY-ID', odooOptions({ propertyId: 'BSP_DEMO' })],
     ['E-ODOO-DATE', odooOptions({ from: '2026-10-01' })],
     ['E-ODOO-DATE', odooOptions({ to: '2026-09-31' })],
     ['E-ODOO-ACCOUNT', odooOptions({ taxRounding: 'per_tax', roundingAccount: '27 00' })],

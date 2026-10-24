@@ -16,6 +16,20 @@ describe('One journal entry per property and business day', () => {
     );
   });
 
+  it('a tax given as account.<companyId>_<id> nets with its chart-template id: one line, one group, the same bytes', () => {
+    const full = revenue({ vat: vat('account.1_tax_ust_7_skr03', 7, 785) });
+    const mixed = renderOdooCsv([revenue(), full, payment(24_000)], odooOptions({ taxRounding: 'per_tax', roundingAccount: '2700' }));
+    const short = renderOdooCsv([revenue(), revenue(), payment(24_000)], odooOptions({ taxRounding: 'per_tax', roundingAccount: '2700' }));
+    expect(mixed.entries[0]?.groups).toHaveLength(1);
+    expect(mixed.entries[0]?.lines.filter((line) => line.account === '8300')).toHaveLength(1);
+    expect(mixed.bytes).toEqual(short.bytes);
+  });
+
+  it('a full External ID of another company stays its own tax', () => {
+    const other = revenue({ vat: vat('account.2_tax_ust_7_skr03', 7, 785) });
+    expect(buildEntries([revenue(), other, payment(24_000)], odooOptions()).entries[0]?.lines.filter((line) => line.account === '8300')).toHaveLength(2);
+  });
+
   it('Allowance nets with the revenue of the day: one 8300 line of 93.46 on the invoice side', () => {
     const { entries } = buildEntries([revenue(), allowance(), payment(10_000)], odooOptions());
     const lines = entries[0]?.lines.filter((line) => line.account === '8300') ?? [];

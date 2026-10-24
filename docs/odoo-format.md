@@ -66,7 +66,7 @@ Jeder Buchungssatz und jede Buchungszeile hat eine External ID. Odoo merkt sich 
 - **Buchungszeile:** die ID des Buchungssatzes, ein Unterstrich und eine vierstellige Nummer in Dateireihenfolge, ab `0001`.
 - **Referenz:** `apaleo <Hotel> <JJJJ-MM-TT>`. Danach filterst du in Odoo, zum Beispiel alle Buchungssätze eines Hotels mit `apaleo BSP`.
 - **Demo-Datei:** `apaleo_c1_BSP_DEMO_20260914` und die Referenz `DEMO apaleo BSP 2026-09-14`, damit importierte Demo-Buchungen sofort auffallen.
-- **Hotel-ID:** 1 bis 20 Zeichen aus `A-Z`, `a-z`, `0-9`, `-` und `_`, sonst `E-ODOO-PROPERTY-ID`.
+- **Hotel-ID:** 1 bis 20 Zeichen aus `A-Z`, `a-z`, `0-9`, `-` und `_`, nicht auf `_DEMO` endend (sonst hätte die Demo-Datei des Hotels ohne diese Endung dieselben External IDs und denselben Dateinamen), sonst `E-ODOO-PROPERTY-ID`.
 
 Was ein zweiter Import derselben Datei bewirkt (so im lokalen Testimport beobachtet, siehe [maintainers.md](maintainers.md#lokale-testimporte-in-odoo)):
 

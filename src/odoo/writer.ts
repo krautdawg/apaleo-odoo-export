@@ -13,6 +13,7 @@ import {
   lineExternalId,
   NO_TAX_CELL,
   revisionOfEntryId,
+  TAX_EXTERNAL_ID_MODULE,
   taxExternalId,
 } from './format.js';
 import { fitDay, vatComparison } from './fit.js';
@@ -39,13 +40,14 @@ export interface RenderedOdooCsv {
 export function buildEntries(bookings: readonly OdooBooking[], options: OdooRenderOptions): { entries: OdooEntry[]; notes: Finding[] } {
   if (!Number.isInteger(options.revision) || options.revision < 1) throw new RangeError(`The revision must be a whole number from 1, got ${options.revision}`);
   if (!Number.isInteger(options.companyId) || options.companyId < 1) throw new RangeError(`odoo.companyId must be a whole number from 1, got ${options.companyId}`);
-  const bookingErrors = validateBookings(bookings, options);
+  const canonical = canonicalTaxRefs(bookings, options.companyId);
+  const bookingErrors = validateBookings(canonical, options);
   if (bookingErrors.length > 0) throw new OdooValidationError(bookingErrors);
 
   const notes: Finding[] = [];
   const errors: Finding[] = [];
   const entries: OdooEntry[] = [];
-  for (const { date, keys } of nettedDays(bookings, notes)) {
+  for (const { date, keys } of nettedDays(canonical, notes)) {
     const fitted = fitDay(date, keys, options);
     notes.push(...fitted.notes);
     errors.push(...fitted.errors);
@@ -54,6 +56,23 @@ export function buildEntries(bookings: readonly OdooBooking[], options: OdooRend
   }
   if (errors.length > 0) throw new OdooValidationError(errors);
   return { entries, notes };
+}
+
+/**
+ * The bookings with every tax value written as `account.<companyId>_<id>` turned
+ * into its chart-template id `<id>`, so two values that become the same tax
+ * External ID in the file share one netting key, one rate check and one
+ * (tax, side) group.
+ */
+function canonicalTaxRefs(bookings: readonly OdooBooking[], companyId: number): readonly OdooBooking[] {
+  const prefix = `${TAX_EXTERNAL_ID_MODULE}.${companyId}_`;
+  return bookings.map((booking) => {
+    const taxRef = booking.vat?.taxRef;
+    if (!booking.vat || taxRef === undefined || !taxRef.startsWith(prefix)) return booking;
+    const short = taxRef.slice(prefix.length);
+    if (!/^[a-z0-9_]+$/.test(short)) return booking;
+    return { ...booking, vat: { ...booking.vat, taxRef: short } };
+  });
 }
 
 /**

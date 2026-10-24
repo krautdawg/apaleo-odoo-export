@@ -1,7 +1,7 @@
 import { isLocalDate } from '../core/date.js';
 import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
-import { formatAmount, formatRate, formatSignedAmount, MAX_AMOUNT_CENTS } from './format.js';
+import { DEMO_ID_MARKER, formatAmount, formatRate, formatSignedAmount, MAX_AMOUNT_CENTS } from './format.js';
 import { odooTax, sideOf } from './tax-model.js';
 import type { OdooBooking, OdooEntry, OdooRenderOptions } from './types.js';
 
@@ -45,6 +45,9 @@ export function validatePeriod({ from, to }: PeriodOptions): Finding[] {
 
 /** `E-ODOO-PROPERTY-ID` for a property id that cannot go into an External ID and the file name. */
 export function validatePropertyId(propertyId: string): Finding[] {
+  if (propertyId.endsWith(`_${DEMO_ID_MARKER}`)) {
+    return [finding('E-ODOO-PROPERTY-ID', 'propertyId', propertyId, `The property id must not end with "_${DEMO_ID_MARKER}": the demo file of the property without it uses the same External IDs and file name, got "${propertyId}"`)];
+  }
   if (PROPERTY_ID.test(propertyId)) return [];
   return [finding('E-ODOO-PROPERTY-ID', 'propertyId', propertyId, `The property id must be 1 to 20 characters of A-Z, a-z, 0-9, _ and - (it goes into the External IDs and the file name), got "${propertyId}"`)];
 }
