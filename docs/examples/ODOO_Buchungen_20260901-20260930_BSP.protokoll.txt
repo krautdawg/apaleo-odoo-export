@@ -2,18 +2,21 @@ Odoo journal entries (import file). No warranty, not tax advice: have your Steue
 
 Property BSP, 2026-09-01 to 2026-09-30: 24 apaleo lines, 19 Odoo bookings
 
-Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):
-  File: ODOO_Buchungen_20260901-20260930_BSP.csv
-  Revision: 1 (first file of the period)
-  Entries: 8 draft journal entries (one per business day) with 24 lines, references "apaleo BSP <date>"
-  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR
-  Rounding method: per_line; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Line")
-  Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)
-  Odoo VAT against apaleo's tax per line: 19 % Odoo 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; 7 % Odoo 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
-  Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 64.19, Odoo VAT 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 634.44, Odoo VAT 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
-  Rounding lines: 3; lines netted to zero and left out: 5
-  Steps: activate only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import
-  After the import: every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post the entries
+Odoo's VAT per tax and rate, with the UStVA Kennzahl, as Odoo computes it from the file (revenue, deposits, levies and write-offs with the tax together; net is the base in the file), against apaleo's VAT, with the days on which they differ:
+  tax_ust_19_skr03 19 % (Kz 81): net 64.19, Odoo VAT 12.19, apaleo per line 12.20, apaleo precise 12.20 (12.19512605), difference (Odoo minus apaleo) -0.01
+    2026-09-28: Odoo VAT 0.79, apaleo per line 0.80, difference -0.01
+  tax_ust_7_skr03 7 % (Kz 86): net 634.44, Odoo VAT 44.40, apaleo per line 44.40, apaleo precise 44.41 (44.41009346), difference (Odoo minus apaleo) 0.00
+Odoo computes the VAT itself from the base of each line; the file fits each base to the cent so that base plus Odoo's VAT equals apaleo's gross, so Odoo's VAT can differ from apaleo's tax per line by a cent per tax and day (the days are listed). Compare these lines with the tax lines per rate in Odoo after the import.
+
+Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):
+  no tax 0 %: net 80.00, apaleo per line 0.00, gross 80.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
+  tax_ust_7_skr03 7 % (Kz 86): net 634.44, apaleo per line 44.40, gross 678.84, apaleo precise 44.41 (44.41009346), difference (per line minus precise) -0.01
+  tax_ust_19_skr03 19 % (Kz 81): net 64.18, apaleo per line 12.20, gross 76.38, apaleo precise 12.20 (12.19512605), difference (per line minus precise) 0.00
+
+Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):
+  tax_ust_7_skr03 7 % (Kz 86): net 0.00, apaleo per line 0.00, gross 0.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
+
+The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) of a few cents is this rounding, not an error. Odoo's VAT per tax, from the bases the file fits to apaleo's gross, is in the first section and in the import block (difference Odoo minus apaleo): compare those with Odoo.
 
 Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):
   account    Soll   Haben  balance
@@ -25,19 +28,6 @@ Totals per Odoo account before the base fitting (the side without tax with the g
   8200       0.00   80.00   -80.00
   8300       0.00  634.44  -634.44
   8400       0.00   64.18   -64.18
-
-Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):
-  no tax 0 %: net 80.00, apaleo per line 0.00, gross 80.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
-  tax_ust_7_skr03 7 % (Kz 86): net 634.44, apaleo per line 44.40, gross 678.84, apaleo precise 44.41 (44.41009346), difference (per line minus precise) -0.01
-  tax_ust_19_skr03 19 % (Kz 81): net 64.18, apaleo per line 12.20, gross 76.38, apaleo precise 12.20 (12.19512605), difference (per line minus precise) 0.00
-
-Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):
-  tax_ust_7_skr03 7 % (Kz 86): net 0.00, apaleo per line 0.00, gross 0.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
-
-Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):
-  none
-
-The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.
 
 Kurtaxe and other guest levies per account (apaleo city tax, total 0.00):
   none
@@ -57,6 +47,11 @@ Deposits per Odoo tax and rate (received: credit on the deposit account, raises 
 
 Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 185.50
 
+Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):
+  none
+
+Entries in the file: 8, with 24 lines, of them 3 rounding lines
+
 Skipped lines:
   reason                               lines  gross (unsigned)
   both sides on the same Odoo account      5            621.22
@@ -65,6 +60,19 @@ Findings:
   N-ODOO-ROUNDING-LINE (Account): 2026-09-10, account 8300, 7 %: no base plus Odoo's tax reaches apaleo's gross 95.00 exactly, so the line "Erlöse Speisen 7 % (Rundungsausgleich)" of 0.01 adds the missing cent
   N-ODOO-ROUNDING-LINE (Account): 2026-09-14, account 8300, 7 %: no base plus Odoo's tax reaches apaleo's gross 100.04 exactly, so the line "Erlöse Stornogebühren 7 % (Rundungsausgleich)" of 0.01 adds the missing cent
   N-ODOO-ROUNDING-LINE (Account): 2026-09-28, account 8400, 19 %: no base plus Odoo's tax reaches apaleo's gross 4.98 exactly, so the line "Erlöse sonstige 19 % (Rundungsausgleich)" of 0.01 adds the missing cent
+
+Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):
+  File: ODOO_Buchungen_20260901-20260930_BSP.csv
+  Revision: 1 (first file of the period)
+  Entries: 8 draft journal entries (one per business day) with 24 lines, references "apaleo BSP <date>"
+  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR
+  Rounding method: per_line; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Line")
+  Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)
+  Odoo VAT against apaleo's tax per line: 19 % Odoo 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; 7 % Odoo 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
+  Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 64.19, Odoo VAT 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 634.44, Odoo VAT 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
+  Rounding lines: 3; lines netted to zero and left out: 5
+  Steps: activate only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import
+  After the import: every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post the entries
 
 apaleo entries per line of the file (entry number and receipt or reference):
   2026-09-03 1360 Zahlung Visa debit 321.00: BSPE0001 (PSP-BSP-0001)

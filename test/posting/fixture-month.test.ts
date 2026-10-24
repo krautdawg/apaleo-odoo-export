@@ -67,7 +67,7 @@ describe('posting the fixture month', () => {
       ],
       writeOffsByRate: [],
       cityTaxCents: 640,
-      levies: [{ account: '3600', tax: '', ratePercent: 0, grossCents: 640, vatCents: 0 }],
+      levies: [{ account: '3600', tax: '', ratePercent: 0, grossCents: 640, vatCents: 0, apaleoVat: '0' }],
       payments: [
         { account: '2700', cents: 2_400 },
         { account: '2890', cents: 55_670 },

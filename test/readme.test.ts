@@ -401,11 +401,13 @@ describe('docs folder', () => {
     expect(replace.indexOf('Stornodatum')).toBeLessThan(replace.indexOf('4. Importiere die neue Datei'));
   });
 
-  it('Corrected month: until o06 chooses the revision, the guide and the format doc say that --overwrite still writes revision 1', () => {
+  it('Corrected month: the export chooses the revision, so the guide and the format doc no longer say that --overwrite writes revision 1', () => {
     const replace = section(readRepoFile('docs/odoo-import.md'), '## Einen Monat ersetzen');
-    expect(replace).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*dieselben External IDs.*\*\*Entwürfe\*\*.*lehnt Odoo die neue Datei/s);
+    expect(replace).not.toContain('Noch nicht umgesetzt');
+    expect(replace).toContain('Das Tool wählt die Revision selbst');
     const format = section(readRepoFile('docs/odoo-format.md'), '## Korrekturen: Revisionen („Korrektur N“)');
-    expect(format).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*Revision 1/s);
+    expect(format).not.toContain('Noch nicht umgesetzt');
+    expect(format).toContain('`--overwrite` schreibt eine mehr als die Datei, die sie ersetzt');
     expect(format).toContain('„Stornodatum“ (Reversal Date)');
   });
 

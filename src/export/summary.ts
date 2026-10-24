@@ -1,8 +1,9 @@
 import { formatFinding, type Finding } from '../core/findings.js';
-import { decimalToCents, formatCents } from '../core/money.js';
+import { decimalToCents, formatCents, negateDecimal, sumDecimals } from '../core/money.js';
 import type { DepositRateTotal, LevyTotal, PostingSummary, SkipReason, VatTotal } from '../posting/index.js';
 import { formatTable } from '../cli/table.js';
 import type { PeriodPart } from './period.js';
+import type { TargetFileFigures, TargetVatTotal } from './target.js';
 
 const SKIP_LABELS: Readonly<Record<SkipReason, string>> = {
   VAT_ACCOUNT_LINE: 'apaleo VAT account line (Odoo computes the VAT from the tax of the base line)',
@@ -19,6 +20,8 @@ export interface SummaryInput {
   summary?: PostingSummary;
   /** The target's import block (`TargetWriter.importBlock`), once the file is rendered. */
   importBlock?: readonly string[];
+  /** What the rendered file holds (`TargetWriter.fileFigures`): the target's VAT per tax and its counts. */
+  figures?: TargetFileFigures;
   /** The line of the tax return for a rate (`TargetWriter.taxReturnLine`), for example `Kz 86`. */
   taxReturnLine?: TaxReturnLine;
   findings: readonly Finding[];
@@ -32,35 +35,80 @@ function taxAndRate(tax: string, ratePercent: number, taxReturnLine: TaxReturnLi
   return `${tax || 'no tax'} ${ratePercent} %${line ? ` (${line})` : ''}`;
 }
 
+/** Why Odoo's VAT per tax can differ from apaleo's by a cent, for the Steuerberater (design decision 1). */
+export const ODOO_VAT_NOTE =
+  "Odoo computes the VAT itself from the base of each line; the file fits each base to the cent so that base plus Odoo's VAT equals apaleo's gross, " +
+  "so Odoo's VAT can differ from apaleo's tax per line by a cent per tax and day (the days are listed). Compare these lines with the tax lines per rate in Odoo after the import.";
+
 /** Why the tax per line and apaleo's precise VAT differ by a few cents, and where Odoo's own VAT is, for the Steuerberater. */
 export const VAT_ROUNDING_NOTE =
   "The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line " +
   "rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) " +
-  "of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, " +
-  "and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.";
+  "of a few cents is this rounding, not an error. Odoo's VAT per tax, from the bases the file fits to apaleo's gross, is in the first section " +
+  'and in the import block (difference Odoo minus apaleo): compare those with Odoo.';
 
 /**
- * The posting summary as aligned text, for the dry run and the protocol file:
- * the import block (with Odoo's VAT per tax, entries, lines and rounding lines),
- * totals per Odoo account, revenue, deposit and write-off VAT per Odoo tax and
- * rate (with the UStVA Kennzahl), Kurtaxe and other levies per account, payments
- * per clearing account, deposits received, released and refunded, accounts
- * receivable, skipped lines and every finding. It renders the totals of the
- * posting run (`PostingSummary`) and computes none of its own.
+ * The posting summary as aligned text, for the dry run and the protocol file
+ * (export-run, "Dry run"), in the order of the check after the import (design
+ * decision 1): the target's VAT per tax and rate with the UStVA Kennzahl
+ * against apaleo's and the days with a difference, revenue and deposit VAT per
+ * tax and rate as apaleo charged it, totals per account, Kurtaxe and other
+ * levies, payments per clearing account, deposits received, released and
+ * refunded, accounts receivable, write-offs per rate, the counts of the file,
+ * skipped lines, every finding, and last the target's import block. It renders
+ * the totals of the posting run (`PostingSummary`) and of the target
+ * (`TargetFileFigures`) and computes none of its own.
  */
-export function renderSummary({ propertyId, part, ledgerLines, bookings, summary, importBlock, taxReturnLine, findings }: SummaryInput): string {
+export function renderSummary({ propertyId, part, ledgerLines, bookings, summary, importBlock, figures, taxReturnLine, findings }: SummaryInput): string {
+  const lineOf = taxReturnLine ?? (() => undefined);
   const out: string[] = [`Property ${propertyId}, ${part.from} to ${part.to}: ${ledgerLines} apaleo lines, ${bookings} Odoo bookings`, ''];
-  if (importBlock) out.push(...importBlock, '');
-  if (summary) out.push(...postingSection(summary, taxReturnLine ?? (() => undefined)));
+  if (summary && figures) out.push(...targetVatSection(figures.vatByTax, summary, lineOf));
+  if (summary) out.push(...postingSection(summary, lineOf, figures));
   out.push('Findings:');
   out.push(...(findings.length === 0 ? ['  none'] : findings.map((finding) => `  ${formatFinding(finding)}`)), '');
+  if (importBlock) out.push(...importBlock, '');
   return out.join('\n');
 }
 
-function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): string[] {
+/**
+ * `  tax_ust_7_skr03 7 % (Kz 86): net 1074.62, Odoo VAT 75.23, apaleo per line 75.22, apaleo precise 75.23 (75.23084112), difference (Odoo minus apaleo) 0.01`
+ * per tax of the file, each followed by the days on which Odoo's VAT and apaleo's differ, then `ODOO_VAT_NOTE`.
+ * apaleo's precise VAT owed is that of the revenue, deposits and levies with the same tax minus that of the write-offs.
+ */
+function targetVatSection(totals: readonly TargetVatTotal[], summary: PostingSummary, taxReturnLine: TaxReturnLine): string[] {
+  const precise = (total: TargetVatTotal) => {
+    const of = (rows: readonly VatTotal[]) => rows.filter((row) => row.ratePercent === total.ratePercent && total.bookingTaxes.includes(row.tax)).map((row) => row.apaleoVat);
+    const levies = summary.levies.filter((levy) => levy.ratePercent === total.ratePercent && total.bookingTaxes.includes(levy.tax)).map((levy) => levy.apaleoVat);
+    return sumDecimals([...of(summary.revenueByRate), ...of(summary.depositVatByRate), ...levies, ...of(summary.writeOffsByRate).map(negateDecimal)]);
+  };
+  const lines = totals.flatMap((total) => {
+    const exact = precise(total);
+    return [
+      `  ${taxAndRate(total.tax, total.ratePercent, taxReturnLine)}: net ${formatCents(total.baseCents)}, Odoo VAT ${formatCents(total.vatCents)}, ` +
+        `apaleo per line ${formatCents(total.apaleoVatCents)}, apaleo precise ${formatCents(decimalToCents(exact))} (${exact}), ` +
+        `difference (Odoo minus apaleo) ${formatCents(total.vatCents - total.apaleoVatCents)}`,
+      ...total.days.map(
+        (day) => `    ${day.date}: Odoo VAT ${formatCents(day.vatCents)}, apaleo per line ${formatCents(day.apaleoVatCents)}, difference ${formatCents(day.vatCents - day.apaleoVatCents)}`,
+      ),
+    ];
+  });
+  return [
+    "Odoo's VAT per tax and rate, with the UStVA Kennzahl, as Odoo computes it from the file (revenue, deposits, levies and write-offs with the tax together; net is the base in the file), " +
+      "against apaleo's VAT, with the days on which they differ:",
+    ...(lines.length === 0 ? ['  none'] : lines),
+    ODOO_VAT_NOTE,
+    '',
+  ];
+}
+
+function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine, figures: TargetFileFigures | undefined): string[] {
   const vatLines = (totals: readonly VatTotal[]) => vatTotalLines(totals, taxReturnLine);
   const out: string[] = [];
   const section = (title: string, body: string) => out.push(title, body.trimEnd() || '  none', '');
+
+  section("Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):", vatLines(summary.revenueByRate));
+  section("Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):", vatLines(summary.depositVatByRate));
+  out.push(VAT_ROUNDING_NOTE, '');
 
   const accounts = summary.accounts.map((a) => [a.account, formatCents(a.sollCents), formatCents(a.habenCents), formatCents(a.balanceCents)]);
   section(
@@ -68,14 +116,6 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
       "minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
     formatTable([['account', 'Soll', 'Haben', 'balance'], ...accounts], [1, 2, 3], '  '),
   );
-
-  section("Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):", vatLines(summary.revenueByRate));
-  section("Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):", vatLines(summary.depositVatByRate));
-  section(
-    "Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):",
-    vatTotalLines(summary.writeOffsByRate, taxReturnLine, 'lowers'),
-  );
-  out.push(VAT_ROUNDING_NOTE, '');
   section(`Kurtaxe and other guest levies per account (apaleo city tax, total ${formatCents(summary.cityTaxCents)}):`, levyLines(summary.levies, taxReturnLine).join('\n'));
 
   const payments = summary.payments.map((p) => [p.account, formatCents(p.cents)]);
@@ -101,6 +141,13 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
     `Accounts receivable (Forderungen Firmenrechnungen, Soll positive): ${formatCents(summary.accountsReceivableCents)}`,
     '',
   );
+  section(
+    "Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate, § 17 UStG: the write-off line is on the refund side and lowers the Kennzahl (before the base fitting):",
+    vatTotalLines(summary.writeOffsByRate, taxReturnLine, 'lowers'),
+  );
+  if (figures) {
+    out.push(`Entries in the file: ${figures.entries}, with ${figures.lines} lines, of them ${figures.roundingLines} rounding line${figures.roundingLines === 1 ? '' : 's'}`, '');
+  }
 
   const skipped = summary.skipped.map((s) => [SKIP_LABELS[s.reason], String(s.lines), formatCents(s.grossCents)]);
   section('Skipped lines:', skipped.length === 0 ? '' : formatTable([['reason', 'lines', 'gross (unsigned)'], ...skipped], [1, 2], '  '));

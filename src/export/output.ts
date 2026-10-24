@@ -43,6 +43,8 @@ export interface ManifestEntry extends TargetManifestFields {
   bookings?: number;
   /** The currency of every amount of the file (the company currency). */
   currency?: string;
+  /** 1 for the first file of a period, N + 1 for the file that replaced revision N. */
+  revision?: number;
   mappingSha256?: string;
   toolVersion?: string;
   createdAt?: string;
@@ -67,7 +69,7 @@ export function sha256(bytes: Uint8Array): string {
 export type OutputPlan =
   | { action: 'write' }
   | { action: 'unchanged'; previous: Uint8Array }
-  | { action: 'replace'; previous: Uint8Array; backup: string }
+  | { action: 'replace'; previous: Uint8Array; backup: string; previousRevision: number }
   | { action: 'refuse'; finding: Finding };
 
 /** `20261020T080000Z`: the time in a backup file name. */
@@ -126,20 +128,39 @@ async function overlappingFile(ctx: CommandContext, path: string, period: DateRa
 }
 
 /**
- * Decides what to do with `path`: write a new file, leave an existing one that
- * the target counts as the same content alone, replace it (`overwrite`), or refuse. Also refuses when
- * another file in the folder covers some of the same days, because importing
- * both would book those days twice.
+ * The revision of the current file at `path`, or undefined without one: from
+ * its entry in `manifest.json` when that entry describes the bytes on disk,
+ * else read back from the file by the target (`revisionOf`), else 1. The file
+ * of a re-run is rendered for this revision, so an unchanged re-run stays
+ * byte-identical, and a replacement gets the next one.
  */
-export async function planOutput(
-  ctx: CommandContext,
-  target: FolderTarget,
-  path: string,
-  bytes: Uint8Array,
-  period: DateRange,
-  overwrite: boolean,
-  file: Pick<TargetFileMeta, 'propertyId' | 'demo'>,
-): Promise<OutputPlan> {
+export async function existingRevision(ctx: CommandContext, target: FolderTarget, path: string): Promise<number | undefined> {
+  const bytes = await readIfExists(ctx, path);
+  if (!bytes) return undefined;
+  const manifest = await readManifest(ctx, join(dirname(path), MANIFEST_FILE));
+  const hash = sha256(bytes);
+  const entry = manifest.files.find((file) => file.file === basename(path) && file.status === 'current' && file.sha256 === hash);
+  const recorded = entry?.revision;
+  if (typeof recorded === 'number' && Number.isInteger(recorded) && recorded >= 1) return recorded;
+  return target.revisionOf(bytes) ?? 1;
+}
+
+/** What `planOutput` needs to know about the file besides its bytes. */
+export interface PlanOptions {
+  /** `--overwrite`: replace a file with other content. */
+  overwrite: boolean;
+  file: Pick<TargetFileMeta, 'propertyId' | 'demo'>;
+  /** The revision the bytes were rendered for: the existing file's (`existingRevision`), or 1 without one. */
+  revision: number;
+}
+
+/**
+ * Decides what to do with `path`: write a new file, leave an existing one that
+ * the target counts as the same content alone, replace it (`overwrite`, with
+ * the next revision), or refuse. Also refuses when another file in the folder
+ * covers some of the same days, because importing both would book those days twice.
+ */
+export async function planOutput(ctx: CommandContext, target: FolderTarget, path: string, bytes: Uint8Array, period: DateRange, options: PlanOptions): Promise<OutputPlan> {
   const overlap = await overlappingFile(ctx, path, period, target);
   if (overlap) {
     return {
@@ -153,14 +174,14 @@ export async function planOutput(
   const previous = await readIfExists(ctx, path);
   if (!previous) return { action: 'write' };
   if (target.sameContent(previous, bytes)) return { action: 'unchanged', previous };
-  if (overwrite) return { action: 'replace', previous, backup: replacedName(path, ctx.now()) };
+  if (options.overwrite) return { action: 'replace', previous, backup: replacedName(path, ctx.now()), previousRevision: options.revision };
   return {
     action: 'refuse',
     finding: {
       code: 'E-FILE-EXISTS',
       message:
         `${path} already exists with other content: the apaleo data, the mapping or the config changed since it was written, ` +
-        `for example by a late posting. ${target.advice.reimport(file)} Then run again with --overwrite: ` +
+        `for example by a late posting. ${target.advice.reimport({ ...options.file, revision: options.revision + 1 })} Then run again with --overwrite: ` +
         `the old file is kept as <name>.replaced-<timestamp>${extname(path)}.` +
         (target.advice.afterOverwrite ? ` ${target.advice.afterOverwrite}` : ''),
     },
@@ -210,6 +231,7 @@ export async function writeOutput(ctx: CommandContext, plan: OutputPlan, file: W
       if (oldProtocol) await ctx.fs.rename(protocol, protocolPath(plan.backup));
       files.push({
         ...(previousEntry ?? { from: file.entry.from, to: file.entry.to }),
+        revision: plan.previousRevision,
         file: basename(plan.backup),
         status: 'replaced',
         sha256: sha256(plan.previous),

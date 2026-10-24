@@ -1,9 +1,9 @@
 import { odooJournalOf, type OdooVersion } from '../core/config.js';
-import { fileTag, type RenderedFile, type TargetFileMeta, type TargetWriter } from '../export/target.js';
+import { fileTag, type TargetFileFigures, type TargetFileMeta, type TargetVatTotal, type TargetWriter } from '../export/target.js';
 import { kennzahl, taxExternalId } from './format.js';
 import { entryLineSources, importBlock, referencePrefix } from './import-block.js';
 import type { OdooBooking, OdooRenderOptions } from './types.js';
-import { odooCsvFileName, renderOdooCsv, revisionOf } from './writer.js';
+import { canonicalTaxRef, odooCsvFileName, renderOdooCsv, revisionOf, taxTotals, type RenderedOdooCsv } from './writer.js';
 
 /** `ODOO_Buchungen_<YYYYMMDD>-<YYYYMMDD>_<tag>.csv`; replaced files have a dot in the suffix and protocols end in `.txt`, so neither matches. */
 const ODOO_FILE = /^ODOO_Buchungen_(\d{8})-(\d{8})_[A-Za-z0-9_-]+\.csv$/;
@@ -33,20 +33,47 @@ export function odooMovements(booking: Pick<OdooBooking, 'debit' | 'credit' | 'g
 }
 
 /**
- * The Odoo target: `render` takes the revision of the file (1 for the first
- * file of a period, chosen by the pipeline in o06), and `revisionOf` reads it
- * back from a file on disk.
+ * Odoo's modelled VAT per tax over the file against apaleo's tax per line, with
+ * the days on which they differ, and the counts of the file (`fileFigures`).
  */
+export function odooFileFigures(rendered: RenderedOdooCsv, bookings: readonly Pick<OdooBooking, 'vat'>[], options: Pick<OdooRenderOptions, 'companyId' | 'taxRounding'>): TargetFileFigures {
+  const bookingTaxes = new Map<string, Set<string>>();
+  for (const { vat } of bookings) {
+    if (!vat) continue;
+    const tax = canonicalTaxRef(vat.taxRef, options.companyId);
+    bookingTaxes.set(tax, (bookingTaxes.get(tax) ?? new Set()).add(vat.taxRef));
+  }
+  const vatByTax = taxTotals(rendered.entries, options.taxRounding).map(
+    (total): TargetVatTotal => ({
+      tax: total.taxRef,
+      bookingTaxes: [...(bookingTaxes.get(total.taxRef) ?? [total.taxRef])].sort(),
+      ratePercent: total.percent,
+      baseCents: total.baseCents,
+      vatCents: total.odooTaxCents,
+      apaleoVatCents: total.apaleoTaxCents,
+      days: rendered.entries.flatMap((entry) => {
+        const day = taxTotals([entry], options.taxRounding).find((row) => row.taxRef === total.taxRef);
+        return day && day.odooTaxCents !== day.apaleoTaxCents ? [{ date: entry.date, vatCents: day.odooTaxCents, apaleoVatCents: day.apaleoTaxCents }] : [];
+      }),
+    }),
+  );
+  return {
+    vatByTax,
+    entries: rendered.entries.length,
+    lines: rendered.entries.reduce((sum, entry) => sum + entry.lines.length, 0),
+    roundingLines: rendered.roundingLines,
+  };
+}
+
+/** The Odoo target, with the optional parts of a `TargetWriter` it always has. */
 export interface OdooTargetWriter extends TargetWriter<OdooBooking> {
-  render(bookings: readonly OdooBooking[], meta: TargetFileMeta, revision?: number): RenderedFile;
-  importBlock(bookings: readonly OdooBooking[], meta: TargetFileMeta, revision?: number): string[];
   protocolDetails(bookings: readonly OdooBooking[], meta: TargetFileMeta): string[];
-  revisionOf(bytes: Uint8Array): number | undefined;
+  fileFigures(bookings: readonly OdooBooking[], meta: TargetFileMeta): TargetFileFigures;
 }
 
 /** The Odoo import file of journal entries as the export's target, with the settings `settingsOf` reads for each file (default: the config). */
 export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTargetSettings = settingsFromConfig): OdooTargetWriter {
-  const optionsOf = (meta: TargetFileMeta, revision: number): OdooRenderOptions => {
+  const optionsOf = (meta: TargetFileMeta): OdooRenderOptions => {
     const { companyId, journal, currency, taxRounding, roundingAccount } = settingsOf(meta);
     return {
       companyId,
@@ -57,31 +84,35 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
       from: meta.part.from,
       to: meta.part.to,
       propertyId: meta.propertyId,
-      revision,
+      revision: meta.revision,
       demo: meta.demo,
     };
   };
-  const fileName = (meta: TargetFileMeta) => odooCsvFileName({ from: meta.part.from, to: meta.part.to, propertyId: meta.propertyId }, fileTag(meta));
+  const fileName = (meta: Pick<TargetFileMeta, 'propertyId' | 'part' | 'demo'>) => odooCsvFileName({ from: meta.part.from, to: meta.part.to, propertyId: meta.propertyId }, fileTag(meta));
   return {
     id: 'odoo',
     currency: (config) => config.odoo.currency,
     protocolTitle: 'Odoo journal entries (import file)',
     filePattern: ODOO_FILE,
     fileName,
-    render(bookings, meta, revision = 1) {
-      const { bytes, notes } = renderOdooCsv(bookings, optionsOf(meta, revision));
+    render(bookings, meta) {
+      const { bytes, notes } = renderOdooCsv(bookings, optionsOf(meta));
       return { bytes, findings: notes };
     },
-    importBlock(bookings, meta, revision = 1) {
-      const options = optionsOf(meta, revision);
+    revisionOf,
+    importBlock(bookings, meta) {
+      const options = optionsOf(meta);
       return importBlock(renderOdooCsv(bookings, options), options, fileName(meta), settingsOf(meta).version);
     },
-    protocolDetails: (bookings, meta) => entryLineSources(renderOdooCsv(bookings, optionsOf(meta, 1)), bookings),
-    revisionOf,
+    protocolDetails: (bookings, meta) => entryLineSources(renderOdooCsv(bookings, optionsOf(meta)), bookings),
+    fileFigures(bookings, meta) {
+      const options = optionsOf(meta);
+      return odooFileFigures(renderOdooCsv(bookings, options), bookings, options);
+    },
     manifestFields: (meta, bookings) => {
-      const options = optionsOf(meta, 1);
+      const options = optionsOf(meta);
       const { companyId, journal } = options;
-      const { entries, taxTotals } = renderOdooCsv(bookings, options);
+      const { entries, taxTotals: totals } = renderOdooCsv(bookings, options);
       const lines = entries.flatMap((entry) => entry.lines);
       return {
         odooCompanyId: companyId,
@@ -89,7 +120,7 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
         entries: entries.length,
         lines: lines.length,
         debitTotalCents: lines.reduce((sum, line) => sum + Math.max(line.amountCents, 0), 0),
-        vatByTax: taxTotals.map((total) => ({ tax: taxExternalId(total.taxRef, companyId), ratePercent: total.percent, baseCents: total.baseCents, vatCents: total.odooTaxCents })),
+        vatByTax: totals.map((total) => ({ tax: taxExternalId(total.taxRef, companyId), ratePercent: total.percent, baseCents: total.baseCents, vatCents: total.odooTaxCents })),
       };
     },
     // The file has no creation time: unchanged means byte-identical.
@@ -102,7 +133,8 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
         'Both files contain entries for the same days, so importing both would overwrite reviewed drafts with the other file\'s content or book those days twice in Odoo. ' +
         'Export the same period as that file, or move it away (if it was imported, delete its draft entries and reverse its posted ones in Odoo first) and run again',
       reimport: (file) =>
-        'With --overwrite the new file gets the next revision and new External IDs, so importing it creates new entries in Odoo. Before importing it, delete the draft ' +
+        `With --overwrite the new file is revision ${file.revision} with new External IDs (_r${file.revision}) and the reference suffix "(Korrektur ${file.revision})", ` +
+        'so importing it creates new entries in Odoo. Before importing it, delete the draft ' +
         `entries of the earlier revision in Odoo (filter by the reference "${referencePrefix(file)}") and reverse its posted entries, ` +
         'because an import cannot change a posted entry and a reversal keeps its External ID. Set the reversal date to the date of each original entry, not today, ' +
         'so the month nets to zero in its own tax period (docs/odoo-import.md).',

@@ -20,9 +20,13 @@ import type { DateRange } from './period.js';
 import type { TargetWriter } from './target.js';
 
 /**
- * Plausibility checks on a posting result before its file is written. They
- * re-derive what the bookings must add up to from the apaleo lines, so a defect
- * in the posting rules cannot reach the accounting program unnoticed.
+ * Plausibility checks on a posting result before its file is written
+ * (export-run, "Plausibility checks"). They re-derive what the bookings must
+ * add up to from the apaleo lines, so a defect in the posting rules cannot
+ * reach the accounting program unnoticed. They check the bookings, not the
+ * file: the tax lines the accounting program computes itself and the cents a
+ * target adds to reach apaleo's gross are proven by the target's own checks of
+ * the rendered file, which the export reports like these.
  */
 
 export interface CheckOptions {
@@ -63,10 +67,11 @@ const dayKey = (day: LocalDate, account: string) => `${day} ${account}`;
 /**
  * Per business day and target account, the signed movement in the bookings (the
  * target's movement model, `CheckOptions.movements`) equals the signed movement
- * of the booked apaleo lines mapped to that account: debit positive, credit
- * negative, and on the side whose row has a tax the gross minus apaleo's
- * tax (the target books the tax on its own tax account). Catches side, sign and
- * account bugs (`E-ACCOUNT-BALANCE`).
+ * of the booked apaleo lines mapped to that account, debit positive and credit
+ * negative: the side without a tax moves by the gross, the side whose mapping
+ * row has a tax by the gross minus apaleo's tax rounded to the cent. The tax
+ * lines the accounting program creates on its own tax accounts are not part of
+ * this check. Catches side, sign and account bugs (`E-ACCOUNT-BALANCE`).
  */
 export function checkAccountMovements(lines: readonly LedgerLine[], result: PostingResult, { mapping, chart, movements }: CheckOptions): Finding[] {
   const skipped = new Set(result.skipped.map((entry) => entry.line));
@@ -267,7 +272,11 @@ export function checkFoodRate(lines: readonly LedgerLine[]): Finding[] {
   });
 }
 
-/** The three blocking checks, in order. */
+/**
+ * The three blocking checks on the bookings, in order: conservation, account
+ * movements, VAT per rate. The checks of the fitted file follow when the target
+ * renders it (for example an entry out of balance after the computed tax).
+ */
 export function plausibilityFindings(lines: readonly LedgerLine[], result: PostingResult, options: CheckOptions): Finding[] {
   return [...checkConservation(lines, result), ...checkAccountMovements(lines, result, options), ...checkVatByRate(lines, result, options)];
 }

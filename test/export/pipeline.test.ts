@@ -2,10 +2,12 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../../src/core/config.js';
-import { runExport, type ExportRequest } from '../../src/export/index.js';
-import { buildBookings } from '../../src/posting/index.js';
+import { runExport, type ExportRequest, type TargetWriter } from '../../src/export/index.js';
+import { buildEntries, odooTarget, OdooValidationError, settingsFromConfig, validateEntry } from '../../src/odoo/index.js';
+import { buildBookings, type PostedBooking } from '../../src/posting/index.js';
 import { ApaleoPermissionError } from '../../src/sources/apaleo/index.js';
-import { BSP } from '../helpers/apaleo.js';
+import { BSP, FIXTURE_FILES, LIVE_DAY, createApaleoContext, createFixtureSource, readLiveFixture } from '../helpers/apaleo.js';
+import { BER_MAPPING } from '../helpers/live-mapping.js';
 import { DE_MONTH, DE_ROWS, DE_TURN_OF_YEAR, deMonthConfig } from '../helpers/de-month.js';
 import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, withoutAustrianTaxes, type ExportSetup } from '../helpers/export.js';
 import { renderMappingFile } from '../../src/mapping/index.js';
@@ -357,6 +359,42 @@ describe('plausibility checks in the pipeline', () => {
     expect(first?.code).toBe('E-ACCOUNT-BALANCE');
     expect(first?.message).toMatch(/^on 2026-09-14 account \d+ moves -?\d+\.\d\d in the bookings, but the apaleo lines mapped to it move .* \(Soll positive, Haben negative\)/);
     expect(existsSync(exportsOf(setup))).toBe(false);
+  });
+
+  it('Fitting bug is caught: a defect in the fitting that leaves an entry 0.01 out of balance after Odoo\'s tax gives E-ODOO-UNBALANCED with the day and the difference, and no file', async () => {
+    const setup = exportSetup();
+    const fittingBug: TargetWriter<PostedBooking> = {
+      ...odooTarget,
+      render(bookings, meta) {
+        const options = { ...settingsFromConfig(meta), from: meta.part.from, to: meta.part.to, propertyId: meta.propertyId, revision: meta.revision, demo: meta.demo };
+        const { entries } = buildEntries(bookings, options);
+        const [entry] = entries;
+        const base = entry?.lines.find((line) => line.taxRef !== undefined);
+        if (!entry || !base) throw new Error('fixture entry with a tax missing');
+        base.amountCents -= 1;
+        throw new OdooValidationError(validateEntry(entry, options.taxRounding));
+      },
+    };
+    const { ctx, fake } = setup;
+    const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+    const [outcome] = await runExport({ period: SEPTEMBER, propertyIds: [BSP], dryRun: false, overwrite: false }, { loaded, source: fake, ctx, target: fittingBug });
+    expect(outcome?.status).toBe('failed');
+    const unbalanced = outcome?.findings.find((f) => f.code === 'E-ODOO-UNBALANCED');
+    expect(unbalanced?.message).toMatch(/^2026-09-14 \(accounts [^)]+\): debits minus credits with Odoo's tax are -0\.01, not 0\.00, so Odoo would add an "Automatic Balancing Line" of 0\.01/);
+    expect(outcome?.summary).toContain('E-ODOO-UNBALANCED');
+    expect(existsSync(exportsOf(setup))).toBe(false);
+  });
+
+  it('Normal real day has no aggregate warning: the recorded BER day 2026-10-21 with the BER Odoo mapping and checks.aggregates matches all 18 listed accounts', async () => {
+    const config = `${FIXTURE_FILES['apaleo-odoo.config.yaml']}properties:\n  - id: BER\nchecks:\n  aggregates: true\n`;
+    const ctx = createApaleoContext({ live: true }, { files: { 'apaleo-odoo.config.yaml': config, 'mapping-BER.csv': BER_MAPPING }, now: new Date('2026-10-25T08:00:00Z') });
+    const { source } = createFixtureSource({ live: true }, {}, ctx);
+    const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+    const [outcome] = await runExport({ period: { from: LIVE_DAY, to: LIVE_DAY }, propertyIds: ['BER'], dryRun: false, overwrite: false }, { loaded, source, ctx });
+    expect((readLiveFixture('BER', `aggregate-daily/${LIVE_DAY}.json`) as { aggregations: unknown[] }).aggregations).toHaveLength(18);
+    expect(outcome?.status).toBe('written');
+    expect(outcome?.findings.map((f) => f.code)).not.toContain('W-AGGREGATE-DIFF');
+    expect(outcome?.findings.filter((f) => f.code.startsWith('E-'))).toEqual([]);
   });
 
   it('blocks the file when a defect drops a line', async () => {

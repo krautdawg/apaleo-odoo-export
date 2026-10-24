@@ -240,7 +240,7 @@ describe('Kurtaxe and guest levies', () => {
     expect(booking?.vat).toBeUndefined();
     expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',1590,Kurtaxe,0.00,5.00,\n');
     expect(summary.cityTaxCents).toBe(500);
-    expect(summary.levies).toEqual([{ account: '1590', tax: '', ratePercent: 0, grossCents: 500, vatCents: 0 }]);
+    expect(summary.levies).toEqual([{ account: '1590', tax: '', ratePercent: 0, grossCents: 500, vatCents: 0, apaleoVat: '0' }]);
     expect(summary.revenueByRate).toEqual([]);
   });
 
@@ -250,7 +250,7 @@ describe('Kurtaxe and guest levies', () => {
     expect(findings).toEqual([]);
     expect(booking).toMatchObject({ credit: { account: '8300', label: 'Kurtaxe 7 %' }, grossCents: 1_070, vat: { side: 'credit', taxRef: 'tax_ust_7_skr03', apaleoTaxCents: 70 } });
     expect(renderOdooCsv(bookings, odooOptions()).text).toContain(',8300,Kurtaxe 7 %,0.00,10.00,account.1_tax_ust_7_skr03\n');
-    expect(summary.levies).toEqual([{ account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70 }]);
+    expect(summary.levies).toEqual([{ account: '8300', tax: 'tax_ust_7_skr03', ratePercent: 7, grossCents: 1_070, vatCents: 70, apaleoVat: '0.7' }]);
   });
 
   it('Taxed levy on an untaxed row: 0.70 at 7 % on the city-tax row without tax is E-VAT-MISSING naming the mapping row', () => {

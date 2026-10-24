@@ -184,10 +184,12 @@ describe('apaleo-odoo export', () => {
     expect(out).toContain('  account_tax_template_sales_10_code029 10 %: net 584.82, apaleo per line 58.48, gross 643.30, apaleo precise 58.48 (58.48181818), difference (per line minus precise) 0.00');
     expect(out).not.toContain('(Kz');
     expect(out).toContain("The revenue, deposit and write-off sections show apaleo's figures before the base fitting");
-    // The import block, before the totals.
+    // Odoo's VAT per tax first, the import block after the findings.
+    const odooVat = out.indexOf("Odoo's VAT per tax and rate, with the UStVA Kennzahl");
+    expect(odooVat).toBeGreaterThan(0);
+    expect(odooVat).toBeLessThan(out.indexOf("Revenue and apaleo's VAT per Odoo tax and rate"));
     const importBlock = out.indexOf('Import into Odoo Accounting');
-    expect(importBlock).toBeGreaterThan(0);
-    expect(importBlock).toBeLessThan(out.indexOf('Totals per Odoo account'));
+    expect(importBlock).toBeGreaterThan(out.indexOf('Findings:'));
     for (const line of [
       `  File: ${FILE}`,
       '  Revision: 1 (first file of the period)',
@@ -230,7 +232,7 @@ describe('re-running an export', () => {
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
     const out = setup.ctx.out();
     expect(out).toContain('E-FILE-EXISTS');
-    expect(out).toContain('With --overwrite the new file gets the next revision and new External IDs');
+    expect(out).toContain('With --overwrite the new file is revision 2 with new External IDs (_r2) and the reference suffix "(Korrektur 2)"');
     expect(out).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP") and reverse its posted entries');
     expect(out).toContain('--overwrite');
     expect(read(setup, FILE)).toEqual(before);
@@ -252,7 +254,24 @@ describe('re-running an export', () => {
       [backup, 'replaced', sha256(old), 24],
       [FILE, 'current', sha256(fresh), 25],
     ]);
-    expect(manifestOf(setup).files[0]).toMatchObject({ replacedBy: FILE, replacedAt: '2026-10-21T09:30:00.000Z' });
+    expect(manifestOf(setup).files[0]).toMatchObject({ replacedBy: FILE, replacedAt: '2026-10-21T09:30:00.000Z', revision: 1 });
+    expect(manifestOf(setup).files[1]).toMatchObject({ revision: 2 });
+  });
+
+  it('Overwrite writes the next revision: export --overwrite after a late posting writes _r2 External IDs, „(Korrektur 2)“ references and Revision: 2 in the protocol', async () => {
+    const setup = await exportedOnce();
+    latePosting(setup.data);
+    expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--overwrite'], setup.ctx)).toBe(0);
+    const rows = csvOf(read(setup, FILE)).split('\n').slice(1, -1);
+    const heads = rows.filter((row) => !row.startsWith(','));
+    expect(heads.length).toBeGreaterThan(0);
+    for (const row of heads) expect(row).toMatch(/^apaleo_c1_BSP_202609\d{2}_r2,apaleo BSP 2026-09-\d{2} \(Korrektur 2\),/);
+    for (const row of rows) expect(row.split(',')[4]).toMatch(/^apaleo_c1_BSP_202609\d{2}_r2_\d{4}$/);
+    expect(read(setup, PROTOCOL).toString('utf8')).toContain('\n  Revision: 2 (Korrektur 2, new External IDs): ');
+
+    const start = setup.ctx.out().length;
+    expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
+    expect(setup.ctx.out().slice(start)).toContain(`unchanged exports/BSP/2026-09/${FILE}`);
   });
 
   it('falls back to the file itself when the manifest was deleted', async () => {
