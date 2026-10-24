@@ -87,8 +87,12 @@ export interface TargetAdvice {
   currency: string;
   /** After "<file> already covers some of the days …": why not to import both, and what to do with the other file. */
   overlap: string;
-  /** Before the `--overwrite` hint: why not to import both files, and how to undo an imported old file first. */
-  reimport: string;
+  /**
+   * Before the `--overwrite` hint: why not to import both files, and how to
+   * undo an imported old file first. Takes the property and demo flag of the
+   * refused file, so the advice can name what to look for in the target program.
+   */
+  reimport(file: Pick<TargetFileMeta, 'propertyId' | 'demo'>): string;
   /** After the `--overwrite` hint, when the target has a case in which an imported file cannot be undone. */
   afterOverwrite?: string;
 }

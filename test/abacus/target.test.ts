@@ -125,7 +125,8 @@ describe('abacusTarget', () => {
   });
 
   it('gives Abacus advice: import only one of two overlapping files, delete the old bookings before re-importing', () => {
-    const { overlap, reimport, afterOverwrite } = abacusTarget.advice;
+    const { overlap, afterOverwrite } = abacusTarget.advice;
+    const reimport = abacusTarget.advice.reimport({ propertyId: 'BSP', demo: false });
     expect(overlap).toContain('import only one of them');
     expect(overlap).toContain('in the Nebenjournal before they are transferred, or by reversing them');
     expect(reimport).toContain('delete its bookings in Abacus first: in the Nebenjournal before they are transferred, or by reversing them');

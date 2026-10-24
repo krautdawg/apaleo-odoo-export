@@ -33,7 +33,7 @@ const fakeTarget: TargetWriter<PostedBooking> = {
   advice: {
     currency: 'FAKE currency advice.',
     overlap: 'FAKE overlap advice',
-    reimport: 'FAKE reimport advice.',
+    reimport: ({ propertyId }) => `FAKE reimport advice for ${propertyId}.`,
   },
 };
 
@@ -147,7 +147,7 @@ describe.each(CONTRACT_CASES)('the export through a TargetWriter: %s', (_label, 
     expect(refused.status).toBe('failed');
     expect(errorCodes(refused)).toEqual(['E-FILE-EXISTS']);
     const [exists] = withoutPlaceholderCodes(refused.findings);
-    expect(exists?.message).toContain(`${target.advice.reimport} Then run again with --overwrite`);
+    expect(exists?.message).toContain(`${target.advice.reimport({ propertyId: BSP, demo: false })} Then run again with --overwrite`);
     expect(exists?.message).toMatch(new RegExp(`the old file is kept as <name>\\.replaced-<timestamp>\\${extension}\\.$`));
     expect(exists?.message).not.toMatch(/DATEV|datev\.|Festschreibung/);
 

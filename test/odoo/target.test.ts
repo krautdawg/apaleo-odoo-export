@@ -142,12 +142,14 @@ describe('odooTarget', () => {
 
   it('Refusal advice names Odoo: next revision with new External IDs, delete the drafts of the earlier revision and reverse its posted entries, no Abacus', () => {
     const { advice } = odooTarget;
-    expect(advice.reimport).toMatch(/--overwrite the new file gets the next revision and new External IDs/);
-    expect(advice.reimport).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo <property id>"');
-    expect(advice.reimport).toContain('reverse its posted entries, because an import cannot change a posted entry and a reversal keeps its External ID');
+    const reimport = advice.reimport({ propertyId: 'BSP', demo: false });
+    expect(reimport).toMatch(/--overwrite the new file gets the next revision and new External IDs/);
+    expect(reimport).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP")');
+    expect(reimport).toContain('reverse its posted entries, because an import cannot change a posted entry and a reversal keeps its External ID');
+    expect(advice.reimport({ propertyId: 'BSP', demo: true })).toContain('(filter by the reference "DEMO apaleo BSP")');
     expect(advice.overlap).toMatch(/overwrite reviewed drafts with the other file's content or book those days twice/);
     expect(advice.currency).toMatch(/one currency \(odoo\.currency\).*does not convert/);
-    for (const text of Object.values(advice)) expect(text).not.toMatch(/abacus/i);
+    for (const text of [advice.currency, advice.overlap, reimport]) expect(text).not.toMatch(/abacus/i);
   });
 
   it('takes its settings from a function, for tests and later targets', () => {

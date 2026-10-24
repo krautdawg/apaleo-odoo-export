@@ -4,7 +4,7 @@ import { UserError } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import type { LocalDate } from '../core/date.js';
 import type { DateRange } from './period.js';
-import type { FolderTarget, TargetManifestFields } from './target.js';
+import type { FolderTarget, TargetFileMeta, TargetManifestFields } from './target.js';
 import type { CommandContext } from '../cli/context.js';
 import { readIfExists, replaceKeepingBackup, withFolderLock, writeFileAtomic } from '../cli/files.js';
 
@@ -155,6 +155,7 @@ export async function planOutput(
   bytes: Uint8Array,
   period: DateRange,
   overwrite: boolean,
+  file: Pick<TargetFileMeta, 'propertyId' | 'demo'>,
 ): Promise<OutputPlan> {
   const overlap = await overlappingFile(ctx, path, period, target);
   if (overlap) {
@@ -176,7 +177,7 @@ export async function planOutput(
       code: 'E-FILE-EXISTS',
       message:
         `${path} already exists with other content: the apaleo data, the mapping or the config changed since it was written, ` +
-        `for example by a late posting. ${target.advice.reimport} Then run again with --overwrite: ` +
+        `for example by a late posting. ${target.advice.reimport(file)} Then run again with --overwrite: ` +
         `the old file is kept as <name>.replaced-<timestamp>${extname(path)}.` +
         (target.advice.afterOverwrite ? ` ${target.advice.afterOverwrite}` : ''),
     },

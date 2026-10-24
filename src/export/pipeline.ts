@@ -232,7 +232,7 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
     findings.push(...renderFindings);
     importBlock = target.importBlock(result.bookings, meta);
     const path = join(monthFolder(deps.ctx.cwd, deps.loaded.config.output.dir, inputs.id, part.month), target.fileName(meta));
-    const plan = await planOutput(deps.ctx, target, path, bytes, part, request.overwrite);
+    const plan = await planOutput(deps.ctx, target, path, bytes, part, request.overwrite, meta);
     if (plan.action === 'refuse') findings.push(plan.finding);
     if (hasError(findings)) return outcome('failed', { path });
     if (request.dryRun) return outcome('checked', { path, plan: plan.action });

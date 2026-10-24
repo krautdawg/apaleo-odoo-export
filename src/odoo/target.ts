@@ -2,7 +2,7 @@ import { odooJournalOf, type OdooVersion } from '../core/config.js';
 import { UserError } from '../core/errors.js';
 import { fileTag, type RenderedFile, type TargetFileMeta, type TargetWriter } from '../export/target.js';
 import { kennzahl } from './format.js';
-import { importBlock } from './import-block.js';
+import { importBlock, referencePrefix } from './import-block.js';
 import type { OdooBooking, OdooRenderOptions } from './types.js';
 import { odooCsvFileName, renderOdooCsv, revisionOf } from './writer.js';
 
@@ -91,9 +91,9 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
       overlap:
         'Both files contain entries for the same days, so importing both would overwrite reviewed drafts with the other file\'s content or book those days twice in Odoo. ' +
         'Export the same period as that file, or move it away (if it was imported, delete its draft entries and reverse its posted ones in Odoo first) and run again',
-      reimport:
+      reimport: (file) =>
         'With --overwrite the new file gets the next revision and new External IDs, so importing it creates new entries in Odoo. Before importing it, delete the draft ' +
-        'entries of the earlier revision in Odoo (filter by the reference "apaleo <property id>", as in the file name) and reverse its posted entries, ' +
+        `entries of the earlier revision in Odoo (filter by the reference "${referencePrefix(file)}") and reverse its posted entries, ` +
         'because an import cannot change a posted entry and a reversal keeps its External ID.',
     },
   };
