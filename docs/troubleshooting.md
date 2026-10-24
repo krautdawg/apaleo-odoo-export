@@ -52,7 +52,7 @@ Diese Befunde kommen aus `mapping check`, `init-mapping` und jedem Export, denn 
 | `W-UNKNOWN-COLUMN` | Die Datei hat eine Spalte, die das Tool nicht nutzt. Sie wird ignoriert. | Nichts, außer du hast einen Spaltennamen falsch geschrieben. |
 | `N-VAT-ROW-IGNORED` | Die Datei hat Zeilen für die apaleo-Konten `Vat` oder `VatOnLiabilities`. Diese Buchungen werden immer übersprungen, weil Odoo die Steuerzeilen aus der Steuer der Erlös- oder Anzahlungszeile anlegt. | Nichts. Du kannst diese Zeilen löschen. |
 
-Eine Zuordnung oder Konfiguration eines anderen Zielformats erkennt das Tool und bricht ab; siehe [Einrichtung aus Deutschland oder Österreich übernommen](#einrichtung-aus-deutschland-oder-österreich-übernommen).
+Eine Zuordnung oder Konfiguration eines anderen Zielformats erkennt das Tool und bricht ab; siehe [Einrichtung aus einem Vorgängerprojekt übernommen](#einrichtung-aus-einem-vorgängerprojekt-übernommen).
 
 ## Buchungsregeln und Umsatzsteuer
 
@@ -114,7 +114,7 @@ Der Writer für die Importdatei der Odoo-Buchungssätze prüft jede Buchung und 
 | `N-ODOO-ROUNDING-LINE` | Kein Nettobetrag ergibt mit Odoos Steuer genau den Bruttobetrag, weil die Rundung darüber springt. Das Tool hat eine Zeile über 0,01 € hinzugefügt: bei Rundung pro Zeile mit derselben Steuer und „(Rundungsausgleich)“ in der Bezeichnung, bei Rundung pro Steuer ohne Steuer auf `odoo.roundingAccount`. | Nichts. Der Buchungssatz ist damit ausgeglichen; Odoos Steuer und apaleos Steuer stehen im Protokoll. |
 | `N-ODOO-TRUNCATED` | Eine Bezeichnung war länger als 128 Zeichen und wurde gekürzt. Die Meldung nennt Tag und Konto. | Nichts, außer der gekürzte Text ist wichtig. Über das Protokoll findest du die Buchungen in apaleo. |
 
-## Einrichtung aus Deutschland oder Österreich übernommen
+## Einrichtung aus einem Vorgängerprojekt übernommen
 
 Dieses Tool baut auf apaleo-abacus-export, apaleo-datev-export und apaleo-bmd-export auf, die Abacus-Dateien für die Schweiz, DATEV-Dateien für Deutschland und BMD-Dateien für Österreich schreiben. Diese Prüfungen fangen eine Einrichtung ab, die von dort oder von einem kostenpflichtigen Connector kopiert wurde, damit keine fremden Spalten oder Abschnitte in die Odoo-Datei gelangen.
 

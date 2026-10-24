@@ -6,7 +6,7 @@ Melde Sicherheitsprobleme bitte **vertraulich**, nicht in einem öffentlichen Is
 
 Nutze die private Meldung von Sicherheitslücken auf GitHub: Öffne auf der Seite des Repositorys **Security > Advisories > Report a vulnerability** (ein privates Security Advisory auf GitHub). Nur die Maintainer sehen es.
 
-Beschreib, was du gefunden hast, wie es sich nachstellen lässt und was ein Angreifer damit anfangen könnte. Füge nie ein echtes apaleo-Client-Secret, ein Zugriffstoken, eine MWST- oder UID-Nummer oder Gästedaten ein; beschreib sie, oder nimm erfundene Werte.
+Beschreib, was du gefunden hast, wie es sich nachstellen lässt und was ein Angreifer damit anfangen könnte. Füge nie ein echtes apaleo-Client-Secret, ein Zugriffstoken, eine Steuernummer, eine USt-IdNr. oder Gästedaten ein; beschreib sie, oder nimm erfundene Werte.
 
 Du bekommst eine Antwort, sobald ein Maintainer sich die Meldung ansehen kann. Das ist ein Projekt von Freiwilligen, eine feste Antwortzeit gibt es also nicht.
 
@@ -15,11 +15,11 @@ Du bekommst eine Antwort, sobald ein Maintainer sich die Meldung ansehen kann. D
 Zum Beispiel:
 
 - Das Client-Secret oder ein Zugriffstoken landet in der Ausgabe, einem Log, einer Protokolldatei oder einer Fehlermeldung.
-- Gästenamen oder andere personenbezogene Daten landen in einer Abacus-Datei oder einem Protokoll.
-- Eine Konfiguration, eine Kontenzuordnung oder eine Antwort von apaleo bringt das Tool dazu, Dateien ausserhalb des Ausgabeordners zu schreiben oder Code auszuführen.
+- Gästenamen oder andere personenbezogene Daten landen in einer Odoo-Importdatei oder einem Protokoll.
+- Eine Konfiguration, eine Kontenzuordnung oder eine Antwort von apaleo bringt das Tool dazu, Dateien außerhalb des Ausgabeordners zu schreiben oder Code auszuführen.
 - Schwächen im Dockerfile oder im Compose-Beispiel (zum Beispiel ein Lauf als root oder ein Secret, das im Image steckt).
 
-Nicht dazu gehören: Probleme in apaleo, Abacus, Node.js oder den Abhängigkeiten selbst (melde sie dort) und falsche Buchungen, die kein Sicherheitsproblem sind (eröffne dafür ein normales Issue).
+Nicht dazu gehören: Probleme in apaleo, Odoo, Node.js oder den Abhängigkeiten selbst (melde sie dort) und falsche Buchungen, die kein Sicherheitsproblem sind (eröffne dafür ein normales Issue).
 
 ## Unterstützte Versionen
 

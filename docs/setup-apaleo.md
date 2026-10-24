@@ -10,8 +10,8 @@ Die Bezeichnungen unten folgen den Bildschirmen von apaleo, wie sie beim ersten 
 
 1. Melde dich bei apaleo an und öffne **Apps > Connected apps**.
 2. Klick auf **Add a new app** und dann auf **Add custom app**. Wähle keinen Connect Client; der ist für Apps im apaleo Store.
-3. Es öffnet sich die Seite **New simple client** (Client Credentials). Trag einen Namen ein, zum Beispiel `Abacus Export`.
-4. Das Feld **Secret description** ist Pflicht: Beschreib, wofür das Secret ist, zum Beispiel `apaleo-odoo-export, Buchungsexport für den Treuhänder`.
+3. Es öffnet sich die Seite **New simple client** (Client Credentials). Trag einen Namen ein, zum Beispiel `Odoo Export`.
+4. Das Feld **Secret description** ist Pflicht: Beschreib, wofür das Secret ist, zum Beispiel `apaleo-odoo-export, Buchungsexport für die Kanzlei`.
 5. Wähle einen **fine-grained** Client (feingranulare Berechtigungen, von apaleo empfohlen) statt Scopes. Damit wählst du die Hotels und jede Berechtigung einzeln.
 
 ## 2. Hotels auswählen
@@ -29,13 +29,13 @@ Such jede Berechtigung über das Feld **Search permission** und füge sie hinzu:
 | `core.properties.read` | die Liste der Hotels (ID, Name, Zeitzone, Währung) | erforderlich |
 | `core.subledger_aggregate.create` | die Tagessummen von apaleo, für `live-smoke` und die optionale Vollständigkeitsprüfung (`checks.aggregates: true`) | optional |
 
-Die beiden «create»-Berechtigungen klingen nach Schreiben. apaleo nutzt sie aber für POST-Anfragen, die nur einen Export oder eine Summe berechnen. In deinem Konto werden keine Buchungen und keine Stammdaten angelegt. apaleo vermerkt nur jeden Export in seinem Export-Audit-Log.
+Die beiden „create“-Berechtigungen klingen nach Schreiben. apaleo nutzt sie aber für POST-Anfragen, die nur einen Export oder eine Summe berechnen. In deinem Konto werden keine Buchungen und keine Stammdaten angelegt. apaleo vermerkt nur jeden Export in seinem Export-Audit-Log.
 
 Hast du stattdessen einen Scope-Client angelegt, braucht er den Scope `accounting.read`, und du trägst ihn in der Konfiguration unter `apaleo.scopes` ein.
 
 ### Personenbezogene Daten (PII)
 
-apaleo fragt, ob die App personenbezogene Daten bekommt: **Retrieve** (alles), **Omit linked** (verknüpfte Personendaten weglassen) oder **Omit all** (alle weglassen). Wähle **Omit all**. Der Export braucht keine personenbezogenen Daten; das ist live getestet: Kontenplan, Buchungsexport und Tagessummen kommen vollständig, und das Tool schreibt ohnehin nie Gästenamen in die Exportdatei. Laut apaleo lässt sich die Wahl später nicht ändern.
+apaleo fragt, ob die App personenbezogene Daten bekommt: **Retrieve** (alles), **Omit linked** (verknüpfte Personendaten weglassen) oder **Omit all** (alle weglassen). Wähle **Omit all**. Der Export braucht keine personenbezogenen Daten; das ist live getestet: Kontenplan, Buchungsexport und Tagessummen kommen vollständig, und das Tool schreibt ohnehin nie Gästenamen in die Odoo-Importdatei. Laut apaleo lässt sich die Wahl später nicht ändern.
 
 ## 4. Client-ID und Secret kopieren
 
@@ -49,7 +49,7 @@ cp .env.example .env
 # .env öffnen und APALEO_CLIENT_SECRET=... eintragen
 ```
 
-Behandle das Secret wie ein Passwort: Es liest dein ganzes Buchungsjournal. Lege es nie in Git ab und kopiere es in kein Issue. Ist es nach aussen gelangt, lösche das Secret der App in apaleo und lege ein neues an.
+Behandle das Secret wie ein Passwort: Es liest dein ganzes Buchungsjournal. Lege es nie in Git ab und kopiere es in kein Issue. Ist es nach außen gelangt, lösche das Secret der App in apaleo und lege ein neues an.
 
 ## 5. Verbindung prüfen
 
@@ -59,7 +59,7 @@ apaleo-odoo properties    # listet die Hotels, die die App lesen darf
 apaleo-odoo live-smoke --property BSP
 ```
 
-`live-smoke` liest einen Geschäftstag (standardmässig vorgestern), zeigt Anzahlen und Summen und schreibt nichts. Der Befehl endet mit 0, wenn jeder erforderliche Schritt klappt. Fehlt die optionale Berechtigung, steht dort `SKIP`, kein Fehler. Antwortet apaleo mit 403, nennt die Meldung die Berechtigungen von oben.
+`live-smoke` liest einen Geschäftstag (standardmäßig vorgestern), zeigt Anzahlen und Summen und schreibt nichts. Der Befehl endet mit 0, wenn jeder erforderliche Schritt klappt. Fehlt die optionale Berechtigung, steht dort `SKIP`, kein Fehler. Antwortet apaleo mit 403, nennt die Meldung die Berechtigungen von oben.
 
 Nächster Schritt: die Kontenzuordnung mit `init-mapping` anlegen (siehe [README](../README.md#schnellstart) und den [Leitfaden zur Kontenzuordnung](mapping-guide.md)).
 

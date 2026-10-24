@@ -6,17 +6,18 @@ body:
     attributes:
       value: |
         Danke für deine Meldung. **Füge nie Secrets oder Gästedaten ein.** Entferne vor dem Absenden das apaleo-Client-Secret
-        und Tokens, Gästenamen, E-Mail-Adressen, Reservations- und Rechnungsnummern, echte MWST- oder UID-Nummern
-        und die Mandantennummer des Abacus-Mandanten. Kontonummern aus dem Kontenplan darfst du stehen lassen.
+        und Tokens, API-Schlüssel und Adressen deiner Odoo-Datenbank, Gästenamen, E-Mail-Adressen, Reservierungs- und
+        Rechnungsnummern, echte Steuernummern oder USt-IdNr. und Kontensalden. Kontonummern aus SKR03 oder SKR04 und die
+        IDs der Odoo-Steuern (zum Beispiel tax_ust_7_skr03) darfst du stehen lassen.
         Sicherheitsprobleme gehören nicht hierher, sondern in ein privates Security Advisory (siehe SECURITY.md).
 
         Meldungen auf Englisch sind ebenfalls willkommen.
   - type: input
     id: version
     attributes:
-      label: Version des Tools
-      description: Die Ausgabe von `apaleo-odoo --version` (oder `node dist/cli/main.js --version`) und der Commit, falls du ihn kennst.
-      placeholder: 0.1.0, Commit abc1234
+      label: Version des Tools und von Odoo
+      description: Die Ausgabe von `apaleo-odoo --version` (oder `node dist/cli/main.js --version`), der Commit, falls du ihn kennst, und deine Odoo-Version und Edition (17, 18 oder 19; Community oder Enterprise; Odoo Online, Odoo.sh oder selbst gehostet) mit dem Kontenrahmen.
+      placeholder: 0.1.0, Commit abc1234; Odoo 18 Enterprise auf Odoo.sh, SKR03
     validations:
       required: true
   - type: dropdown
@@ -43,7 +44,7 @@ body:
     id: findings
     attributes:
       label: Befund-Codes
-      description: Jeder Code, den das Tool ausgegeben hat, zum Beispiel E-UNMAPPED, W-VAT-ROUNDING. Siehe docs/troubleshooting.md.
+      description: Jeder Code, den das Tool ausgegeben hat, zum Beispiel E-UNMAPPED, W-FOOD-RATE. Siehe docs/troubleshooting.md.
       placeholder: E-VAT-RATE, W-RECENT-DAY
   - type: textarea
     id: expected

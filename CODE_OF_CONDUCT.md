@@ -2,7 +2,7 @@
 
 ## Unsere Verpflichtung
 
-Wir als Mitglieder, Teilnehmende und Verantwortliche unserer Gemeinschaft verpflichten uns, allen Teilnehmenden an dem Projekt und unserer Gemeinschaft eine belästigungsfreie Beteiligung, unabhängig von Alter, Körpergrösse, Behinderung, ethnischer Zuordnung, Geschlechtermerkmalen, -identität und -ausdruck, Grad der Erfahrung, Bildung, sozialem Status, Nationalität, persönlicher Erscheinung, Rasse, Kaste, Hautfarbe, Religion oder sexueller Identität und Orientierung zu ermöglichen.
+Wir als Mitglieder, Teilnehmende und Verantwortliche unserer Gemeinschaft verpflichten uns, allen Teilnehmenden an dem Projekt und unserer Gemeinschaft eine belästigungsfreie Beteiligung, unabhängig von Alter, Körpergröße, Behinderung, ethnischer Zuordnung, Geschlechtermerkmalen, -identität und -ausdruck, Grad der Erfahrung, Bildung, sozialem Status, Nationalität, persönlicher Erscheinung, Rasse, Kaste, Hautfarbe, Religion oder sexueller Identität und Orientierung zu ermöglichen.
 
 Wir verpflichten uns, in einer Weise zu handeln und zu interagieren, die zu einer offenen, einladenden, vielfältigen, inklusiven und gesunden Gemeinschaft beiträgt.
 
@@ -26,9 +26,9 @@ Beispiele für inakzeptables Verhalten sind:
 
 ## Verantwortlichkeiten bei der Durchsetzung
 
-Die Gemeinschaftsleitung ist verantwortlich dafür, unsere Standards für ein akzeptables Verhalten klarzustellen und wird angemessen und fair korrigierende Massnahmen ergreifen um auf jegliches Verhalten, das sie für unangemessen, bedrohlich oder beleidigend hält, zu reagieren.
+Die Gemeinschaftsleitung ist verantwortlich dafür, unsere Standards für ein akzeptables Verhalten klarzustellen und wird angemessen und fair korrigierende Maßnahmen ergreifen um auf jegliches Verhalten, das sie für unangemessen, bedrohlich oder beleidigend hält, zu reagieren.
 
-Die Gemeinschaftsleitung hat das Recht und die Verantwortung, Kommentare, Commits, Code, Wiki-Bearbeitungen, Support-Tickets und andere Beiträge, die nicht mit diesem Verhaltenskodex vereinbar sind, zu entfernen, zu bearbeiten oder abzulehnen, und wird die Gründe für eine Mässigung mitteilen, wenn es angebracht ist.
+Die Gemeinschaftsleitung hat das Recht und die Verantwortung, Kommentare, Commits, Code, Wiki-Bearbeitungen, Support-Tickets und andere Beiträge, die nicht mit diesem Verhaltenskodex vereinbar sind, zu entfernen, zu bearbeiten oder abzulehnen, und wird die Gründe für eine Mäßigung mitteilen, wenn es angebracht ist.
 
 ## Geltungsbereich
 
@@ -42,29 +42,29 @@ Die gesamte Gemeinschaftsleitung ist verpflichtet, die Privatsphäre und die Sic
 
 ## Durchsetzungsrichtlinien
 
-Die Gemeinschaftsleitung wird sich bei der Bestimmung der Konsequenzen für jede Handlung, die ihrer Ansicht nach gegen diesen Verhaltenskodex verstösst, an diese Richtlinien über die Auswirkungen in der Gemeinschaft halten:
+Die Gemeinschaftsleitung wird sich bei der Bestimmung der Konsequenzen für jede Handlung, die ihrer Ansicht nach gegen diesen Verhaltenskodex verstößt, an diese Richtlinien über die Auswirkungen in der Gemeinschaft halten:
 
 ### 1. Berichtigung
 
 **Auswirkungen in der Gemeinschaft**: Verwendung unangemessener Sprache oder anderes Verhalten, das in der Gemeinschaft als unprofessionell oder unwillkommen gilt.
 
-**Folge**: Eine private, schriftliche Verwarnung der Gemeinschaftsleitung, die Klarheit über die Art des Verstosses und eine Erklärung dafür bietet, warum das Verhalten unangemessen war. Eine öffentliche Entschuldigung kann verlangt werden.
+**Folge**: Eine private, schriftliche Verwarnung der Gemeinschaftsleitung, die Klarheit über die Art des Verstoßes und eine Erklärung dafür bietet, warum das Verhalten unangemessen war. Eine öffentliche Entschuldigung kann verlangt werden.
 
 ### 2. Verwarnung
 
 **Auswirkungen in der Gemeinschaft**: Eine Verletzung durch einen einzelnen Vorfall oder eine Reihe von Handlungen.
 
-**Folge**: Eine Warnung mit Konsequenzen bei wiederholtem Fehlverhalten. Keine Interaktion mit den beteiligten Personen, einschliesslich unaufgeforderter Interaktion mit denjenigen, die den Verhaltenskodex durchsetzen, für einen bestimmten Zeitraum. Dazu gehört die Vermeidung von Interaktionen in Gemeinschaftsräumen sowie in externen Kanälen wie sozialen Medien. Ein Verstoss gegen diese Bedingungen kann zu einem vorübergehenden oder dauerhaften Verbot führen.
+**Folge**: Eine Warnung mit Konsequenzen bei wiederholtem Fehlverhalten. Keine Interaktion mit den beteiligten Personen, einschließlich unaufgeforderter Interaktion mit denjenigen, die den Verhaltenskodex durchsetzen, für einen bestimmten Zeitraum. Dazu gehört die Vermeidung von Interaktionen in Gemeinschaftsräumen sowie in externen Kanälen wie sozialen Medien. Ein Verstoß gegen diese Bedingungen kann zu einem vorübergehenden oder dauerhaften Verbot führen.
 
 ### 3. Vorübergehender Ausschluss
 
-**Auswirkungen in der Gemeinschaft**: Eine schwerwiegende Verletzung von Gemeinschaftsstandards, einschliesslich anhaltend unangemessenen Verhaltens.
+**Auswirkungen in der Gemeinschaft**: Eine schwerwiegende Verletzung von Gemeinschaftsstandards, einschließlich anhaltend unangemessenen Verhaltens.
 
-**Folge**: Ein zeitlich begrenztes Verbot jeglicher Art von Interaktion oder öffentlicher Kommunikation mit der Gemeinschaft. Während dieses Zeitraums ist keine öffentliche oder private Interaktion mit den beteiligten Personen erlaubt. Auch keine unaufgeforderte Interaktion mit denjenigen, die den Verhaltenskodex durchsetzen. Ein Verstoss gegen diese Bedingungen kann zu einem dauerhaften Verbot führen.
+**Folge**: Ein zeitlich begrenztes Verbot jeglicher Art von Interaktion oder öffentlicher Kommunikation mit der Gemeinschaft. Während dieses Zeitraums ist keine öffentliche oder private Interaktion mit den beteiligten Personen erlaubt. Auch keine unaufgeforderte Interaktion mit denjenigen, die den Verhaltenskodex durchsetzen. Ein Verstoß gegen diese Bedingungen kann zu einem dauerhaften Verbot führen.
 
 ### 4. Dauerhafter Ausschluss
 
-**Auswirkungen in der Gemeinschaft**: Aufzeigen eines Musters von Verletzungen der Gemeinschaftsstandards, einschliesslich anhaltend unangemessenen Verhaltens, Belästigung einer Person oder Aggression gegen oder Herabsetzung von Gruppen von Personen.
+**Auswirkungen in der Gemeinschaft**: Aufzeigen eines Musters von Verletzungen der Gemeinschaftsstandards, einschließlich anhaltend unangemessenen Verhaltens, Belästigung einer Person oder Aggression gegen oder Herabsetzung von Gruppen von Personen.
 
 **Folge**: Ein dauerhaftes Verbot jeglicher Art von öffentlicher Interaktion innerhalb der Gemeinschaft.
 
