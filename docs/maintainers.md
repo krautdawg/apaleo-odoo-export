@@ -1,43 +1,41 @@
 # Hinweise für Maintainer
 
-## Das Repository ist vorerst privat
+## Das Repository ist öffentlich
 
-Das Repository ist privat. Beschreibung und Themen sollen Hotels und Kanzleien in Deutschland helfen, das Tool zu finden, wenn sie auf GitHub oder in einer Suchmaschine nach „apaleo Odoo Export“, „apaleo Odoo Buchhaltung“ oder „Odoo Hotel Buchungsjournal Import“ suchen, aber **niemand außerhalb kann sie sehen, bis der Maintainer das Repository öffentlich macht**. Bis dahin bringen sie für die Auffindbarkeit nichts.
-
-Die OpenSpec-Änderung o08 hat Beschreibung und Themen gesetzt, ohne die Sichtbarkeit zu ändern:
+Das Repository ist seit dem 24. Oktober 2026 öffentlich, Version `v0.1.0` ist veröffentlicht. Beschreibung und Themen helfen Hotels und Kanzleien in Deutschland, das Tool zu finden, wenn sie auf GitHub oder in einer Suchmaschine nach „apaleo Odoo Export“, „apaleo Odoo Buchhaltung“ oder „Odoo Hotel Buchungsjournal Import“ suchen. Die OpenSpec-Änderung o08 hat sie gesetzt:
 
 - Beschreibung: „Kostenloser apaleo Odoo Export: Buchungssätze für die Odoo Buchhaltung aus apaleo, für Hotels in Deutschland (SKR03/SKR04). Open Source, MIT.“
 - Themen: `apaleo`, `odoo`, `odoo-accounting`, `apaleo-odoo`, `odoo-import`, `journal-entries`, `buchhaltung`, `hotel`, `hospitality`, `accounting`, `skr03`, `skr04`, `germany`, `deutschland`, `steuerberater`, `open-source`.
 
-Kein Thema nennt ein Vorgängerprojekt oder die Schweiz. Prüfen lässt sich das mit `gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility`.
+Kein Thema nennt ein Vorgängerprojekt oder die Schweiz. Den Stand prüfst du mit:
 
-Keiner der Schritte unter „Vor der Veröffentlichung“ ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
+```sh
+gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility
+```
 
 ## Zusammenführen
 
-Solange das Repository privat ist, gibt es keinen Schutz für Branches (nicht im kostenlosen Tarif), GitHub blockiert also keinen roten Pull Request. Führe nur zusammen, wenn die CI grün ist:
+Der Branch `main` ist geschützt und verlangt die CI-Prüfungen, GitHub blockiert also einen roten Pull Request. Führe zusammen, wenn die CI grün ist:
 
 ```sh
 gh pr checks <number> --watch --fail-fast && gh pr merge <number> --squash
 ```
 
-## Vor der Veröffentlichung
+## Veröffentlichung
 
-README und Anleitungen beschreiben seit o08 das Tool für Odoo und Deutschland. Das Repository bleibt trotzdem privat, bis der erste Testimport mit einer Kanzlei bestätigt ist.
-
-In dieser Reihenfolge:
+Erledigt ist, was abgehakt ist; die offenen Schritte sind weiterhin die Entscheidung des Maintainers. Der erste Testimport mit einer Kanzlei steht noch aus.
 
 1. [ ] Mach mit einer Kanzlei einen ersten echten Testimport in Odoo (Testdatenbank oder Testunternehmen, Checkliste in [odoo-import.md](odoo-import.md#erster-testimport-checkliste)), einmal in Odoo 19 auf Odoo Online (Testversion) und einmal in Odoo 17 oder 18 Community, und trag beide unten unter [Testimporte](#testimporte) ein, mit der Kanzlei unter „Geprüft von“. Erst dann darf das README den Satz streichen, dass der erste Testimport mit einem Steuerberater noch aussteht.
 2. [ ] Zeichne einen Geschäftstag 2026 einer deutschen apaleo-Sandbox (EUR, `Europe/Berlin`) mit `live-smoke` auf, anonymisiere ihn und leg ihn als Testdaten in `test/fixtures/apaleo/live/` ab, neben den Tagen BER und VIE, damit der Export auch über die Konten für Speisen zu 7 % getestet ist.
 3. [ ] Lies das README in einem frischen Klon und führe den Schnellstart und `export --month 2026-09 --demo --dry-run` noch einmal aus.
-4. [ ] Starte `pnpm test` (mit dem Docs-Test) und prüfe, dass die CI auf `main` grün ist.
-5. [ ] Durchsuche die Historie nach allem, was nicht öffentlich werden darf: `git log -p | grep -iE 'secret|password|token'` darf nur Code und Dokumentation zeigen, nie einen Wert. Keine echten Gästedaten in den Testdaten.
-6. [ ] Stelle die Sichtbarkeit um: `gh repo edit krautdawg/apaleo-odoo-export --visibility public --accept-visibility-change-consequences`.
+4. [x] `pnpm test` (mit dem Docs-Test) läuft, und die CI auf `main` ist grün.
+5. [x] Die Historie ist durchsucht: `git log -p | grep -iE 'secret|password|token'` zeigt nur Code und Dokumentation, nie einen Wert. Keine echten Gästedaten in den Testdaten.
+6. [x] Die Sichtbarkeit ist öffentlich (seit dem 24. Oktober 2026).
 7. [ ] Lade ein Vorschaubild (Social Preview) hoch (Settings > General > Social preview).
 8. [ ] Entscheide, ob es GitHub Discussions für Fragen geben soll. Schaltest du sie ein, leg eine `config.yml` in `.github/ISSUE_TEMPLATE/` an, die auf die Discussions verweist; bis dahin sind die Vorlagen für Issues der einzige Weg.
-9. [ ] Schalte die private Meldung von Sicherheitslücken ein (Settings > Code security), auf die `SECURITY.md` verweist.
-10. [ ] Schalte den Schutz für den Branch `main` mit den erforderlichen CI-Prüfungen ein (für öffentliche Repositories kostenlos), damit sich ein roter Pull Request nicht zusammenführen lässt.
-11. [ ] Markiere die erste Version mit dem Tag `v0.1.0`: Setze die Version in `package.json`, verschiebe die Einträge unter `## [Unveröffentlicht]` in `CHANGELOG.md` nach `## [0.1.0] - <Datum>`, committe, dann `git tag v0.1.0 && git push origin v0.1.0`. Ein Tag ist nur eine Version des Quellcodes; nichts wird auf npm oder in einer Container-Registry veröffentlicht.
+9. [x] Die private Meldung von Sicherheitslücken ist eingeschaltet (Settings > Code security), auf die `SECURITY.md` verweist.
+10. [x] Der Schutz für den Branch `main` ist eingeschaltet und verlangt die CI-Prüfungen, damit sich ein roter Pull Request nicht zusammenführen lässt.
+11. [x] Die erste Version ist mit dem Tag `v0.1.0` markiert und veröffentlicht. Ein Tag ist nur eine Version des Quellcodes; nichts wird auf npm oder in einer Container-Registry veröffentlicht.
 12. [ ] Prüfe, dass das deutsche README auf github.com richtig angezeigt wird (Tabellen, der Link auf `README.en.md` in der zweiten Zeile, die Anker der Überschriften, die Badges) und dass das CI-Badge den Stand von `main` zeigt.
 
 ## Testimporte
