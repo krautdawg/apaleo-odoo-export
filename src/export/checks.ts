@@ -5,7 +5,7 @@ import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import { formatCents, negateDecimal, sumDecimals } from '../core/money.js';
 import type { LedgerLine, SourceAdapter } from '../core/source.js';
-import { mwstCodeOf, resolve, type Mapping, type MappingRow } from '../mapping/index.js';
+import { resolve, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
 import {
   apaleoVatOf,
   inferReleaseRates,
@@ -64,7 +64,7 @@ const dayKey = (day: LocalDate, account: string) => `${day} ${account}`;
  * Per business day and target account, the signed movement in the bookings (the
  * target's movement model, `CheckOptions.movements`) equals the signed movement
  * of the booked apaleo lines mapped to that account: debit positive, credit
- * negative, and on the side whose row has an MWST-Code the gross minus apaleo's
+ * negative, and on the side whose row has a tax the gross minus apaleo's
  * tax (the target books the tax on its own tax account). Catches side, sign and
  * account bugs (`E-ACCOUNT-BALANCE`).
  */
@@ -78,11 +78,11 @@ export function checkAccountMovements(lines: readonly LedgerLine[], result: Post
     const debit = resolve(mapping, line.debit, { rate, chart });
     const credit = resolve(mapping, line.credit, { rate, chart });
     // An unmapped side is reported by the coverage check.
-    if (!debit?.abacusAccount || !credit?.abacusAccount) continue;
+    if (!debit?.odooAccount || !credit?.odooAccount) continue;
     const tax = Math.sign(line.grossCents) * lineTaxCents(line, releases.get(line));
-    const taxOn = (row: MappingRow) => (mwstCodeOf(row) === undefined ? 0 : tax);
-    add(expected, dayKey(line.businessDate, debit.abacusAccount), line.grossCents - taxOn(debit));
-    add(expected, dayKey(line.businessDate, credit.abacusAccount), -(line.grossCents - taxOn(credit)));
+    const taxOn = (row: MappingRow) => (taxOf(row) === undefined ? 0 : tax);
+    add(expected, dayKey(line.businessDate, debit.odooAccount), line.grossCents - taxOn(debit));
+    add(expected, dayKey(line.businessDate, credit.odooAccount), -(line.grossCents - taxOn(credit)));
   }
   const actual = new Map<string, number>();
   for (const booking of result.bookings) {
@@ -136,19 +136,19 @@ function apaleoVatByRate(lines: readonly LedgerLine[], result: PostingResult, ch
   return vat;
 }
 
-/** Tax owed per rate in the bookings: the tax of a credited VAT side (negative) is owed (+). */
+/** apaleo's tax per rate as the bookings carry it, signed as owed: the tax of a credited VAT side is owed (+), of a debited one reduces it. */
 function bookedVatByRate(result: PostingResult): Map<number, number> {
   const vat = new Map<number, number>();
-  for (const { tax } of result.bookings) if (tax && tax.taxCents !== 0) add(vat, tax.percent, -tax.taxCents);
+  for (const { vat: tax } of result.bookings) if (tax && tax.apaleoTaxCents !== 0) add(vat, tax.percent, tax.side === 'credit' ? tax.apaleoTaxCents : -tax.apaleoTaxCents);
   return vat;
 }
 
 /**
- * Per VAT rate, the tax the bookings carry equals the sum of
- * apaleo's per-line tax rounded to Rappen of the booked lines of that rate,
- * within one cent per `W-VAT-ROUNDING` the posting run reported on a computed
- * deposit tax at that rate (`E-VAT-TOTAL` above it). The difference to apaleo's
- * precise total is line rounding and never an error by itself.
+ * Per VAT rate, the tax the bookings carry equals the sum of apaleo's per-line
+ * tax rounded to cents of the booked lines of that rate, within one cent per
+ * rounding difference the posting run accepted on a computed deposit tax at
+ * that rate (`E-VAT-TOTAL` above it). The difference to apaleo's precise total
+ * is line rounding and never an error by itself.
  */
 export function checkVatByRate(lines: readonly LedgerLine[], result: PostingResult, options: CheckOptions): Finding[] {
   const apaleo = apaleoVatByRate(lines, result, options.chart);
@@ -177,42 +177,42 @@ export function checkVatByRate(lines: readonly LedgerLine[], result: PostingResu
 }
 
 /**
- * One rate per MWST-Code in the file (`E-MWST-CODE-RATES`): an MWST-Code has one
- * rate per date, so the accounting program would recompute or refuse the bookings of a
- * code at a second rate. Two mapping rows may use one code at two rates over
- * time (a rate change on 1 January), so this runs on the bookings of one
- * property-month, not on the mapping. Names the code, its rates and the mapping
- * rows the month used with it.
+ * One rate per tax in the file (`E-TAX-RATES`): a tax of the accounting program
+ * has one rate, so the bookings of a tax at a second rate would be computed with the first.
+ * Two mapping rows may use one tax at two rates over time (a rate change on
+ * 1 January needs a new tax, but a mapping can still name the old one),
+ * so this runs on the bookings of one property-month, not on the mapping. Names
+ * the tax, its rates and the mapping rows the month used with it.
  */
-export function checkMwstCodeRates(lines: readonly LedgerLine[], result: PostingResult, { mapping, chart }: Pick<CheckOptions, 'mapping' | 'chart'>): Finding[] {
+export function checkTaxRates(lines: readonly LedgerLine[], result: PostingResult, { mapping, chart }: Pick<CheckOptions, 'mapping' | 'chart'>): Finding[] {
   const rates = new Map<string, Set<number>>();
-  for (const { tax } of result.bookings) {
-    if (!tax) continue;
-    const set = rates.get(tax.mwstCode) ?? new Set<number>();
-    set.add(tax.percent);
-    rates.set(tax.mwstCode, set);
+  for (const { vat } of result.bookings) {
+    if (!vat) continue;
+    const set = rates.get(vat.taxRef) ?? new Set<number>();
+    set.add(vat.percent);
+    rates.set(vat.taxRef, set);
   }
   const mixed = [...rates].filter(([, set]) => set.size > 1).sort(([a], [b]) => a.localeCompare(b));
   if (mixed.length === 0) return [];
-  const rows = rowsWithMwstCode(lines, result, mapping, chart);
-  return mixed.map(([code, set]) => {
+  const rows = rowsWithTax(lines, result, mapping, chart);
+  return mixed.map(([tax, set]) => {
     const percents = [...set].sort((a, b) => a - b).map((rate) => `${rate} %`);
-    const used = rows.get(code) ?? [];
+    const used = rows.get(tax) ?? [];
     return {
-      code: 'E-MWST-CODE-RATES',
+      code: 'E-TAX-RATES',
       message:
-        `the MWST-Code ${code} is booked at ${percents.join(' and ')} in this file ` +
-        `(${used.length === 1 ? 'line' : 'lines'} ${used.join(', ')} of the mapping file), but an MWST-Code has one rate per date in the MWST-Tabelle, ` +
-        'so the accounting program would recompute or refuse the bookings at the other rate. Give each rate its own MWST-Code ' +
-        '(mwst_code and mwst_percent), run "apaleo-odoo mapping check" and export again. No file was written',
-      field: 'mwst_code',
-      value: code,
+        `the tax ${tax} is booked at ${percents.join(' and ')} in this file ` +
+        `(${used.length === 1 ? 'line' : 'lines'} ${used.join(', ')} of the mapping file), but a tax has one rate in the accounting program, ` +
+        'so it would compute the bookings at the other rate with that one. Give each rate its own tax ' +
+        '(odoo_tax and tax_percent), run "apaleo-odoo mapping check" and export again. No file was written',
+      field: 'odoo_tax',
+      value: tax,
     };
   });
 }
 
-/** Per MWST-Code, the sorted line numbers of the mapping rows with that code that the booked apaleo lines resolve to. */
-function rowsWithMwstCode(lines: readonly LedgerLine[], result: PostingResult, mapping: Mapping, chart: ChartIndex): Map<string, number[]> {
+/** Per tax, the sorted line numbers of the mapping rows with that tax that the booked apaleo lines resolve to. */
+function rowsWithTax(lines: readonly LedgerLine[], result: PostingResult, mapping: Mapping, chart: ChartIndex): Map<string, number[]> {
   const skipped = new Set(result.skipped.map((entry) => entry.line));
   const releases = inferReleaseRates(lines, chart);
   const rows = new Map<string, Set<number>>();
@@ -221,14 +221,14 @@ function rowsWithMwstCode(lines: readonly LedgerLine[], result: PostingResult, m
     const rate = resolutionRate(line, releases);
     for (const account of [line.debit, line.credit]) {
       const row = resolve(mapping, account, { rate, chart });
-      const code = row && mwstCodeOf(row);
-      if (!row || code === undefined) continue;
-      const set = rows.get(code) ?? new Set<number>();
+      const tax = row && taxOf(row);
+      if (!row || tax === undefined) continue;
+      const set = rows.get(tax) ?? new Set<number>();
       set.add(row.line);
-      rows.set(code, set);
+      rows.set(tax, set);
     }
   }
-  return new Map([...rows].map(([code, set]) => [code, [...set].sort((a, b) => a - b)]));
+  return new Map([...rows].map(([tax, set]) => [tax, [...set].sort((a, b) => a - b)]));
 }
 
 /** The three blocking checks, in order. */

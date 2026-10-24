@@ -1,4 +1,5 @@
 import { abacusUnitOf } from '../core/config.js';
+import { UserError } from '../core/errors.js';
 import { fileTag, type TargetFileMeta, type TargetWriter } from '../export/target.js';
 import { mwstZiffer } from './format.js';
 import { importBlock } from './import-block.js';
@@ -15,6 +16,7 @@ export type AbacusTargetSettings = Omit<AbacusRenderOptions, 'from' | 'to' | 'pr
 /** The settings of the config's `abacus` section, with the property's own Mandant and Geschäftsbereich. */
 export function settingsFromConfig({ config, propertyId }: Pick<TargetFileMeta, 'config' | 'propertyId'>): AbacusTargetSettings {
   const { abacus } = config;
+  if (!abacus) throw new UserError('The config has no abacus section: set abacus.mandant (see docs/configuration.md) to write the Abacus file.');
   const { mandant, geschaeftsbereich } = abacusUnitOf(abacus, config.properties, propertyId);
   const { leitwaehrung, abrechnungsart, version, mwstKonto, mwstHilfskonto } = abacus;
   return { mandant, geschaeftsbereich, leitwaehrung, abrechnungsart, version, mwstKonto, mwstHilfskonto };
@@ -45,7 +47,7 @@ export function createAbacusTarget(settingsOf: (meta: TargetFileMeta) => AbacusT
   const fileName = (meta: TargetFileMeta) => xmlBuchungenFileName(optionsOf(meta), fileTag(meta));
   return {
     id: 'abacus',
-    currency: (config) => config.abacus.leitwaehrung,
+    currency: (config) => config.abacus?.leitwaehrung ?? 'CHF',
     protocolTitle: 'apaleo-odoo export protocol',
     filePattern: ABACUS_FILE,
     fileName,

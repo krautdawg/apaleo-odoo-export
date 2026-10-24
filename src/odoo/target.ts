@@ -1,8 +1,7 @@
 import { odooJournalOf, type OdooVersion } from '../core/config.js';
-import { UserError } from '../core/errors.js';
 import { fileTag, type RenderedFile, type TargetFileMeta, type TargetWriter } from '../export/target.js';
-import { kennzahl } from './format.js';
-import { importBlock, referencePrefix } from './import-block.js';
+import { kennzahl, taxExternalId } from './format.js';
+import { entryLineSources, importBlock, referencePrefix } from './import-block.js';
 import type { OdooBooking, OdooRenderOptions } from './types.js';
 import { odooCsvFileName, renderOdooCsv, revisionOf } from './writer.js';
 
@@ -15,7 +14,6 @@ export type OdooTargetSettings = Omit<OdooRenderOptions, 'from' | 'to' | 'proper
 /** The settings of the config's `odoo` section, with the property's own journal. */
 export function settingsFromConfig({ config, propertyId }: Pick<TargetFileMeta, 'config' | 'propertyId'>): OdooTargetSettings {
   const { odoo } = config;
-  if (!odoo) throw new UserError('The config has no odoo section: set odoo.journal and odoo.version (see docs/configuration.md) to write the Odoo file.');
   const { companyId, currency, taxRounding, roundingAccount, version } = odoo;
   return { companyId, currency, taxRounding, version, journal: odooJournalOf(odoo, config.properties, propertyId), ...(roundingAccount !== undefined && { roundingAccount }) };
 }
@@ -42,6 +40,7 @@ export function odooMovements(booking: Pick<OdooBooking, 'debit' | 'credit' | 'g
 export interface OdooTargetWriter extends TargetWriter<OdooBooking> {
   render(bookings: readonly OdooBooking[], meta: TargetFileMeta, revision?: number): RenderedFile;
   importBlock(bookings: readonly OdooBooking[], meta: TargetFileMeta, revision?: number): string[];
+  protocolDetails(bookings: readonly OdooBooking[], meta: TargetFileMeta): string[];
   revisionOf(bytes: Uint8Array): number | undefined;
 }
 
@@ -65,7 +64,7 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
   const fileName = (meta: TargetFileMeta) => odooCsvFileName({ from: meta.part.from, to: meta.part.to, propertyId: meta.propertyId }, fileTag(meta));
   return {
     id: 'odoo',
-    currency: (config) => config.odoo?.currency ?? 'EUR',
+    currency: (config) => config.odoo.currency,
     protocolTitle: 'Odoo journal entries (import file)',
     filePattern: ODOO_FILE,
     fileName,
@@ -77,10 +76,21 @@ export function createOdooTarget(settingsOf: (meta: TargetFileMeta) => OdooTarge
       const options = optionsOf(meta, revision);
       return importBlock(renderOdooCsv(bookings, options), options, fileName(meta), settingsOf(meta).version);
     },
+    protocolDetails: (bookings, meta) => entryLineSources(renderOdooCsv(bookings, optionsOf(meta, 1)), bookings),
     revisionOf,
-    manifestFields: (meta) => {
-      const { companyId, journal } = settingsOf(meta);
-      return { odooCompanyId: companyId, odooJournal: journal };
+    manifestFields: (meta, bookings) => {
+      const options = optionsOf(meta, 1);
+      const { companyId, journal } = options;
+      const { entries, taxTotals } = renderOdooCsv(bookings, options);
+      const lines = entries.flatMap((entry) => entry.lines);
+      return {
+        odooCompanyId: companyId,
+        odooJournal: journal,
+        entries: entries.length,
+        lines: lines.length,
+        debitTotalCents: lines.reduce((sum, line) => sum + Math.max(line.amountCents, 0), 0),
+        vatByTax: taxTotals.map((total) => ({ tax: taxExternalId(total.taxRef, companyId), ratePercent: total.percent, baseCents: total.baseCents, vatCents: total.odooTaxCents })),
+      };
     },
     // The file has no creation time: unchanged means byte-identical.
     sameContent: (existing, next) => existing.length === next.length && existing.every((byte, i) => byte === next[i]),

@@ -8,7 +8,7 @@ Das Tool liest eine Konfigurationsdatei im Format YAML oder JSON und dazu ein pa
 2. die Umgebungsvariable `APALEO_ODOO_CONFIG`, sonst
 3. `./apaleo-odoo.config.yaml` im Arbeitsverzeichnis.
 
-Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`mandant:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `abacus`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
+Eine Datei, deren Name auf `.json` endet, wird als JSON gelesen, jede andere als YAML. Unbekannte Schlüssel lehnt das Tool mit ihrem Namen ab, damit ein Tippfehler nie unbemerkt bleibt. Ein Schlüssel ohne Wert (`mandant:`) gilt als nicht gesetzt. Eine Konfiguration aus einem Vorgängerprojekt mit einem Abschnitt `bmd` oder `datev` lehnt das Tool ab und nennt den Abschnitt `odoo`, der ihn ersetzt ([troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)). `apaleo-odoo doctor` zeigt, welche Datei verwendet wird und ob sie gültig ist.
 
 ## Secrets
 
@@ -41,19 +41,19 @@ Ein Wert aus der Umgebung geht dem Wert in der Datei vor.
 
 ### `abacus`
 
-Diese Werte legt der Abacus-Mandant deines Treuhänders fest. Frag ihn, bevor du die erste Datei schickst. Der Abschnitt ist Pflicht, weil `abacus.mandant` keinen Standardwert hat; fehlt er, nennt das Tool `abacus.mandant`. Was jedes Feld in der Datei bewirkt: [abacus-format.md](abacus-format.md). Wie dein Treuhänder die Datei importiert und was er beim ersten Import prüft: [abacus-import.md](abacus-import.md).
+Optional, bis der Abacus-Writer entfernt ist: Diesen Abschnitt liest nur der Abacus-Writer, der Standardexport nach Odoo nutzt ihn nicht. Wenn er da ist, braucht `abacus.mandant` einen Wert. Was jedes Feld in der Datei bewirkt: [abacus-format.md](abacus-format.md). Wie dein Treuhänder die Datei importiert und was er beim ersten Import prüft: [abacus-import.md](abacus-import.md).
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `abacus` | Pflicht | Der Abschnitt muss da sein, weil `abacus.mandant` keinen Standardwert hat. |
-| `abacus.mandant` | Pflicht | Die Mandantennummer in Abacus, 1 bis 6 Ziffern. Sie steht im Block `Parameter` und in jeder Buchung (`Client`); mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus die Datei in einem anderen Mandanten ab. |
+| `abacus` | optional | Der Abschnitt für den Abacus-Writer. Wenn er da ist, braucht `abacus.mandant` einen Wert. |
+| `abacus.mandant` | Pflicht im Abschnitt | Die Mandantennummer in Abacus, 1 bis 6 Ziffern. Sie steht im Block `Parameter` und in jeder Buchung (`Client`); mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus die Datei in einem anderen Mandanten ab. |
 | `abacus.leitwaehrung` | `CHF` | Die Leitwährung des Mandanten, `CHF` oder `EUR`. Jedes Hotel muss in dieser Währung buchen; das Tool rechnet nicht um. |
-| `abacus.abrechnungsart` | `vereinbart` | Die MWST-Abrechnungsart: `vereinbart` oder `vereinnahmt`. Sie bestimmt den `UseCode` (0 oder 1) und das Steuer- oder Hilfskonto in der Buchung, nie die Beträge. Mit `vereinnahmt` warnen `doctor` und jeder Export `W-ABRECHNUNGSART-VEREINNAHMT`, siehe [mapping-guide.md](mapping-guide.md#vereinnahmte-entgelte). |
+| `abacus.abrechnungsart` | `vereinbart` | Die MWST-Abrechnungsart: `vereinbart` oder `vereinnahmt`. Sie bestimmt den `UseCode` (0 oder 1) und das Steuer- oder Hilfskonto in der Buchung, nie die Beträge. Nur der Abacus-Writer liest den Wert. |
 | `abacus.version` | `2015.00` | Die Version der AbaConnect-Schnittstelle: `2015.00`, `2020.00`, `2022.00` oder `2024.00`. Ändere sie nur, wenn Abacus die Datei mit der Standardversion ablehnt. |
 | `abacus.mwstKonto` | `2200` | Das Steuerkonto der MWST-Codes (Umsatzsteuer), 1 bis 11 Ziffern; der Wert für die vereinbarte Abrechnung. |
 | `abacus.mwstHilfskonto` | `2202` | Das Hilfskonto der MWST-Codes (Umsatzsteuerausgleich Abrechnungsmethode), 1 bis 11 Ziffern; der Wert für die vereinnahmte Abrechnung. |
 | `abacus.mwstCodes` | | Die MWST-Codes des Mandanten für die drei Schweizer MWST-Sätze. |
-| `abacus.mwstCodes.normal` | `311` | Der MWST-Code für den Normalsatz in der MWST-Tabelle des Mandanten, 1 bis 3 Zeichen `A-Z`, `a-z` und `0-9`. `init-mapping --template kmu-hotel` schreibt die drei Codes in die Kontenzuordnung, `mapping check` prüft sie. |
+| `abacus.mwstCodes.normal` | `311` | Der MWST-Code für den Normalsatz in der MWST-Tabelle des Mandanten, 1 bis 3 Zeichen `A-Z`, `a-z` und `0-9`. Nur der Abacus-Writer liest den Wert. |
 | `abacus.mwstCodes.reduziert` | `312` | Der MWST-Code für den reduzierten Satz. |
 | `abacus.mwstCodes.beherbergung` | `313` | Der MWST-Code für den Sondersatz Beherbergung. |
 | `abacus.geschaeftsbereich` | `0` | Der Geschäftsbereich (`Division`), 0 bis 99999999; `0`, wenn der Mandant keine Geschäftsbereiche nutzt. |
@@ -64,17 +64,17 @@ Schreib einen Code mit führender Null, Buchstaben `x` oder `e` in Anführungsze
 
 ### `odoo`
 
-Wohin die Buchungssätze in Odoo gehen. Bis Odoo das Standardziel des Tools ist, ist der Abschnitt optional; wenn er da ist, prüft `doctor` ihn und zeigt die Werte. Was jeder Wert in der Importdatei bewirkt, steht in [odoo-format.md](odoo-format.md).
+Wohin die Buchungssätze in Odoo gehen. Odoo ist das Standardziel des Tools, deshalb ist der Abschnitt Pflicht; fehlt er, nennt das Tool `odoo.journal`. `doctor` prüft ihn und zeigt die Werte. Die Version bestimmt auch die Codes für Kasse und Geldtransit, die `init-mapping` einträgt ([mapping-guide.md](mapping-guide.md#zahlungen-kasse-und-geldtransit)). Was jeder Wert in der Importdatei bewirkt, steht in [odoo-format.md](odoo-format.md).
 
 | Schlüssel | Standard | Bedeutung |
 |---|---|---|
-| `odoo` | optional | Der Abschnitt für Odoo. Wenn er da ist, brauchen `odoo.journal` und `odoo.version` einen Wert. |
+| `odoo` | Pflicht | Der Abschnitt für Odoo. `odoo.journal` und `odoo.version` brauchen einen Wert. |
 | `odoo.journal` | Pflicht | Das Kürzel des Journals in Odoo, in das die Buchungssätze importiert werden, 1 bis 5 Zeichen `A-Z` und `0-9`, zum Beispiel `APA`. Leg dafür in Odoo ein eigenes Journal vom Typ „Sonstige“ (Miscellaneous) an. |
-| `odoo.version` | Pflicht | Die Odoo-Version der Datenbank: `17`, `18` oder `19`. Sie bestimmt den Standard von `odoo.taxRounding`. |
+| `odoo.version` | Pflicht | Die Odoo-Version der Datenbank: `17`, `18` oder `19`. Sie bestimmt den Standard von `odoo.taxRounding` und die Codes für Kasse und Geldtransit in der Vorlage. |
 | `odoo.companyId` | `1` | Die Datenbank-ID des Unternehmens, dem die Steuern gehören, 1 bis 999999. Sie steht in jeder Steuer-ID (`account.1_tax_ust_19_skr03`) und in den External IDs der Buchungssätze. Bei einer Niederlassung (Odoo 18 und 19) ist es die ID des Hauptunternehmens, weil Niederlassungen dessen Steuern nutzen. Die ID siehst du im Entwicklermodus in der Adresse des Unternehmens. |
 | `odoo.currency` | `EUR` | Die Währung des Unternehmens, `EUR` oder `CHF`. Jedes Hotel muss in dieser Währung buchen; das Tool rechnet nicht um. |
 | `odoo.taxRounding` | `per_line` bei Odoo 17 und 18, `per_tax` bei Odoo 19 | Die Rundungsmethode des Unternehmens: `per_line` („Je Zeile runden“, Round per Line) oder `per_tax` („Global runden“, Round Globally, in Odoo 19 „Rundung pro Steuer“, Round per Tax). Sie muss zu Einstellungen > Buchhaltung > Steuern > Rundungsmethode passen, sonst legt Odoo eine Ausgleichsbuchung auf dem Zwischenkonto an. Eine aktualisierte Datenbank behält ihre alte Einstellung. |
-| `odoo.roundingAccount` | keiner | Ein Konto ohne Steuer (auch ohne Standardsteuer) für den Cent, den die Rundung pro Steuer nicht erreicht, zum Beispiel `2700`. Mit `per_tax` Pflicht; fehlt es, nennt das Tool `odoo.roundingAccount`. Frag deinen Steuerberater, welches Konto er dafür möchte. |
+| `odoo.roundingAccount` | keiner | Ein Konto ohne Steuer (auch ohne Standardsteuer) für den Cent, den die Rundung pro Steuer nicht erreicht, je nach Kontenrahmen: zum Beispiel SKR03 `2700` (Sonstige Erträge) oder SKR04 `4830` (Sonstige betriebliche Erträge). Nimm nie die Nummer des anderen Kontenrahmens: SKR04 `2700` ist ein ganz anderes Konto. Mit `per_tax` Pflicht; fehlt es, nennt das Tool `odoo.roundingAccount`. Frag deinen Steuerberater, welches Konto er dafür möchte. |
 
 Schreib Kürzel und Konten mit führender Null oder Buchstaben `x` oder `e` in Anführungszeichen, zum Beispiel `roundingAccount: "0270"`. Ohne Anführungszeichen liest YAML `0270` als Zahl 270; das Tool lehnt solche Werte bei `odoo.journal`, `odoo.roundingAccount` und `properties[].journal` ab und nennt den Schlüssel.
 
@@ -85,7 +85,7 @@ odoo:
   companyId: 1
   currency: EUR
   taxRounding: per_tax
-  roundingAccount: "2700"
+  roundingAccount: "2700"   # SKR03 Sonstige Erträge; mit SKR04 zum Beispiel "4830"
 ```
 
 ### `posting`
@@ -107,7 +107,7 @@ Die apaleo-Hotels, mit denen das Tool arbeitet. `export` und `schedule --once` e
 | `properties[].geschaeftsbereich` | `abacus.geschaeftsbereich` | Ein eigener Geschäftsbereich für dieses Hotel im Abacus-Mandanten. |
 | `properties[].journal` | `odoo.journal` | Ein eigenes Odoo-Journal für dieses Hotel, 1 bis 5 Zeichen `A-Z` und `0-9`. |
 
-Bucht dein Treuhänder zwei Hotels in denselben Abacus-Mandanten, braucht jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`), sonst können sich ihre Belegnummern wiederholen. Teilen sich zwei Hotels Mandant und Geschäftsbereich, warnen `doctor` und das Protokoll mit `W-MANDANT-SHARED`.
+Bucht dein Treuhänder zwei Hotels in denselben Abacus-Mandanten, braucht jedes einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`), sonst können sich ihre Belegnummern wiederholen. Teilen sich zwei Hotels Mandant und Geschäftsbereich, warnt `doctor` mit `W-MANDANT-SHARED`; der Odoo-Export liest den Abschnitt nicht.
 
 ```yaml
 properties:
@@ -160,10 +160,11 @@ Ein Zeitraum, der am Tag T endet, ist erst ab `schedule.finalAfter` am Tag T+2 a
 
 ```yaml
 apaleo:
-  clientId: HOTEL-ABACUS-EXPORT
-abacus:
-  mandant: 1234
-  leitwaehrung: CHF
+  clientId: HOTEL-ODOO-EXPORT
+odoo:
+  journal: APA
+  version: 18
+  currency: EUR
 posting:
   text2: receipt
 properties:

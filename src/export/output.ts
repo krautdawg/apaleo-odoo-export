@@ -39,20 +39,10 @@ export interface ManifestEntry extends TargetManifestFields {
   to: LocalDate;
   /** SHA-256 of the whole file: the file is deterministic, so this alone identifies its content. */
   sha256: string;
+  /** The number of booked apaleo lines. */
   bookings?: number;
-  /**
-   * The journal total in cents: the sum of the gross amounts, which the accounting program shows
-   * as both Soll and Haben of the imported bookings (each booking moves its gross amount once to each side).
-   */
-  journalTotalCents?: number;
-  /** The currency of every amount of the file (the Leitwährung). */
+  /** The currency of every amount of the file (the company currency). */
   currency?: string;
-  /**
-   * The tax of the bookings per MWST-Code and rate in cents, signed as owed: positive for MWST the
-   * hotel owes, negative for a correction that reduces it. A target's import block may print the
-   * tax as signed in its file instead (docs/export.md says which sign each place uses).
-   */
-  taxByMwstCode?: TaxAtCode[];
   mappingSha256?: string;
   toolVersion?: string;
   createdAt?: string;
@@ -60,17 +50,10 @@ export interface ManifestEntry extends TargetManifestFields {
   replacedBy?: string;
 }
 
-/** The tax of the bookings with one MWST-Code at one rate. */
-export interface TaxAtCode {
-  mwstCode: string;
-  ratePercent: number;
-  taxCents: number;
-}
-
 /**
  * `manifest.json`. Reading keeps whatever an entry holds and uses only the fields
  * above, so a field an older or newer version wrote (such as the `bodySha256` of
- * earlier versions, or their `taxByRate`) is ignored and kept as it is.
+ * earlier versions, or the `taxByMwstCode` of the former target) is ignored and kept as it is.
  */
 export interface Manifest {
   files: ManifestEntry[];

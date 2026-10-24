@@ -10,20 +10,20 @@
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Revenues Accommodation (3.8%)",
-        "number": "RevenueAccommodation_Special:3.80",
+        "name": "Revenues Accommodation (7%)",
+        "number": "RevenueAccommodation_Reduced:7.00",
         "parentNumber": "RevenueAccommodation",
         "type": "Revenues"
       },
       "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 155.7,
-      "netAmount": 150,
+      "currency": "EUR",
+      "grossAmount": 120,
+      "netAmount": 112.14953271,
       "taxes": [
         {
-          "type": "Special",
-          "percent": 3.8,
-          "amount": 5.7
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7.85046729
         }
       ],
       "receipt": {
@@ -44,20 +44,20 @@
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Revenues Food and beverages (8.1%)",
-        "number": "RevenueFoodAndBeverages_Normal:8.10",
+        "name": "Revenues Food and beverages (7%)",
+        "number": "RevenueFoodAndBeverages_Reduced:7.00",
         "parentNumber": "RevenueFoodAndBeverages",
         "type": "Revenues"
       },
       "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 54.05,
-      "netAmount": 50,
+      "currency": "EUR",
+      "grossAmount": 95,
+      "netAmount": 88.78504673,
       "taxes": [
         {
-          "type": "Normal",
-          "percent": 8.1,
-          "amount": 4.05
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 6.21495327
         }
       ],
       "receipt": {
@@ -65,40 +65,6 @@
         "number": "BSP-BRAVO-1-V1"
       },
       "sourceEntryNumber": "BSPE0003",
-      "reference": "BSP-BRAVO-1",
-      "referenceType": "Guest"
-    },
-    {
-      "timestamp": "2026-09-10T21:40:00.5Z",
-      "date": "2026-09-10",
-      "debitedAccount": {
-        "name": "Receivables for Reservation BSP-BRAVO-1",
-        "number": "BSP-BRAVO-1_Receivables",
-        "parentNumber": "1200",
-        "type": "Receivables"
-      },
-      "creditedAccount": {
-        "name": "City Tax (no VAT)",
-        "number": "3501",
-        "parentNumber": "3500",
-        "type": "CityTaxes"
-      },
-      "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 4.2,
-      "netAmount": 4.2,
-      "taxes": [
-        {
-          "type": "Without",
-          "percent": 0,
-          "amount": 0
-        }
-      ],
-      "receipt": {
-        "type": "Reservation",
-        "number": "BSP-BRAVO-1-V1"
-      },
-      "sourceEntryNumber": "BSPE0004",
       "reference": "BSP-BRAVO-1",
       "referenceType": "Guest"
     },
@@ -112,20 +78,54 @@
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Revenues Other (8.1%)",
-        "number": "RevenueOther_Normal:8.10",
-        "parentNumber": "RevenueOther",
+        "name": "Revenues Food and beverages (19%)",
+        "number": "RevenueFoodAndBeverages_Normal:19.00",
+        "parentNumber": "RevenueFoodAndBeverages",
         "type": "Revenues"
       },
       "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 10.81,
+      "currency": "EUR",
+      "grossAmount": 11.9,
       "netAmount": 10,
       "taxes": [
         {
           "type": "Normal",
-          "percent": 8.1,
-          "amount": 0.81
+          "percent": 19,
+          "amount": 1.9
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-BRAVO-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0004",
+      "reference": "BSP-BRAVO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-10T21:42:00Z",
+      "date": "2026-09-10",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-BRAVO-1",
+        "number": "BSP-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Other (19%)",
+        "number": "RevenueOther_Normal:19.00",
+        "parentNumber": "RevenueOther",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 23.8,
+      "netAmount": 20,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 3.8
         }
       ],
       "receipt": {

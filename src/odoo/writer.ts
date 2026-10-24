@@ -17,7 +17,8 @@ import {
   taxExternalId,
 } from './format.js';
 import { fitDay, vatComparison } from './fit.js';
-import type { OdooBooking, OdooEntry, OdooRenderOptions, OdooVatComparison } from './types.js';
+import { odooTax } from './tax-model.js';
+import type { OdooBooking, OdooEntry, OdooRenderOptions, OdooTaxTotal, OdooVatComparison } from './types.js';
 import { validateBookings, validateEntry, validatePeriod, validatePropertyId } from './validate.js';
 
 export interface RenderedOdooCsv {
@@ -30,6 +31,8 @@ export interface RenderedOdooCsv {
   entries: OdooEntry[];
   /** Odoo's modelled tax against apaleo's per day and rate. */
   vat: OdooVatComparison[];
+  /** Base and Odoo's modelled tax per Odoo tax over the whole file. */
+  taxTotals: OdooTaxTotal[];
   /** Lines added by the base fitting. */
   roundingLines: number;
   /** Netting keys without amount, which got no line. */
@@ -103,9 +106,29 @@ export function renderOdooCsv(bookings: readonly OdooBooking[], options: OdooRen
     notes,
     entries,
     vat: entries.flatMap((entry) => vatComparison(entry, options.taxRounding)),
+    taxTotals: taxTotals(entries, options.taxRounding),
     roundingLines: entries.reduce((sum, entry) => sum + entry.lines.filter((line) => line.kind !== 'booking').length, 0),
     droppedKeys: entries.reduce((sum, entry) => sum + entry.droppedKeys, 0),
   };
+}
+
+/**
+ * Per Odoo tax, sorted by rate (highest first) and tax: the sum of its base
+ * lines, Odoo's modelled tax and apaleo's rounded tax, each credited positive.
+ */
+export function taxTotals(entries: readonly OdooEntry[], mode: OdooRenderOptions['taxRounding']): OdooTaxTotal[] {
+  const totals = new Map<string, OdooTaxTotal>();
+  const total = (taxRef: string, percent: number) => {
+    const entry = totals.get(taxRef) ?? { taxRef, percent, baseCents: 0, odooTaxCents: 0, apaleoTaxCents: 0 };
+    totals.set(taxRef, entry);
+    return entry;
+  };
+  for (const entry of entries) {
+    for (const line of entry.lines) if (line.taxRef !== undefined && line.percent !== undefined) total(line.taxRef, line.percent).baseCents -= line.amountCents;
+    for (const tax of odooTax(entry.lines, mode)) total(tax.taxRef, tax.percent).odooTaxCents += tax.side === 'credit' ? tax.taxCents : -tax.taxCents;
+    for (const group of entry.groups) total(group.taxRef, group.percent).apaleoTaxCents += group.side === 'credit' ? group.apaleoTaxCents : -group.apaleoTaxCents;
+  }
+  return [...totals.values()].sort((a, b) => b.percent - a.percent || (a.taxRef < b.taxRef ? -1 : a.taxRef > b.taxRef ? 1 : 0));
 }
 
 /**

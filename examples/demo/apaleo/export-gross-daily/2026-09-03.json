@@ -4,26 +4,26 @@
       "timestamp": "2026-09-03T09:15:00Z",
       "date": "2026-09-03",
       "debitedAccount": {
-        "name": "Twint Payment",
-        "number": "1114",
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
         "parentNumber": "1000",
         "type": "Payments"
       },
       "creditedAccount": {
-        "name": "Liabilities for Reservation BSP-ALPHA-1 (3.8%)",
-        "number": "BSP-ALPHA-1_Liabilities/Special:3.80",
+        "name": "Liabilities for Reservation BSP-ALPHA-1 (7%)",
+        "number": "BSP-ALPHA-1_Liabilities/Reduced:7.00",
         "parentNumber": "3000",
         "type": "Liabilities"
       },
       "command": "PostPrepayment",
-      "currency": "CHF",
-      "grossAmount": 311.4,
+      "currency": "EUR",
+      "grossAmount": 321,
       "netAmount": 300,
       "taxes": [
         {
-          "type": "Special",
-          "percent": 3.8,
-          "amount": 11.4
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 21
         }
       ],
       "receipt": {

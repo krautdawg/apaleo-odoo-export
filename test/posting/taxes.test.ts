@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inclusiveCheckTax, normaliseTaxes, taxFromGross } from '../../src/posting/index.js';
+import { normaliseTaxes, taxFromGross } from '../../src/posting/index.js';
 import { ledgerLine, tax } from '../helpers/ledger.js';
 import { ACCOUNTS, post } from '../helpers/posting.js';
 
@@ -20,7 +20,10 @@ describe('taxFromGross', () => {
     [20_760, 3.8, 760], // 78888 / 103.8 = 760 exactly
     [10_810, 8.1, 810], // 87561 / 108.1 = 810 exactly
     [1_026, 2.6, 26], // 2667.6 / 102.6 = 26 exactly
-    [1_003, 8.1, 75], // 8124.3 / 108.1 = 75.15… → 0.75, never rounded to 5 Rappen
+    [1_003, 8.1, 75], // 8124.3 / 108.1 = 75.15… → 0.75
+    [12_000, 7, 785], // 84000 / 107 = 785.04… → 7.85
+    [9_500, 7, 621], // 66500 / 107 = 621.49… → 6.21
+    [498, 19, 80], // 9462 / 119 = 79.51… → 0.80
     [11_000, 10, 1_000], // 110000 / 110 = 1000 exactly
     [9_800, 10, 891], // 98000 / 110 = 890.90… → 8.91
     [4_680, 10, 425], // 46800 / 110 = 425.45… → 4.25
@@ -44,31 +47,18 @@ describe('taxFromGross', () => {
   });
 });
 
-describe('inclusiveCheckTax', () => {
-  it.each([
-    [20_760, 3.8, 760], // 207.60 × 3.8 / 103.8 = 7.60
-    [4_680, 8.1, 351], // 46.80 × 8.1 / 108.1 = 3.5067 → 3.51
-    [9_500, 3.8, 348], // 95.00 × 3.8 / 103.8 = 3.4778 → 3.48
-    [-1_081, 8.1, 81], // unsigned
-    [1_026, 2.6, 26], // 10.26 × 2.6 / 102.6 = 0.26
-    [4_680, 10, 425], // VIE 000000031: 46.80 × 10 / 110 = 4.2545 → 4.25
-  ])('checks a gross of %i Rappen at %d %% as %i Rappen', (gross, rate, check) => {
-    expect(inclusiveCheckTax(gross, rate)).toBe(check);
-  });
-});
-
 describe('VAT guard on apaleo precise tax', () => {
   it.each([
-    // 98.00 at 3.8 %: apaleo 3.58766859 → 3.59, Abacus checks 98.00 × 3.8 / 103.8 = 3.5877 → 3.59.
-    ['accommodation 98.00 at 3.8 %', ACCOUNTS.accommodation38, 9_800, tax('Special', 3.8, 359, '3.58766859')],
-    // 14.80 at 8.1 %: apaleo 1.10897317 → 1.11, Abacus checks 1.109 → 1.11.
-    ['drinks 14.80 at 8.1 %', ACCOUNTS.food81, 1_480, tax('Normal', 8.1, 111, '1.10897317')],
-    // A negative allowance: −98.00, apaleo −3.58766859 → −3.59.
-    ['a negative allowance of 98.00 at 3.8 %', ACCOUNTS.accommodation38, -9_800, tax('Special', 3.8, -359, '-3.58766859')],
-  ])('raises no finding for %s: sub-Rappen digits never count', (_name, credit, grossCents, entry) => {
+    // 120.00 at 7 %: apaleo 7.85046729 → 7.85.
+    ['accommodation 120.00 at 7 %', ACCOUNTS.accommodation7, 12_000, tax('Reduced', 7, 785, '7.85046729')],
+    // 14.90 at 19 %: apaleo 2.3789916 → 2.38.
+    ['drinks 14.90 at 19 %', ACCOUNTS.food19, 1_490, tax('Normal', 19, 238, '2.3789916')],
+    // A negative allowance: −120.00, apaleo −7.85046729 → −7.85.
+    ['a negative allowance of 120.00 at 7 %', ACCOUNTS.accommodation7, -12_000, tax('Reduced', 7, -785, '-7.85046729')],
+  ])('raises no finding for %s: sub-cent digits never count, the booking carries the tax rounded to cents', (_name, credit, grossCents, entry) => {
     const result = post([ledgerLine({ credit, grossCents, netCents: grossCents - entry.amountCents, taxes: [entry] })]);
     expect(result.findings).toEqual([]);
     expect(result.bookings).toHaveLength(1);
-    expect(result.summary.roundingCents).toBe(0);
+    expect(result.bookings[0]?.vat?.apaleoTaxCents).toBe(Math.abs(entry.amountCents));
   });
 });

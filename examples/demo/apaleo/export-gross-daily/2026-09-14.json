@@ -10,25 +10,32 @@
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Revenues Cancellation fees (no VAT)",
-        "number": "RevenueCancellationFees_Without:0.00",
+        "name": "Revenues Cancellation fees (7%)",
+        "number": "RevenueCancellationFees_Reduced:7.00",
         "parentNumber": "RevenueCancellationFees",
         "type": "Revenues"
       },
       "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 80.0,
-      "netAmount": 80.0,
+      "currency": "EUR",
+      "grossAmount": 100.04,
+      "netAmount": 93.4953271,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 6.5446729
+        }
+      ],
       "receipt": {
         "type": "Reservation",
         "number": "BSP-CHARLIE-1-V1"
       },
-      "sourceEntryNumber": "BSPE0013",
+      "sourceEntryNumber": "BSPE0011",
       "reference": "BSP-CHARLIE-1",
       "referenceType": "Guest"
     },
     {
-      "timestamp": "2026-09-14T10:01:00Z",
+      "timestamp": "2026-09-14T10:05:00Z",
       "date": "2026-09-14",
       "debitedAccount": {
         "name": "MasterCard Credit Card Payment",
@@ -43,19 +50,19 @@
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": 80.0,
-      "netAmount": 80.0,
+      "currency": "EUR",
+      "grossAmount": 100.04,
+      "netAmount": 100.04,
       "receipt": {
         "type": "PspReference",
-        "number": "PSP-BSP-0004"
+        "number": "PSP-BSP-0003"
       },
-      "sourceEntryNumber": "BSPE0014",
+      "sourceEntryNumber": "BSPE0012",
       "reference": "BSP-CHARLIE-1",
       "referenceType": "Guest"
     },
     {
-      "timestamp": "2026-09-14T10:01:00Z",
+      "timestamp": "2026-09-14T10:05:00Z",
       "date": "2026-09-14",
       "debitedAccount": {
         "name": "Receivables for Reservation BSP-CHARLIE-1",
@@ -70,14 +77,14 @@
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": -80.0,
-      "netAmount": -80.0,
+      "currency": "EUR",
+      "grossAmount": -100.04,
+      "netAmount": -100.04,
       "receipt": {
         "type": "PspReference",
-        "number": "PSP-BSP-0004"
+        "number": "PSP-BSP-0003"
       },
-      "sourceEntryNumber": "BSPE0014",
+      "sourceEntryNumber": "BSPE0012",
       "reference": "BSP-CHARLIE-1",
       "referenceType": "Guest"
     }

@@ -6,20 +6,20 @@ import { runCli } from '../../src/cli/run.js';
 import type { LocalDate } from '../../src/core/date.js';
 import { BSP, FIXTURE_ENV, apaleoFixtureHandler } from '../helpers/apaleo.js';
 import { createTestContext, type TestContext } from '../helpers/context.js';
-import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, stripPlaceholderCodes, type ExportSetup, type ExportSetupOptions } from '../helpers/export.js';
+import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, stripAustrianTaxes, type ExportSetup, type ExportSetupOptions } from '../helpers/export.js';
 
 /**
  * `schedule --once` end to end through `runCli`. The Hotel Beispiel fixtures
  * lie in September 2026, so the monthly scenarios of the spec (October, due on
  * 3 November) run one month earlier: September, due on 3 October.
  */
-const SEPTEMBER_FILE = 'ABACUS_Buchungen_20260901-20260930_BSP.xml';
+const SEPTEMBER_FILE = 'ODOO_Buchungen_20260901-20260930_BSP.csv';
 const ONCE = ['schedule', '--once'];
 /** A catch-up window that reaches back to September's due date (3 October) but not to August's (3 September). */
 const ONE_MONTH = ['schedule:', '  catchUpDays: 30'];
 
-/** The output lines, without the W-MWST-CODE-UNCHECKED warnings for the fixture's placeholder codes V10 and V20. */
-const lines = (ctx: TestContext) => stripPlaceholderCodes(ctx.out()).trimEnd().split('\n');
+/** The output lines, without the W-TAX-UNCHECKED warnings for the fixture's l10n_at taxes. */
+const lines = (ctx: TestContext) => stripAustrianTaxes(ctx.out()).trimEnd().split('\n');
 const setClock = (ctx: TestContext, at: string) => void (ctx.now = () => new Date(at));
 
 /** A copy of the fixture's first logis charge on another business day. */
@@ -71,7 +71,7 @@ describe('monthly cadence', () => {
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(lines(setup.ctx)).toEqual([
       `2026-10-03T07:30:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE}`,
-      `2026-10-03T07:30:00+02:00 BSP2 2026-09 written exports/BSP2/2026-09/${SEPTEMBER_FILE.replace('_BSP.xml', '_BSP2.xml')}`,
+      `2026-10-03T07:30:00+02:00 BSP2 2026-09 written exports/BSP2/2026-09/${SEPTEMBER_FILE.replace('_BSP.csv', '_BSP2.csv')}`,
     ]);
     expect(ledgerCalls(setup)).toEqual(['getLedger BSP 2026-09-01 2026-10-01', 'getLedger BSP2 2026-09-01 2026-10-01']);
   });
@@ -113,9 +113,9 @@ describe('monthly cadence', () => {
     const before = setup.ctx.out().length;
 
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
-    expect(stripPlaceholderCodes(setup.ctx.out().slice(before)).trimEnd().split('\n')).toEqual([
+    expect(stripAustrianTaxes(setup.ctx.out().slice(before)).trimEnd().split('\n')).toEqual([
       expect.stringMatching(/^2026-10-05T07:00:00\+02:00 BSP 2026-09 written /),
-      expect.stringMatching(/^2026-10-05T07:00:00\+02:00 BSP2 2026-09 already exported exports\/BSP2\/2026-09\/ABACUS_/),
+      expect.stringMatching(/^2026-10-05T07:00:00\+02:00 BSP2 2026-09 already exported exports\/BSP2\/2026-09\/ODOO_/),
     ]);
     expect(ledgerCalls(setup)).toEqual(['getLedger BSP 2026-09-01 2026-10-01']);
   });
@@ -163,7 +163,7 @@ describe('skipping what is already exported', () => {
     expect(lines(ctx).at(-1)).toContain('BSP 2026-09 already exported');
   });
 
-  it('counts an Abacus file of the period on disk as exported when there is no manifest', async () => {
+  it('counts an Odoo file of the period on disk as exported when there is no manifest', async () => {
     const ctx = apaleoSetup();
     ctx.env = { ...FIXTURE_ENV, APALEO_ODOO_CONFIG: join(ctx.cwd, 'config/apaleo-odoo.config.yaml') };
     expect(await runCli(ONCE, ctx)).toBe(0);
@@ -201,7 +201,7 @@ describe('daily cadence', () => {
     expect(lines(setup.ctx)).toEqual([
       '2026-10-20T10:00:00+02:00 BSP 2026-10-16 no bookings',
       '2026-10-20T10:00:00+02:00 BSP 2026-10-17 no bookings',
-      '2026-10-20T10:00:00+02:00 BSP 2026-10-18 written exports/BSP/2026-10/ABACUS_Buchungen_20261018-20261018_BSP.xml',
+      '2026-10-20T10:00:00+02:00 BSP 2026-10-18 written exports/BSP/2026-10/ODOO_Buchungen_20261018-20261018_BSP.csv',
     ]);
   });
 
@@ -262,11 +262,11 @@ describe('periods that are not final yet', () => {
     setClock(setup.ctx, '2026-10-02T04:05:00Z');
     before = setup.ctx.out().length;
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
-    expect(stripPlaceholderCodes(setup.ctx.out().slice(before))).toBe(`2026-10-02T06:05:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE}\n`);
+    expect(stripAustrianTaxes(setup.ctx.out().slice(before))).toBe(`2026-10-02T06:05:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE}\n`);
     expect(ledgerCalls(setup)).toEqual(['getLedger BSP 2026-09-01 2026-10-01']);
     const manifest = readFileSync(join(setup.ctx.cwd, 'exports', BSP, '2026-09', 'manifest.json'), 'utf8');
     expect(manifest).toContain('20260901-20260930');
-    expect(readFileSync(join(setup.ctx.cwd, 'exports', BSP, '2026-09', SEPTEMBER_FILE), 'utf8')).toContain('<EntryDate>2026-09-30</EntryDate>');
+    expect(readFileSync(join(setup.ctx.cwd, 'exports', BSP, '2026-09', SEPTEMBER_FILE), 'utf8')).toContain(',apaleo BSP 2026-09-30,2026-09-30,APA,');
   });
 
   it('holds the day before yesterday back at 00:05 with the default offsetDays 2, and yesterday with offsetDays 1', async () => {
@@ -284,7 +284,7 @@ describe('periods that are not final yet', () => {
     setClock(setup.ctx, '2026-10-21T04:05:00Z');
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
     expect(setup.ctx.out()).toContain(
-      '2026-10-21T06:05:00+02:00 BSP 2026-10-19 written exports/BSP/2026-10/ABACUS_Buchungen_20261019-20261019_BSP.xml',
+      '2026-10-21T06:05:00+02:00 BSP 2026-10-19 written exports/BSP/2026-10/ODOO_Buchungen_20261019-20261019_BSP.csv',
     );
   });
 
@@ -304,7 +304,7 @@ describe('periods that are not final yet', () => {
     setClock(setup.ctx, '2026-10-02T21:30:00Z');
     const before = setup.ctx.out().length;
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
-    expect(stripPlaceholderCodes(setup.ctx.out().slice(before))).toBe(`2026-10-03T06:30:00+09:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE}\n`);
+    expect(stripAustrianTaxes(setup.ctx.out().slice(before))).toBe(`2026-10-03T06:30:00+09:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE}\n`);
   });
 
   it("exports a day held back in the property's zone on the next daily run with the smallest catch-up window", async () => {
@@ -317,7 +317,7 @@ describe('periods that are not final yet', () => {
 
     setClock(setup.ctx, '2026-09-18T21:30:00Z');
     expect(await runCli(ONCE, setup.ctx)).toBe(0);
-    expect(setup.ctx.out()).toMatch(/2026-09-19T06:30:00\+09:00 BSP 2026-09-16 written exports\/BSP\/2026-09\/ABACUS_/);
+    expect(setup.ctx.out()).toMatch(/2026-09-19T06:30:00\+09:00 BSP 2026-09-16 written exports\/BSP\/2026-09\/ODOO_/);
     expect(setup.ctx.out()).toContain('2026-09-19T06:30:00+09:00 BSP 2026-09-17 not yet final N-NOT-FINAL');
   });
 
@@ -387,7 +387,7 @@ describe('file system errors in the output folder', () => {
       }) as typeof nodeFs.mkdir,
     };
     expect(await runCli(ONCE, setup.ctx)).not.toBe(0);
-    expect(setup.ctx.out()).toMatch(/^2026-10-03T07:30:00\+02:00 BSP 2026-09 written exports\/BSP\/2026-09\/ABACUS_/);
+    expect(setup.ctx.out()).toMatch(/^2026-10-03T07:30:00\+02:00 BSP 2026-09 written exports\/BSP\/2026-09\/ODOO_/);
     expect(setup.ctx.err()).toContain('Unexpected error: something broke');
   });
 });
@@ -408,16 +408,13 @@ describe('warnings and notes on lines that did not fail', () => {
     ]);
   });
 
-  it('warns about a swapped MWST-Code of a used mapping row, which only mapping check reported before', async () => {
-    const swapped = BEISPIEL_MAPPING_TEXT.replace('(10%);10;3400;V10;10;', '(10%);10;3400;311;10;');
+  it('Swapped tax on a used row: fails with E-TAX-RATE-WRONG, which mapping check only warns about as W-TAX-RATE, and writes no file', async () => {
+    const swapped = BEISPIEL_MAPPING_TEXT.replace('(10%);10;4010;account_tax_template_sales_10_code029;10;', '(10%);10;4010;tax_ust_19_skr03;10;');
     const setup = swissSetup({ config: exportConfig(...ONE_MONTH), files: { 'mapping-BSP.csv': swapped }, now: new Date('2026-10-03T05:30:00Z') });
-    expect(await runCli(ONCE, setup.ctx)).toBe(0);
+    expect(await runCli(ONCE, setup.ctx)).toBe(1);
     const out = setup.ctx.out().trimEnd().split('\n');
-    expect(out[0]).toBe(`2026-10-03T07:30:00+02:00 BSP 2026-09 written exports/BSP/2026-09/${SEPTEMBER_FILE} W-MWST-CODE-RATE W-MWST-CODE-UNCHECKED`);
-    expect(out).toContain(
-      '  W-MWST-CODE-RATE (mwst_code): line 3 of the mapping file: the MWST-Code 311 is configured for the Normalsatz at 8.1 % (abacus.mwstCodes.normal), ' +
-        'but the row books it at 10 %. Check that the codes are not swapped',
-    );
+    expect(out[0]).toBe('2026-10-03T07:30:00+02:00 BSP 2026-09 failed E-TAX-RATE-WRONG W-TAX-UNCHECKED');
+    expect(out.some((l) => l.startsWith('  E-TAX-RATE-WRONG (odoo_tax): line 3 of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 10 %.'))).toBe(true);
   });
 
   it('appends the codes to a no-bookings line but leaves out N-NO-BOOKINGS, which the result already says', async () => {

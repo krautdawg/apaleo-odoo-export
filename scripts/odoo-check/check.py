@@ -29,7 +29,7 @@ from odoo import SUPERUSER_ID, api, release
 VERSION = int(release.version_info[0])
 env = self.env  # noqa: F821 (odoo shell provides `self`)
 
-PER_TAX_FILES = {'per-tax-vat-difference', 'per-tax-rounding-account'}
+PER_TAX_FILES = {'per-tax-vat-difference', 'per-tax-rounding-account', 'de-month.per-tax'}
 RESULTS = []
 
 
@@ -100,8 +100,12 @@ if not cash_journal:
     cash_note = 'no cash journal with the chart; a new cash journal got this account'
 result('generated accounts', f'Kasse {cash_journal.default_account_id.code} ({cash_note}), Geldtransit {transfer}')
 
-SKR04 = {'1410': '1210', '1711': '3260', '1718': '3272', '8300': '4300', '8400': '4400'}
+# SKR03 code of the golden files -> SKR04 code. 1401 must be mapped: in SKR04 it is
+# Vorsteuer 7 %, so an unmapped 1401 would import onto the wrong account silently.
+SKR04 = {'1401': '1200', '1410': '1210', '1711': '3260', '1718': '3272', '8200': '4200', '8300': '4300', '8400': '4400'}
 ACCOUNTS = dict(SKR04) if CHART == 'skr04' else {'4200': '8400'}
+# The generated accounts of the database: Kasse (SKR03 1001, SKR04 1601) and Geldtransit.
+ACCOUNTS['1001'] = cash_journal.default_account_id.code
 ACCOUNTS['1360'] = transfer
 
 rounding_account = None
@@ -281,8 +285,12 @@ texts = {}
 for file in sorted(os.listdir(GOLDEN)):
     name = file[:-4]
     per_tax = name in PER_TAX_FILES
-    prefix = f'chk_{name.replace("-", "_")}'
-    text = mapped_csv(name, open(os.path.join(GOLDEN, file), encoding='utf-8').read(), f'apaleo_c{company.id}_{prefix}')
+    # Only [a-z0-9_] in the External ID: a "." (de-month.per-line) would make Odoo read
+    # the part before it as the module name, and moves_of() would find nothing.
+    prefix = f'chk_{re.sub(r"[^a-z0-9_]", "_", name.lower())}'
+    raw = open(os.path.join(GOLDEN, file), encoding='utf-8').read()
+    expected_entries = sum(1 for row in raw.split('\n')[1:] if row and not row.startswith(','))
+    text = mapped_csv(name, raw, f'apaleo_c{company.id}_{prefix}')
     texts[name] = (text, prefix)
     set_rounding(per_tax)
     outcome = run_import(name, text)
@@ -292,8 +300,10 @@ for file in sorted(os.listdir(GOLDEN)):
         all_ok = all_ok and name == 'empty-month' and not moves
         result('import', f'{head}: ERROR {outcome["error"]}')
         continue
-    result('import', f'{head}: {len(moves)} entries, unmatched headers {outcome["unmatched"] or "none"}, warnings {outcome["warnings"] or "none"}')
-    all_ok = describe_moves(moves, text, per_tax) and all_ok
+    count_ok = len(moves) == expected_entries
+    result('import', f'{head}: {len(moves)} entries{"" if count_ok else f" (EXPECTED {expected_entries})"}, unmatched headers {outcome["unmatched"] or "none"}, warnings {outcome["warnings"] or "none"}')
+    # A file with entries that yields fewer moves (for example none found under the prefix) is a failure, never "ok".
+    all_ok = describe_moves(moves, text, per_tax) and count_ok and all_ok
 result('golden files', 'all imported as drafts, taxes as modelled, no balancing line' if all_ok else 'SEE ABOVE')
 
 # --- 2. Re-import, posting, reversal, revision (question 5) and audit trail (question 8) ---

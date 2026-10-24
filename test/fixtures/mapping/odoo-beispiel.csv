@@ -1,0 +1,33 @@
+﻿# apaleo-odoo Kontenzuordnung für Hotel Beispiel (BSP), die Testdaten mit österreichischen Sätzen in EUR, von Hand geschrieben: die Sätze 10 und 20 % mit den Steuern von l10n_at (die W-TAX-UNCHECKED geben), Ortstaxe als durchlaufender Posten auf 3600 ohne Steuer. Nur für die Tests.
+apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;odoo_account;odoo_tax;tax_percent;comment
+RevenueAccommodation_VeryReduced:10.00;Revenues;Revenues Accommodation (10%);10;4010;account_tax_template_sales_10_code029;10;Testzuordnung: Beherbergung mit der österreichischen Steuer 10 % (l10n_at).
+RevenueAccommodation_Normal:20.00;Revenues;Revenues Accommodation (20%);20;4000;account_tax_template_sales_20_code022;20;Testzuordnung: übrige Hotelleistungen mit der österreichischen Steuer 20 % (l10n_at).
+RevenueAccommodation_Without:0.00;Revenues;Revenues Accommodation (no VAT);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueFoodAndBeverages_VeryReduced:10.00;Revenues;Revenues Food and beverages (10%);10;4020;account_tax_template_sales_10_code029;10;Testzuordnung: Küche und Speisen mit der österreichischen Steuer 10 % (l10n_at).
+RevenueFoodAndBeverages_Normal:20.00;Revenues;Revenues Food and beverages (20%);20;4030;account_tax_template_sales_20_code022;20;Testzuordnung: Getränke mit der österreichischen Steuer 20 % (l10n_at).
+RevenueOther_Normal:20.00;Revenues;Revenues Other (20%);20;4000;account_tax_template_sales_20_code022;20;Testzuordnung: übrige Hotelleistungen mit der österreichischen Steuer 20 % (l10n_at).
+RevenueOther_Without:0.00;Revenues;Revenues Other (no VAT);0;4090;;0;archiviert. Testzuordnung: Erlöse ohne Steuer.
+1102;Payments;Visa Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1104;Payments;MasterCard Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1106;Payments;Maestro Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1600;Payments;Cash Payment;;2700;;;Testzuordnung: Kassa.
+*;Payments;;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+*;Liabilities;;10;3510;account_tax_template_sales_10_code029;10;Testzuordnung: erhaltene Anzahlungen 10 % mit der österreichischen Steuer 10 % (l10n_at).
+*;Liabilities;;13;3513;account_tax_template_sales_13_code006;13;Testzuordnung: erhaltene Anzahlungen 13 % mit der österreichischen Steuer 13 % (l10n_at).
+*;Liabilities;;20;3520;account_tax_template_sales_20_code022;20;Testzuordnung: erhaltene Anzahlungen 20 % mit der österreichischen Steuer 20 % (l10n_at).
+*;Liabilities;;0;3500;;0;Testzuordnung: erhaltene Anzahlungen ohne Steuer.
+*;Liabilities;;5;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+1200;Receivables;Receivables;;2000;;;Testzuordnung: Gästeforderungen.
+*;Receivables;;;2000;;;Testzuordnung: Gästeforderungen.
+Vat_Normal:20.00;Vat;VAT Normal (20%);20;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_Null:0.00;Vat;VAT Null (0%);0;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_VeryReduced:10.00;Vat;VAT Very Reduced (10%);10;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+9000;House;House Account;;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+CollectiveDebitor_AccountsReceivable;AccountsReceivable;AccountsReceivable for Reservations and Folios without company;;2010;;;Testzuordnung: Forderungen Firmenrechnungen.
+*;AccountsReceivable;;;2010;;;Testzuordnung: Forderungen Firmenrechnungen.
+3501;CityTaxes;City Tax (no VAT);0;3600;;;Testzuordnung: Kurtaxe als durchlaufender Posten ohne Steuer.
+7000;TransitoryItems;Transitory Items;;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+LiabilitiesVat_Normal:20.00;VatOnLiabilities;LiabilitiesVat Normal (20%);20;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Null:0.00;VatOnLiabilities;LiabilitiesVat Null (0%);0;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_VeryReduced:10.00;VatOnLiabilities;LiabilitiesVat Very Reduced (10%);10;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+CollectiveDebitor_LossOfAccountsReceivable;LossOfAccountsReceivable;LossOfAccountsReceivable for Reservations and Folios without company;;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.

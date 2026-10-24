@@ -1,7 +1,9 @@
 import { UserError } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import { decodeCsv, detectSeparator, parseCsv, type CsvRecord } from './csv.js';
+import { DEFAULT_TEMPLATE } from './template.js';
 import {
+  ABACUS_COLUMNS,
   ANY_TYPE,
   BMD_COLUMNS,
   CONNECTOR_EXPORT_COLUMNS,
@@ -40,11 +42,10 @@ export interface LoadMappingOptions {
   readFile: (path: string) => Promise<Uint8Array>;
 }
 
-const REQUIRED_COLUMNS: readonly MappingColumn[] = ['apaleo_account', 'apaleo_type', 'abacus_account'];
+const REQUIRED_COLUMNS: readonly MappingColumn[] = ['apaleo_account', 'apaleo_type', 'odoo_account'];
 /** How to make a mapping file, named in every error about a missing or foreign one. */
-export const INIT_MAPPING_HINT = 'apaleo-odoo init-mapping --property <id> --template kmu-hotel';
-/** How to make a mapping file from the account export of a paid connector. */
-export const ACCOUNTS_FROM_HINT = `${INIT_MAPPING_HINT} --accounts-from <file>`;
+export const INIT_MAPPING_HINT = `apaleo-odoo init-mapping --property <id> --template ${DEFAULT_TEMPLATE}`;
+const INIT_MAPPING_ADVICE = `Create an Odoo mapping with "${INIT_MAPPING_HINT}" (or --template skr04-hotel), see docs/mapping-guide.md`;
 
 export async function loadMapping(path: string, options: LoadMappingOptions): Promise<Mapping> {
   let bytes: Uint8Array;
@@ -63,10 +64,10 @@ export async function loadMapping(path: string, options: LoadMappingOptions): Pr
 
 /**
  * Reads a mapping CSV (UTF-8 or CP1252, `;` or `,`). Fails with `MappingError` on
- * a bad header (BMD and DATEV mappings and the account export of a paid connector
- * included), duplicate keys and wildcard rows the resolution rules do not allow.
- * Every value stays the text of the file: account numbers and MWST-Codes are never
- * padded or parsed as numbers.
+ * a bad header (Abacus, BMD and DATEV mappings and the account exports of paid
+ * connectors included), duplicate keys and wildcard rows the resolution rules do
+ * not allow. Every value stays the text of the file: account codes and taxes are
+ * never padded or parsed as numbers.
  */
 export function parseMapping(bytes: Uint8Array, options: ParseMappingOptions): Mapping {
   const { text } = decodeCsv(bytes);
@@ -112,24 +113,23 @@ function readHeader(header: CsvRecord, path: string): Header {
 /** The refusal of a file of another tool, or undefined when the header is none of theirs. */
 function foreignLayout(names: readonly string[]): string | undefined {
   const has = (columns: readonly string[]) => names.some((name) => columns.includes(name));
-  if (CONNECTOR_EXPORT_COLUMNS.every((column) => names.includes(column.toLowerCase()))) {
-    return (
-      'this is the account export of a paid connector, not an apaleo-odoo mapping. ' +
-      `Create a mapping from it with "${ACCOUNTS_FROM_HINT}": it carries the Abacus accounts and Kostenstellen over ` +
-      'and takes the MWST-Codes from the template (docs/mapping-guide.md)'
-    );
-  }
-  const found = has(BMD_COLUMNS)
-    ? 'a BMD mapping (apaleo-bmd-export)'
-    : has(DATEV_COLUMNS)
-      ? 'a DATEV mapping (apaleo-datev-export)'
-      : has(DATEV_CONNECTOR_COLUMNS)
-        ? 'the account export of a paid DATEV connector'
-        : undefined;
+  const connector = CONNECTOR_EXPORT_COLUMNS.every((column) => names.includes(column.toLowerCase()));
+  const found = connector
+    ? 'an Abacus mapping (the account export of a paid connector for Abacus)'
+    : has(ABACUS_COLUMNS)
+      ? 'an Abacus mapping (apaleo-abacus-export)'
+      : has(BMD_COLUMNS)
+        ? 'a BMD mapping (apaleo-bmd-export)'
+        : has(DATEV_COLUMNS)
+          ? 'a DATEV mapping (apaleo-datev-export)'
+          : has(DATEV_CONNECTOR_COLUMNS)
+            ? 'the account export of a paid DATEV connector'
+            : undefined;
   if (!found) return undefined;
+  const datev = has(DATEV_COLUMNS) || has(DATEV_CONNECTOR_COLUMNS);
   return (
-    `this is ${found}, not an Abacus mapping: apaleo-odoo reads the columns ${MAPPING_COLUMNS.join(';')}. ` +
-    `Create an Abacus mapping with "${INIT_MAPPING_HINT}" (docs/mapping-guide.md)`
+    `this is ${found}, not an Odoo mapping: apaleo-odoo reads the columns ${MAPPING_COLUMNS.join(';')}. ${INIT_MAPPING_ADVICE}` +
+    (datev ? '. The DATEV account numbers of the SKR03/SKR04 hotel templates are the same in Odoo, so the new file starts with the accounts you know' : '')
   );
 }
 
@@ -139,10 +139,9 @@ function toRow(record: CsvRecord, columns: Header['columns']): MappingRow {
     apaleoType: '',
     apaleoName: '',
     apaleoVatPercent: '',
-    abacusAccount: '',
-    mwstCode: '',
-    mwstPercent: '',
-    kost: '',
+    odooAccount: '',
+    odooTax: '',
+    taxPercent: '',
     comment: '',
   };
   record.fields.forEach((field, i) => {
@@ -193,7 +192,7 @@ function wildcardProblem(row: MappingRow): string | undefined {
   if (rate === undefined || Number.isNaN(rate)) {
     return (
       `VAT-relevant wildcards must name a VAT rate: the wildcard row (*) for ${row.apaleoType} needs ` +
-      'apaleo_vat_percent (one row per rate, for example 3.8, 8.1, 2.6 and 0)'
+      'apaleo_vat_percent (one row per rate, for example 7, 19 and 0)'
     );
   }
   return undefined;

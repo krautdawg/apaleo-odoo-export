@@ -4,7 +4,7 @@ import { DEFAULT_TARGET, exportedFile, monthFolder } from '../../src/export/inde
 import { createTestContext } from '../helpers/context.js';
 
 const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' } as const;
-const FILE = 'ABACUS_Buchungen_20260901-20260930_BSP.xml';
+const FILE = 'ODOO_Buchungen_20260901-20260930_BSP.csv';
 const folder = 'exports/BSP/2026-09';
 
 function manifest(...files: object[]): string {
@@ -25,8 +25,8 @@ describe('exportedFile', () => {
   it('ignores replaced files, other periods, a missing folder and an unreadable manifest', async () => {
     const ctx = createTestContext({
       files: {
-        [`${folder}/ABACUS_Buchungen_20260901-20260930_BSP.replaced-20261020T080000Z.xml`]: 'old',
-        [`${folder}/ABACUS_Buchungen_20260901-20260915_BSP.xml`]: 'part',
+        [`${folder}/ODOO_Buchungen_20260901-20260930_BSP.replaced-20261020T080000Z.csv`]: 'old',
+        [`${folder}/ODOO_Buchungen_20260901-20260915_BSP.csv`]: 'part',
         [`${folder}/manifest.json`]: 'not json',
       },
     });
@@ -35,7 +35,7 @@ describe('exportedFile', () => {
   });
 
   it('does not count a manifest entry of a replaced file', async () => {
-    const ctx = createTestContext({ files: { [`${folder}/manifest.json`]: manifest({ file: 'old.xml', status: 'replaced', ...SEPTEMBER }) } });
+    const ctx = createTestContext({ files: { [`${folder}/manifest.json`]: manifest({ file: 'old.csv', status: 'replaced', ...SEPTEMBER }) } });
     expect(await exportedFile(ctx, join(ctx.cwd, folder), SEPTEMBER, DEFAULT_TARGET)).toBeUndefined();
   });
 });

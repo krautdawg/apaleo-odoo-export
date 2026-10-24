@@ -1,20 +1,17 @@
-import type { AbacusBooking } from '../abacus/types.js';
-import type { PostingConfig } from '../core/config.js';
+import type { OdooVersion, PostingConfig } from '../core/config.js';
 import type { Finding } from '../core/findings.js';
 import type { LedgerLine } from '../core/source.js';
-import type { MwstCodes } from '../mapping/index.js';
+import type { OdooBooking } from '../odoo/types.js';
 
-/** One Abacus Einzelbuchung, with the source entries it came from for traceability. */
-export interface PostedBooking extends AbacusBooking {
-  sourceEntryNumbers: string[];
-}
+/** One apaleo ledger line as an Odoo booking, with its source entry and receipt for the protocol. */
+export type PostedBooking = OdooBooking;
 
 /**
  * Why a ledger line produced no booking although nothing is wrong with it:
  * - `VAT_ACCOUNT_LINE`: a side is an apaleo Vat or VatOnLiabilities account;
- *   Abacus books the MWST from the `TaxData` of the revenue or deposit line.
+ *   Odoo creates the tax lines from the taxes of the base lines.
  * - `ZERO_AMOUNT`: the gross amount is 0.
- * - `SAME_ACCOUNT`: both sides map to the same Abacus account (for example a
+ * - `SAME_ACCOUNT`: both sides map to the same Odoo account (for example a
  *   move between two guest folios, or the `/Offset` line of a payment).
  */
 export const SKIP_REASONS = ['VAT_ACCOUNT_LINE', 'ZERO_AMOUNT', 'SAME_ACCOUNT'] as const;
@@ -26,11 +23,11 @@ export interface SkippedLine {
 }
 
 export interface PostingOptions extends PostingConfig {
-  /** `abacus.mwstCodes`, for the fix hints of `E-UNMAPPED`. Default 311, 312, 313. */
-  mwstCodes?: MwstCodes | undefined;
+  /** `odoo.version`, for the generated accounts in the fix hints of `E-UNMAPPED`. Default 18. */
+  version?: OdooVersion | undefined;
 }
 
-/** Soll and Haben of one Abacus account over all bookings (movement model). Balance is Soll minus Haben. */
+/** Soll and Haben of one Odoo account over all bookings (movement model). Balance is Soll minus Haben. */
 export interface AccountTotal {
   account: string;
   sollCents: number;
@@ -39,16 +36,18 @@ export interface AccountTotal {
 }
 
 /**
- * Revenue, deposits or write-offs booked with one MWST-Code at one rate, signed as
- * owed (allowances and releases reduce it): net, tax and gross as passed to Abacus,
- * and the precise VAT apaleo charged on the same lines.
+ * Revenue, deposits or write-offs booked with one Odoo tax at one rate, signed as
+ * owed (allowances and releases reduce it): net and gross as passed to Odoo (the
+ * net is the gross minus apaleo's rounded tax, before the writer fits it), apaleo's
+ * tax rounded per line, and the precise VAT apaleo charged on the same lines.
+ * Odoo's own tax per rate comes from the writer (the import block).
  */
 export interface VatTotal {
-  /** The MWST-Code of the bookings; empty for bookings without one (rate 0). */
-  mwstCode: string;
+  /** The Odoo tax of the bookings as the mapping names it; empty for bookings without one. */
+  tax: string;
   ratePercent: number;
   netCents: number;
-  /** Sum of the MWST of the bookings, signed as owed. */
+  /** Sum of apaleo's tax rounded per line, signed as owed. */
   vatCents: number;
   grossCents: number;
   /** Sum of apaleo's precise taxes, as decimal text. */
@@ -58,21 +57,21 @@ export interface VatTotal {
 export type RevenueTotal = VatTotal;
 
 /**
- * Kurtaxe, Gästetaxe and Beherbergungsabgabe booked on one Abacus account with one
- * MWST-Code and rate, signed as charged (a correction reduces it): the gross amount
- * and its MWST. Empty `mwstCode` and rate 0 for a levy booked without `TaxData`
+ * Kurtaxe and other guest levies booked on one Odoo account with one tax and
+ * rate, signed as charged (a correction reduces it): the gross amount and
+ * apaleo's tax. Empty `tax` and rate 0 for a levy booked without tax
  * (durchlaufender Posten).
  */
 export interface LevyTotal {
   account: string;
-  mwstCode: string;
+  tax: string;
   ratePercent: number;
   grossCents: number;
-  /** Sum of the MWST of the bookings, signed as owed; 0 without MWST. */
+  /** Sum of apaleo's rounded tax, signed as owed; 0 without tax. */
   vatCents: number;
 }
 
-/** Payments received on one Abacus clearing account, signed (refunds reduce it). */
+/** Payments received on one Odoo clearing account (Kasse, Geldtransit), signed (refunds reduce it). */
 export interface PaymentTotal {
   account: string;
   cents: number;
@@ -97,23 +96,21 @@ export interface PostingSummary {
   /** Deposits (Liabilities) per VAT rate: received minus released. */
   depositVatByRate: VatTotal[];
   /**
-   * Written-off guest receivables (LossOfAccountsReceivable) per MWST-Code and rate,
-   * signed as written off (a reversed write-off reduces it): net, the MWST correction
+   * Written-off guest receivables (LossOfAccountsReceivable) per Odoo tax and rate,
+   * signed as written off (a reversed write-off reduces it): net, the tax correction
    * as tax, gross, and apaleo's precise VAT on the same lines.
    */
   writeOffsByRate: VatTotal[];
   /** City tax, second city tax and guest levies, signed. */
   cityTaxCents: number;
-  /** The same levies per Abacus account, MWST-Code and rate: booked without MWST (durchlaufender Posten) or with it. */
+  /** The same levies per Odoo account, tax and rate: booked without tax (durchlaufender Posten) or with it. */
   levies: LevyTotal[];
   payments: PaymentTotal[];
   /** Classified by side and sign (`depositMovement`), unsigned; refunds (paid back via a payment) are part of the released amount. */
   deposits: { receivedCents: number; releasedCents: number; refundedCents: number };
-  /** Net movement on accounts receivable (Debitoren apaleo): debits positive. */
+  /** Net movement on accounts receivable (company invoices): debits positive. */
   accountsReceivableCents: number;
   skipped: SkippedTotal[];
-  /** Sum of the one-Rappen differences (Abacus' check value minus the booked MWST) reported as `W-VAT-ROUNDING`. */
-  roundingCents: number;
   findings: FindingCount[];
 }
 
@@ -124,10 +121,10 @@ export interface PostingResult {
   findings: Finding[];
   summary: PostingSummary;
   /**
-   * Per VAT rate, how many one-cent differences between the booked tax and
-   * apaleo's tax the run reported (`W-VAT-ROUNDING` on a deposit line whose
-   * tax was computed). The plausibility check allows that many cents at that
-   * rate only.
+   * Per VAT rate, how many one-cent differences between the tax computed for
+   * several untaxed deposit lines of a day and the VAT apaleo moved on their
+   * `PostPrepaymentVat` lines the run accepted. The plausibility check allows
+   * that many cents at that rate only.
    */
   vatRoundingByRate: ReadonlyMap<number, number>;
 }

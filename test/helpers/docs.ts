@@ -162,7 +162,7 @@ export function checkConfigKeys(file: string, markdown: string, paths: ReadonlyS
 
 // --- Finding codes -----------------------------------------------------------
 
-export const FINDING_CODE = /\b[EWN]-[A-Z][A-Z-]+\b/g;
+export const FINDING_CODE = /\b[EWN]-[A-Z][A-Z0-9-]*[A-Z0-9]\b/g;
 
 export function findingCodes(text: string): Set<string> {
   return new Set(text.match(FINDING_CODE) ?? []);

@@ -15,20 +15,20 @@ const ref = (number: string, type: string, parentNumber?: string): AccountRef =>
 
 const ACC10 = 'RevenueAccommodation_VeryReduced:10.00';
 const mapping = mappingOf([
-  mappingRow({ apaleoAccount: ACC10, apaleoType: 'Revenues', abacusAccount: '3400', mwstCode: 'V10', mwstPercent: '10' }),
-  mappingRow({ apaleoAccount: 'RevenueAccommodation', apaleoType: 'Revenues', abacusAccount: '3401', mwstCode: 'V20', mwstPercent: '20' }),
-  mappingRow({ apaleoAccount: '1200', apaleoType: 'Receivables', abacusAccount: '1101' }),
-  mappingRow({ apaleoAccount: '1102', apaleoType: '*any*', abacusAccount: '1091' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Receivables', abacusAccount: '1109' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Payments', abacusAccount: '1090' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '10', abacusAccount: '2030', mwstCode: 'V10', mwstPercent: '10' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '20', abacusAccount: '2031', mwstCode: 'V20', mwstPercent: '20' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '0', abacusAccount: '2039' }),
+  mappingRow({ apaleoAccount: ACC10, apaleoType: 'Revenues', odooAccount: '3400', odooTax: 'account_tax_template_sales_10_code029', taxPercent: '10' }),
+  mappingRow({ apaleoAccount: 'RevenueAccommodation', apaleoType: 'Revenues', odooAccount: '3401', odooTax: 'account_tax_template_sales_20_code022', taxPercent: '20' }),
+  mappingRow({ apaleoAccount: '1200', apaleoType: 'Receivables', odooAccount: '1101' }),
+  mappingRow({ apaleoAccount: '1102', apaleoType: '*any*', odooAccount: '1091' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Receivables', odooAccount: '1109' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Payments', odooAccount: '1090' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '10', odooAccount: '2030', odooTax: 'account_tax_template_sales_10_code029', taxPercent: '10' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '20', odooAccount: '2031', odooTax: 'account_tax_template_sales_20_code022', taxPercent: '20' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '0', odooAccount: '2039' }),
   mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes' }),
 ]);
 
 const abacus = (account: AccountRef, rate: number | undefined = 0, chart?: ChartIndex) =>
-  resolve(mapping, account, { rate, ...(chart ? { chart } : {}) })?.abacusAccount;
+  resolve(mapping, account, { rate, ...(chart ? { chart } : {}) })?.odooAccount;
 
 describe('resolution order', () => {
   it('(1) takes the exact number and type first', () => {
@@ -68,8 +68,8 @@ describe('resolution order', () => {
     expect(abacus(ref('RevenueOther_Normal:20.00', 'Revenues'), 20)).toBeUndefined();
   });
 
-  it('returns a row with an empty Abacus account as it is (unmapped)', () => {
-    expect(resolve(mapping, ref('3501', 'CityTaxes'), { rate: 0 })).toMatchObject({ abacusAccount: '', line: 11 });
+  it('returns a row with an empty Odoo account as it is (unmapped)', () => {
+    expect(resolve(mapping, ref('3501', 'CityTaxes'), { rate: 0 })).toMatchObject({ odooAccount: '', line: 11 });
   });
 
   it('stops on a parent cycle', () => {
@@ -86,9 +86,9 @@ describe('empty parent rows', () => {
   const v1 = mappingOf([
     mappingRow({ apaleoAccount: 'RevenueNoShow_Reduced:13.00', apaleoType: 'Revenues', apaleoVatPercent: '13' }),
     mappingRow({ apaleoAccount: '3000', apaleoType: 'Liabilities', apaleoName: 'Liabilities' }),
-    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '10', abacusAccount: '2030', mwstCode: 'V10', mwstPercent: '10' }),
-    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '20', abacusAccount: '2031', mwstCode: 'V20', mwstPercent: '20' }),
-    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '0', abacusAccount: '2039', mwstPercent: '0' }),
+    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '10', odooAccount: '2030', odooTax: 'account_tax_template_sales_10_code029', taxPercent: '10' }),
+    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '20', odooAccount: '2031', odooTax: 'account_tax_template_sales_20_code022', taxPercent: '20' }),
+    mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '0', odooAccount: '2039', taxPercent: '0' }),
     mappingRow({ apaleoAccount: '9999', apaleoType: 'AccountsReceivable' }),
   ]);
   const at = (account: AccountRef, rate: number) => resolve(v1, account, { rate });
@@ -98,32 +98,32 @@ describe('empty parent rows', () => {
     ['MXETGHPM-1_Liabilities/Normal:20.00', 20, '2031'],
     ['EPEBVUIU-1_Liabilities/Null:0.00', 0, '2039'],
   ])('passes over the empty 3000 row: %s at %d %% resolves to %s', (number, rate, account) => {
-    expect(at(ref(number, 'Liabilities', '3000'), rate)?.abacusAccount).toBe(account);
+    expect(at(ref(number, 'Liabilities', '3000'), rate)?.odooAccount).toBe(account);
   });
 
   it('resolves the Austrian deposits of the recorded VIE day through the 13 % and 20 % wildcards', () => {
     const austrian = mappingOf([
       ...v1.rows,
-      mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '13', abacusAccount: '2033', mwstCode: 'V13', mwstPercent: '13' }),
+      mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '13', odooAccount: '2033', odooTax: 'account_tax_template_sales_13_code006', taxPercent: '13' }),
     ]);
-    const deposit = (number: string, rate: number) => resolve(austrian, ref(number, 'Liabilities', '3000'), { rate })?.abacusAccount;
+    const deposit = (number: string, rate: number) => resolve(austrian, ref(number, 'Liabilities', '3000'), { rate })?.odooAccount;
     expect(deposit('DHNEKKIT-1_Liabilities/Reduced:13.00', 13)).toBe('2033');
     expect(deposit('DHNEKKIT-1_Liabilities/Normal:20.00', 20)).toBe('2031');
   });
 
   it('returns the empty parent row when no wildcard gives an account, so findings can name it', () => {
-    expect(at(ref('X-1_Liabilities/Reduced:13.00', 'Liabilities', '3000'), 13)).toMatchObject({ apaleoAccount: '3000', abacusAccount: '', line: 3 });
+    expect(at(ref('X-1_Liabilities/Reduced:13.00', 'Liabilities', '3000'), 13)).toMatchObject({ apaleoAccount: '3000', odooAccount: '', line: 3 });
     expect(at(ref('ZAQSEFYC-1_AccountsReceivable', 'AccountsReceivable', '9999'), 0)).toMatchObject({ apaleoAccount: '9999', line: 7 });
   });
 
-  it('keeps an exact row with an empty Abacus account unmapped', () => {
-    expect(at(ref('RevenueNoShow_Reduced:13.00', 'Revenues', 'RevenueNoShow'), 13)).toMatchObject({ abacusAccount: '', line: 2 });
+  it('keeps an exact row with an empty Odoo account unmapped', () => {
+    expect(at(ref('RevenueNoShow_Reduced:13.00', 'Revenues', 'RevenueNoShow'), 13)).toMatchObject({ odooAccount: '', line: 2 });
   });
 
   it('resolves per-reservation debtor accounts and their /Offset through the AccountsReceivable wildcard', () => {
-    const withWildcard = mappingOf([...v1.rows.filter((row) => row.apaleoAccount !== '9999'), mappingRow({ apaleoAccount: '*', apaleoType: 'AccountsReceivable', abacusAccount: '1102' })]);
+    const withWildcard = mappingOf([...v1.rows.filter((row) => row.apaleoAccount !== '9999'), mappingRow({ apaleoAccount: '*', apaleoType: 'AccountsReceivable', odooAccount: '1102' })]);
     for (const number of ['AHTJTGFK-1_AccountsReceivable', 'AHTJTGFK-1_AccountsReceivable/Offset']) {
-      expect(resolve(withWildcard, ref(number, 'AccountsReceivable', '9999'), { rate: 0 })?.abacusAccount).toBe('1102');
+      expect(resolve(withWildcard, ref(number, 'AccountsReceivable', '9999'), { rate: 0 })?.odooAccount).toBe('1102');
     }
   });
 });
@@ -137,8 +137,8 @@ describe('per-reservation accounts without a parent (Swagger shape)', () => {
     });
     const rate = lineRate(line);
     expect(rate).toBe(10);
-    expect(resolve(mapping, line.debit, { rate })?.abacusAccount).toBe('1109');
-    expect(resolve(mapping, line.credit, { rate })?.abacusAccount).toBe('2030');
+    expect(resolve(mapping, line.debit, { rate })?.odooAccount).toBe('1109');
+    expect(resolve(mapping, line.credit, { rate })?.odooAccount).toBe('2030');
   });
 
   it('leaves a line with two different rates unmapped on the rate wildcard', () => {

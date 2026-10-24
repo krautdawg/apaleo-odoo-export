@@ -30,16 +30,14 @@ export const mapping: Command = {
     }
     const period = parseRangeFlags(stringOption(args.values, 'from'), stringOption(args.values, 'to'));
     const loaded = await loadCommandConfig(args.values, ctx);
-    const { mwstCodes } = loaded.config.abacus;
+    const { version } = loaded.config.odoo;
     const propertyId = defaultProperty(loaded, stringOption(args.values, 'property'));
     if (period && !propertyId) throw new UsageError('Checking a period needs --property <id>.');
     const path = mappingPath(loaded, propertyId, stringOption(args.values, 'mapping'), ctx.cwd);
 
     const loadedMapping = await loadMapping(path, { readFile: (p) => ctx.fs.readFile(p) });
-    const findings: Finding[] = [...loadedMapping.findings, ...checkMapping(loadedMapping, { mwstCodes })];
-    ctx.stdout.write(
-      `Mapping file: ${path} (${loadedMapping.rows.length} rows, abacus.mwstCodes ${mwstCodes.normal} 8.1 %, ${mwstCodes.reduziert} 2.6 %, ${mwstCodes.beherbergung} 3.8 %)\n`,
-    );
+    const findings: Finding[] = [...loadedMapping.findings, ...checkMapping(loadedMapping, { version })];
+    ctx.stdout.write(`Mapping file: ${path} (${loadedMapping.rows.length} rows, checked for Odoo ${version})\n`);
     ctx.stdout.write(summaryByType(loadedMapping));
 
     if (period && propertyId) {
@@ -49,7 +47,7 @@ export const mapping: Command = {
         source.getLedger(propertyId, period.from, nextDay(period.to)),
       ]);
       const chart = new ChartIndex(accounts);
-      const coverage = checkCoverage(loadedMapping, lines, chart, { rateOf: releaseRateOf(lines, chart), mwstCodes });
+      const coverage = checkCoverage(loadedMapping, lines, chart, { rateOf: releaseRateOf(lines, chart), version });
       findings.push(...coverage);
       ctx.stdout.write(`Checked ${lines.length} ledger lines of ${propertyId} from ${period.from} to ${period.to}: ${coverageSummary(coverage)}.\n`);
     }
@@ -72,7 +70,7 @@ function summaryByType(mapping: Mapping): string {
   for (const row of mapping.rows) {
     const entry = byType.get(row.apaleoType) ?? { rows: 0, mapped: 0 };
     entry.rows += 1;
-    if (row.abacusAccount !== '') entry.mapped += 1;
+    if (row.odooAccount !== '') entry.mapped += 1;
     byType.set(row.apaleoType, entry);
   }
   const rows = [...byType].map(([type, { rows: count, mapped }]) => [

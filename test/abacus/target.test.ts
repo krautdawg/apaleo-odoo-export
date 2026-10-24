@@ -8,9 +8,11 @@ import { abacusOptions, accommodation, mwst, payment, values } from '../helpers/
 
 const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
-/** A config with the given `abacus` section (Mandant 1234 by default) and properties. */
+const ODOO = { journal: 'APA', version: 18 };
+
+/** A config with the given `abacus` section (Mandant 1234 by default) and properties, beside the required `odoo` section. */
 function config(abacus: Record<string, unknown> = {}, properties: Record<string, unknown>[] = []) {
-  return configSchema.parse({ abacus: { mandant: 1234, ...abacus }, properties });
+  return configSchema.parse({ odoo: ODOO, abacus: { mandant: 1234, ...abacus }, properties });
 }
 
 function meta(overrides: Partial<TargetFileMeta> = {}, from: LocalDate = '2026-10-01', to: LocalDate = '2026-10-31'): TargetFileMeta {
@@ -89,9 +91,10 @@ describe('abacusTarget', () => {
     expect(abacusTarget.advice.currency).toContain('abacus.leitwaehrung');
   });
 
-  it('needs the abacus section with abacus.mandant: the config schema refuses one without', () => {
-    expect(() => configSchema.parse({})).toThrow(/mandant/);
-    expect(() => configSchema.parse({ bmd: { buchsymbol: 'HO' }, abacus: { mandant: 1234 } })).toThrow(/bmd/);
+  it('needs the abacus section with abacus.mandant: the schema refuses one without, and the writer refuses a config without the section', () => {
+    expect(() => configSchema.parse({ odoo: ODOO, abacus: {} })).toThrow(/mandant/);
+    expect(() => configSchema.parse({ odoo: ODOO, bmd: { buchsymbol: 'HO' }, abacus: { mandant: 1234 } })).toThrow(/bmd/);
+    expect(() => settingsFromConfig({ config: configSchema.parse({ odoo: ODOO }), propertyId: 'BSP' })).toThrow('The config has no abacus section');
   });
 
   it('moves the Collective account by the gross and the Single account by the gross minus the MWST, signed by DebitCredit', () => {

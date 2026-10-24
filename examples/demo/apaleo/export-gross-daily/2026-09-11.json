@@ -16,9 +16,9 @@
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": 224.76,
-      "netAmount": 224.76,
+      "currency": "EUR",
+      "grossAmount": 250.7,
+      "netAmount": 250.7,
       "receipt": {
         "type": "Custom",
         "number": "KASSE-BSP-1"
@@ -43,9 +43,9 @@
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": -224.76,
-      "netAmount": -224.76,
+      "currency": "EUR",
+      "grossAmount": -250.7,
+      "netAmount": -250.7,
       "receipt": {
         "type": "Custom",
         "number": "KASSE-BSP-1"

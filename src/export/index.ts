@@ -1,5 +1,5 @@
-export { checkAccountMovements, checkAggregates, checkConservation, checkMwstCodeRates, checkVatByRate, plausibilityFindings, type CheckOptions } from './checks.js';
-export { MANIFEST_FILE, exportedFile, monthFolder, protocolPath, sha256, type Manifest, type ManifestEntry, type TaxAtCode } from './output.js';
+export { checkAccountMovements, checkAggregates, checkConservation, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from './checks.js';
+export { MANIFEST_FILE, exportedFile, monthFolder, protocolPath, sha256, type Manifest, type ManifestEntry } from './output.js';
 export {
   PERIOD_HINT,
   dayRuleFindings,

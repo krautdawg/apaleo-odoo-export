@@ -1,29 +1,33 @@
 {
   "files": [
     {
-      "file": "ABACUS_Buchungen_20260901-20260930_BSP.xml",
+      "file": "ODOO_Buchungen_20260901-20260930_BSP.csv",
       "status": "current",
-      "sha256": "9a9ebb5a9a95f9362a19242b1ad9bca4fa9c704363098c84f5a138731a0bb84c",
+      "sha256": "9fb291572b840118159062a8d1fc3064e536dc1c8a0fa2d2ac7b809294a696ca",
       "from": "2026-09-01",
       "to": "2026-09-30",
       "bookings": 24,
-      "journalTotalCents": 182840,
       "currency": "EUR",
-      "taxByMwstCode": [
+      "odooCompanyId": 1,
+      "odooJournal": "APA",
+      "entries": 5,
+      "lines": 25,
+      "debitTotalCents": 137640,
+      "vatByTax": [
         {
-          "mwstCode": "V10",
-          "ratePercent": 10,
-          "taxCents": 5848
+          "tax": "account.1_account_tax_template_sales_20_code022",
+          "ratePercent": 20,
+          "baseCents": 3833,
+          "vatCents": 767
         },
         {
-          "mwstCode": "V20",
-          "ratePercent": 20,
-          "taxCents": 767
+          "tax": "account.1_account_tax_template_sales_10_code029",
+          "ratePercent": 10,
+          "baseCents": 58482,
+          "vatCents": 5848
         }
       ],
-      "mandant": "1234",
-      "geschaeftsbereich": 0,
-      "mappingSha256": "0507677e0ca6ea223b3b34646ddc187a8d6b86bfc60f8fa9e4c02a90f7902c1c",
+      "mappingSha256": "41c1928d7f65ca95c1c22d949a01722344383e76d2a62fedfada9c7dcdfa9f73",
       "toolVersion": "0.0.0",
       "createdAt": "2026-10-20T08:00:00.000Z"
     }

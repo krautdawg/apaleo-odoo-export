@@ -2,15 +2,15 @@ import { basename, join, resolve } from 'node:path';
 import type { CommandContext } from '../cli/context.js';
 import { VERSION } from '../cli/version.js';
 import { ChartIndex } from '../core/chart.js';
-import { abacusUnitKey, abacusUnitOf, abrechnungsartFindings, sharedMandantFindings, type Config, type LoadedConfig } from '../core/config.js';
+import type { Config, LoadedConfig } from '../core/config.js';
 import { localDateIn, nextDay } from '../core/date.js';
 import { FindingsError, UserError } from '../core/errors.js';
 import { isErrorFinding, type Finding } from '../core/findings.js';
 import type { LedgerLine, SourceAdapter, SourceProperty } from '../core/source.js';
-import { abacusTarget } from '../abacus/target.js';
-import { checkCoverage, checkUsedMwstCodes, loadMapping, type Mapping } from '../mapping/index.js';
-import { buildBookings, journalTotalCents, releaseRateOf, taxByMwstCode, type PostedBooking, type PostingOptions, type PostingResult } from '../posting/index.js';
-import { checkAggregates, checkMwstCodeRates, plausibilityFindings } from './checks.js';
+import { checkCoverage, checkUsedTaxes, loadMapping, type Mapping } from '../mapping/index.js';
+import { odooTarget } from '../odoo/target.js';
+import { buildBookings, releaseRateOf, type PostedBooking, type PostingOptions, type PostingResult } from '../posting/index.js';
+import { checkAggregates, checkTaxRates, plausibilityFindings } from './checks.js';
 import { monthFolder, planOutput, repairCompanions, sha256, writeOutput, type OutputPlan, type WrittenFile } from './output.js';
 import { dayRuleFindings, finalFrom, lastFinalDay, splitPeriod, type DateRange, type PeriodPart } from './period.js';
 import { renderSummary } from './summary.js';
@@ -46,11 +46,11 @@ export interface ExportDeps {
 }
 
 /** The target the export writes when the caller names none. */
-export const DEFAULT_TARGET: TargetWriter<PostedBooking> = abacusTarget;
+export const DEFAULT_TARGET: TargetWriter<PostedBooking> = odooTarget;
 
 /**
- * A file only has to stay inside one calendar month (one MWST period and one
- * fiscal year of the Mandant): the period is split as if the fiscal year began on 1 January.
+ * A file only has to stay inside one calendar month (one UStVA period and one
+ * fiscal year): the period is split as if the fiscal year began on 1 January.
  */
 export const CALENDAR_YEAR_START = '01-01';
 
@@ -84,15 +84,12 @@ export interface PartOutcome {
  */
 export async function runExport(request: ExportRequest, deps: ExportDeps): Promise<PartOutcome[]> {
   const parts = splitPeriod(request.period, CALENDAR_YEAR_START);
-  const shared = sharedMandantFindings(deps.loaded.config);
-  const abrechnungsart = abrechnungsartFindings(deps.loaded.config.abacus);
   const properties = await deps.source.listProperties();
   const outcomes: PartOutcome[] = [];
   for (const propertyId of request.propertyIds) {
     const inputs = new PropertyInputs(propertyId, properties.find((p) => p.id === propertyId), deps);
     for (const part of parts) {
-      const notes = [...shared.filter((finding) => concernsProperty(finding, propertyId, deps.loaded.config)), ...abrechnungsart];
-      const outcome = await exportPart(part, inputs, request, deps, notes);
+      const outcome = await exportPart(part, inputs, request, deps);
       outcomes.push(outcome);
       deps.onOutcome?.(outcome);
     }
@@ -150,13 +147,8 @@ export function notFinalFinding(part: DateRange, timeZone: string, finalAfter: s
   };
 }
 
-/** A `W-MANDANT-SHARED` finding concerns the property when the shared Mandant and Geschäftsbereich are its own. */
-function concernsProperty(finding: Finding, propertyId: string, config: Config): boolean {
-  return finding.value === abacusUnitKey(abacusUnitOf(config.abacus, config.properties, propertyId));
-}
-
-async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: ExportRequest, deps: ExportDeps, notes: readonly Finding[]): Promise<PartOutcome> {
-  const findings: Finding[] = [...notes];
+async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: ExportRequest, deps: ExportDeps): Promise<PartOutcome> {
+  const findings: Finding[] = [];
   const target = deps.target ?? DEFAULT_TARGET;
   let lines: readonly LedgerLine[] = [];
   let result: PostingResult | undefined;
@@ -207,17 +199,17 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
     lines = ledger;
     findings.push(...currencyFindings(target, deps.loaded.config, inputs.property, lines));
     if (hasError(findings)) return failed();
-    const { abacus, posting } = deps.loaded.config;
-    const options: PostingOptions = { ...posting, mwstCodes: abacus.mwstCodes };
+    const { odoo, posting } = deps.loaded.config;
+    const options: PostingOptions = { ...posting, version: odoo.version };
 
-    const coverageOptions = { rateOf: releaseRateOf(lines, chart), mwstCodes: abacus.mwstCodes };
+    const coverageOptions = { rateOf: releaseRateOf(lines, chart), version: odoo.version };
     const coverage = checkCoverage(mapping, lines, chart, coverageOptions);
-    // A swapped or unknown MWST-Code passes the posting guard (it compares rates only), and scheduled runs never call mapping check.
-    const usedCodes = checkUsedMwstCodes(mapping, lines, chart, coverageOptions);
+    // A swapped or unknown tax passes the posting guard (it compares rates only), and scheduled runs never call mapping check.
+    const usedTaxes = checkUsedTaxes(mapping, lines, chart, coverageOptions);
     result = (deps.post ?? buildBookings)(lines, mapping, chart, options);
     // The posting rules repeat the coverage check's E-UNMAPPED findings.
-    findings.push(...coverage, ...usedCodes, ...result.findings.filter((finding) => finding.code !== 'E-UNMAPPED'));
-    findings.push(...checkMwstCodeRates(lines, result, { mapping, chart }));
+    findings.push(...coverage, ...usedTaxes, ...result.findings.filter((finding) => finding.code !== 'E-UNMAPPED'));
+    findings.push(...checkTaxRates(lines, result, { mapping, chart }));
     // The plausibility checks assume a clean posting run; with errors the part fails anyway.
     if (!hasError(findings)) findings.push(...plausibilityFindings(lines, result, { mapping, chart, movements: (booking) => target.movements(booking) }));
     if (deps.loaded.config.checks.aggregates) findings.push(...(await aggregateFindings(deps.source, inputs.id, part, lines, chart)));
@@ -236,18 +228,18 @@ async function exportPart(part: PeriodPart, inputs: PropertyInputs, request: Exp
     if (plan.action === 'refuse') findings.push(plan.finding);
     if (hasError(findings)) return outcome('failed', { path });
     if (request.dryRun) return outcome('checked', { path, plan: plan.action });
+    const bookings = result.bookings;
+    const details = target.protocolDetails?.(bookings, meta) ?? [];
     const companions = (status: PartStatus, fileBytes: Uint8Array): WrittenFile => ({
       path,
       bytes: fileBytes,
-      protocol: protocolText(target.protocolTitle, outcome(status, { path }).summary, path, fileBytes, mappingSha256, deps.ctx.now(), request.demo === true),
+      protocol: protocolText(target.protocolTitle, outcome(status, { path }).summary, details, path, fileBytes, mappingSha256, deps.ctx.now(), request.demo === true),
       entry: {
         from: part.from,
         to: part.to,
-        bookings: result?.bookings.length ?? 0,
-        journalTotalCents: journalTotalCents(result?.bookings ?? []),
+        bookings: bookings.length,
         currency: target.currency(deps.loaded.config),
-        taxByMwstCode: taxByMwstCode(result?.bookings ?? []),
-        ...target.manifestFields(meta),
+        ...target.manifestFields(meta, bookings),
         mappingSha256,
         toolVersion: VERSION,
         createdAt: deps.ctx.now().toISOString(),
@@ -370,15 +362,16 @@ export const DEMO_MARKER = 'DEMO';
 
 /** The line after `DEMO_MARKER` in a demo protocol, and the first line of the demo's output (`export --demo`). */
 export const DEMO_NOTICE =
-  'DEMO: bundled sample data of the fabricated "Hotel Beispiel", not read from apaleo. Every Text1 starts with "DEMO ". ' +
-  'Never import a demo file into a real Abacus Mandant.';
+  'DEMO: bundled sample data of the fabricated "Hotel Beispiel Berlin", not read from apaleo. Every reference starts with "DEMO ". ' +
+  'Never import a demo file into a real Odoo company.';
 
-function protocolText(title: string, summary: string, path: string, bytes: Uint8Array, mappingSha256: string, now: Date, demo: boolean): string {
+function protocolText(title: string, summary: string, details: readonly string[], path: string, bytes: Uint8Array, mappingSha256: string, now: Date, demo: boolean): string {
   return [
     ...(demo ? [DEMO_MARKER, DEMO_NOTICE] : []),
-    `${title}. No warranty, not tax advice: have your Treuhänder check the bookings.`,
+    `${title}. No warranty, not tax advice: have your Steuerberater check the bookings.`,
     '',
     summary,
+    ...(details.length > 0 ? [...details, ''] : []),
     `File: ${basename(path)}`,
     `SHA-256: ${sha256(bytes)}`,
     `Mapping SHA-256: ${mappingSha256}`,

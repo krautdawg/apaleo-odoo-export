@@ -6,29 +6,26 @@ export const MAPPING_COLUMNS = [
   'apaleo_type',
   'apaleo_name',
   'apaleo_vat_percent',
-  'abacus_account',
-  'mwst_code',
-  'mwst_percent',
-  'kost',
+  'odoo_account',
+  'odoo_tax',
+  'tax_percent',
   'comment',
 ] as const;
 
 export type MappingColumn = (typeof MAPPING_COLUMNS)[number];
 
 /**
- * Header columns of mapping files of other tools, which are refused: the DATEV
- * mapping of apaleo-datev-export, the BMD mapping of apaleo-bmd-export and the
- * account export of a paid apaleo-DATEV connector (lower case, as read).
+ * Header columns of mapping files of other tools, which are refused: the Abacus
+ * mapping of apaleo-abacus-export, the DATEV mapping of apaleo-datev-export, the
+ * BMD mapping of apaleo-bmd-export and the account export of a paid apaleo-DATEV
+ * connector (lower case, as read).
  */
+export const ABACUS_COLUMNS: readonly string[] = ['abacus_account', 'mwst_code', 'mwst_percent'];
 export const DATEV_COLUMNS: readonly string[] = ['datev_account', 'bu_key', 'datev_vat_percent'];
 export const BMD_COLUMNS: readonly string[] = ['bmd_account', 'steuercode', 'bmd_vat_percent'];
 export const DATEV_CONNECTOR_COLUMNS: readonly string[] = ['apaleoaccountnumber', 'datevaccountnumber'];
 
-/**
- * The columns of the account export of a paid apaleo-Abacus connector (research §3),
- * as written in its header. `init-mapping --accounts-from` reads such a file; as a
- * mapping it is refused.
- */
+/** The columns of the account export of a paid apaleo-Abacus connector, as written in its header: refused as an Abacus mapping. */
 export const CONNECTOR_EXPORT_COLUMNS = ['Apaleo Kontonummer', 'Kontoname', 'Kontotyp', 'Abacus Kontonummer', 'Kostenstelle'] as const;
 
 /** `apaleo_account` of a row that matches every account of its type. */
@@ -52,20 +49,17 @@ export const VAT_RELEVANT_TYPES: ReadonlySet<string> = new Set([
   'Revenues',
 ]);
 
-/** apaleo's own VAT accounts. Their lines are always skipped (Abacus books the MWST from `TaxData`), so they need no row. */
+/** apaleo's own VAT accounts. Their lines are always skipped (Odoo computes the tax lines from the taxes of the base lines), so they need no row. */
 export const VAT_ACCOUNT_TYPES: ReadonlySet<string> = new Set(['Vat', 'VatOnLiabilities']);
 
 /** Types whose bookings are sales, deposits, levies or bad debt: they owe output tax, never input tax. */
 export const OUTPUT_TAX_TYPES: ReadonlySet<string> = new Set(['Revenues', 'Liabilities', 'CityTaxes', 'SecondCityTax', 'GuestLevies', 'LossOfAccountsReceivable']);
 
 /**
- * Types that are money or a claim on a guest or Debitor (Zahlungsmittel, Transferkonto, Gästeforderung, Debitoren): an
- * MWST-Code on their row would make Abacus book the MWST on the money or claim account, so their rows must never carry one.
+ * Types that are money or a claim on a guest or company (Kasse, Geldtransit, Gästeforderungen, Forderungen): an Odoo
+ * tax on their row would make Odoo compute VAT on the money or the claim, so their rows must never carry one.
  */
 export const NO_TAX_TYPES: ReadonlySet<string> = new Set(['Payments', 'Receivables', 'AccountsReceivable']);
-
-/** Types whose `kost` becomes the Kostenstelle (`BookingLevel1`): Abacus accepts one only on Erfolgskonten. */
-export const KOST_TYPES: ReadonlySet<string> = new Set(['Revenues', 'LossOfAccountsReceivable']);
 
 /** One row of a mapping file. Every value is kept as the text in the file. */
 export interface MappingRow {
@@ -75,14 +69,12 @@ export interface MappingRow {
   readonly apaleoType: string;
   readonly apaleoName: string;
   readonly apaleoVatPercent: string;
-  /** Abacus account number (1 to 11 digits); empty means unmapped. */
-  readonly abacusAccount: string;
-  /** MWST-Code of the Mandant's MWST-Tabelle, kept as text (`311`, `V81`); empty means no MWST on this row. */
-  readonly mwstCode: string;
-  /** The MWST rate Abacus books with the MWST-Code (0 allowed); empty without one. */
-  readonly mwstPercent: string;
-  /** Kostenstelle, written only on revenue and write-off bookings. */
-  readonly kost: string;
+  /** Odoo account code (`8300`, `1360`), kept as text; empty means unmapped. */
+  readonly odooAccount: string;
+  /** The Odoo tax: a chart-template id (`tax_ust_7_skr03`) or a full External ID (`__import__.ust_7_hotel`); empty means no tax on this row. */
+  readonly odooTax: string;
+  /** The rate of the Odoo tax as the Steuerberater confirms it (0 allowed); empty without a tax. */
+  readonly taxPercent: string;
   readonly comment: string;
 }
 
@@ -93,10 +85,9 @@ export const ROW_FIELDS: Readonly<Record<MappingColumn, keyof MappingRowValues>>
   apaleo_type: 'apaleoType',
   apaleo_name: 'apaleoName',
   apaleo_vat_percent: 'apaleoVatPercent',
-  abacus_account: 'abacusAccount',
-  mwst_code: 'mwstCode',
-  mwst_percent: 'mwstPercent',
-  kost: 'kost',
+  odoo_account: 'odooAccount',
+  odoo_tax: 'odooTax',
+  tax_percent: 'taxPercent',
   comment: 'comment',
 };
 
@@ -108,7 +99,7 @@ export interface Mapping {
 }
 
 /**
- * A VAT percent as written in the file: `8.1`, `8,1`, `3.80` or `8,1 %`. Undefined
+ * A VAT percent as written in the file: `19`, `7,0`, `7.00` or `19 %`. Undefined
  * for an empty cell, NaN for anything else.
  */
 export function parsePercent(text: string): number | undefined {
@@ -129,19 +120,19 @@ export function lineLabel(row: Pick<MappingRow, 'line'>): string {
   return `line ${row.line}`;
 }
 
-/** The MWST-Code of a row, or undefined when the cell is empty. */
-export function mwstCodeOf(row: Pick<MappingRow, 'mwstCode'>): string | undefined {
-  const code = row.mwstCode.trim();
-  return code === '' ? undefined : code;
+/** The Odoo tax of a row, or undefined when the cell is empty. */
+export function taxOf(row: Pick<MappingRow, 'odooTax'>): string | undefined {
+  const tax = row.odooTax.trim();
+  return tax === '' ? undefined : tax;
 }
 
 /**
- * The MWST rate Abacus books on a row: `mwst_percent` with an MWST-Code, 0
- * without one. Undefined when it cannot be known (an MWST-Code without rate, or a
- * rate that is not a number).
+ * The VAT rate Odoo books on a row: `tax_percent` with an Odoo tax, 0 without
+ * one. Undefined when it cannot be known (a tax without rate, or a rate that is
+ * not a number).
  */
-export function rowRate(row: Pick<MappingRow, 'mwstCode' | 'mwstPercent'>): number | undefined {
-  if (mwstCodeOf(row) === undefined) return 0;
-  const rate = parsePercent(row.mwstPercent);
+export function rowRate(row: Pick<MappingRow, 'odooTax' | 'taxPercent'>): number | undefined {
+  if (taxOf(row) === undefined) return 0;
+  const rate = parsePercent(row.taxPercent);
   return rate === undefined || Number.isNaN(rate) ? undefined : rate;
 }

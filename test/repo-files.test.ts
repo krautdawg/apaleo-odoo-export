@@ -97,7 +97,7 @@ describe('CI workflow', () => {
     const text = read('.github/workflows/ci.yml');
     expect(text).toContain('docker run --rm -w /data -v "$RUNNER_TEMP/demo-data:/data" apaleo-odoo-export:ci export --month 2026-09 --demo\n');
     expect(text).toContain('sudo chown 1000:1000 "$RUNNER_TEMP/demo-data"');
-    expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml"');
+    expect(text).toContain('test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv"');
     for (const check of ["label description | grep -q 'apaleo'", "label description | grep -q 'Odoo'", "if label description | grep -q -e 'Abacus' -e 'BMD'; then exit 1; fi", 'test "$(label licenses)" = MIT']) {
       expect(text).toContain(check);
     }
@@ -226,7 +226,7 @@ describe('compose and env examples', () => {
 
   it('still tracks the examples and templates next to those ignored paths', () => {
     const root = fileURLToPath(new URL('..', import.meta.url));
-    const tracked = ['apaleo-odoo.config.example.yaml', 'docker-compose.example.yml', '.env.example', 'test/fixtures/mapping/ekr-beispiel.csv', 'test/fixtures/mapping/abacus-beispiel.csv', 'templates/kmu-hotel.rules.csv'];
+    const tracked = ['apaleo-odoo.config.example.yaml', 'docker-compose.example.yml', '.env.example', 'test/fixtures/mapping/ekr-beispiel.csv', 'test/fixtures/mapping/odoo-beispiel.csv', 'templates/skr03-hotel.rules.csv', 'templates/skr04-hotel.rules.csv'];
     let ignored = '';
     try {
       ignored = execFileSync('git', ['check-ignore', '--no-index', ...tracked], { cwd: root, encoding: 'utf8' });

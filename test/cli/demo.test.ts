@@ -6,10 +6,10 @@ import { fileSystemFinding } from '../../src/export/index.js';
 import { createTestContext } from '../helpers/context.js';
 
 /** The demo marks its file name with `_DEMO`, so it never looks like a real export in a file list. */
-const FILE = 'ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml';
-const PROTOCOL = 'ABACUS_Buchungen_20260901-20260930_BSP_DEMO.protokoll.txt';
+const FILE = 'ODOO_Buchungen_20260901-20260930_BSP_DEMO.csv';
+const PROTOCOL = 'ODOO_Buchungen_20260901-20260930_BSP_DEMO.protokoll.txt';
 /** What a real export of the demo data writes (test/examples.test.ts keeps it current). */
-const EXAMPLE = readFileSync(new URL('../../docs/examples/ABACUS_Buchungen_20260901-20260930_BSP.xml', import.meta.url));
+const EXAMPLE = readFileSync(new URL('../../docs/examples/ODOO_Buchungen_20260901-20260930_BSP.csv', import.meta.url));
 const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
 /** No config file, no secret, and a fetch stub that throws on every request. */
@@ -18,40 +18,36 @@ function bareContext(env: Record<string, string> = {}) {
 }
 
 describe('apaleo-odoo export --demo', () => {
-  it('Demo without credentials: runs the dry run on the bundled Swiss data without config, secret or network, in CHF with 311, 312 and 313, and marks it DEMO', async () => {
+  it('Demo without credentials: runs the dry run on the bundled German month without config, secret or network, in EUR with 7 % and 19 %, and marks it DEMO', async () => {
     const ctx = bareContext();
     expect(await runCli(['export', '--month', '2026-09', '--demo', '--dry-run'], ctx)).toBe(0);
     const out = ctx.out();
-    expect(out.startsWith('DEMO: bundled sample data of the fabricated "Hotel Beispiel"')).toBe(true);
-    expect(out).toContain('Property BSP, 2026-09-01 to 2026-09-30: 26 apaleo lines, 21 Abacus bookings');
-    expect(out).toContain('Never import a demo file into a real Abacus Mandant.');
+    expect(out.startsWith('DEMO: bundled sample data of the fabricated "Hotel Beispiel Berlin"')).toBe(true);
+    expect(out).toContain('Property BSP, 2026-09-01 to 2026-09-30: 24 apaleo lines, 19 Odoo bookings');
+    expect(out).toContain('Never import a demo file into a real Odoo company.');
     // Every section of the summary has content.
     for (const text of [
-      `Import into Abacus FIBU (compare with the Mandant before importing, see docs/abacus-format.md):\n  File: ${FILE}\n  Bookings: 21 Einzelbuchungen`,
-      '  Journal total: 2144.42 CHF',
-      '  Mandant: 7777, Geschäftsbereich 0, Leitwährung CHF',
-      '  Belegnummern: 0901000001 to 0901000021',
-      '  MWST-Codes: 311 (8.1 %; tax -6.48 CHF), 312 (2.6 %; tax -0.39 CHF), 313 (3.8 %; tax -20.14 CHF)',
-      'Totals per Abacus account',
-      '  3805     115.61    0.00   115.61',
-      '  311 8.1 % (Ziffer 303): net 80.00, tax 6.48, gross 86.48, apaleo VAT 6.48, difference 0.00',
-      '  312 2.6 % (Ziffer 313): net 15.00, tax 0.39, gross 15.39, apaleo VAT 0.39, difference 0.00',
-      '  313 3.8 % (Ziffer 343): net 645.61, tax 24.53, gross 670.14, apaleo VAT 24.53, difference 0.00',
-      'Deposits and their MWST per MWST-Code and rate (received minus released):\n  313 3.8 % (Ziffer 343): net 0.00',
-      'Written-off receivables (Debitorenverluste) and the MWST correction per MWST-Code and rate:\n  313 3.8 % (Ziffer 343): net 115.61, tax 4.39, gross 120.00',
-      'Kurtaxe and other guest levies per account (apaleo city tax, total 12.60):\n  2210 without MWST: 12.60',
-      'Payments per clearing account:\n  account  amount\n  1000     240.15\n  1090     296.00',
-      'Deposits (Anzahlungen) received, released and refunded:\n  received        311.40\n  released        311.40\n  of it refunded  103.80',
-      'Accounts receivable (Debitoren, Soll positive): 208.46',
-      'both sides on the same Abacus account      5            537.01',
-      'Findings:\n  none',
+      `Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):\n  File: ${FILE}\n  Revision: 1 (first file of the period)`,
+      '  Entries: 8 draft journal entries (one per business day) with 24 lines, references "DEMO apaleo BSP <date>"',
+      '  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR',
+      '  Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)',
+      'Totals per Odoo account',
+      '  8300       0.00  634.44  -634.44',
+      '  tax_ust_7_skr03 7 % (Kz 86): net 634.44, apaleo per line 44.40, gross 678.84, apaleo precise 44.41 (44.41009346), difference (per line minus precise) -0.01',
+      '  tax_ust_19_skr03 19 % (Kz 81): net 64.18, apaleo per line 12.20, gross 76.38, apaleo precise 12.20 (12.19512605), difference (per line minus precise) 0.00',
+      "Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):\n  tax_ust_7_skr03 7 % (Kz 86): net 0.00",
+      'Payments per clearing account:\n  account  amount\n  1001     250.70\n  1360     399.02',
+      'Deposits (Anzahlungen) received, released and refunded:\n  received        321.00\n  released        321.00\n  of it refunded  107.00',
+      'Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 185.50',
+      'both sides on the same Odoo account      5            621.22',
+      'N-ODOO-ROUNDING-LINE',
     ]) {
       expect(out).toContain(text);
     }
-    expect(out).not.toContain('EUR');
+    expect(out).not.toContain('CHF');
+    expect(out).not.toMatch(/\bE-[A-Z]|\bW-[A-Z]/);
     expect(out).toContain('File: a real run writes demo-output/BSP/2026-09/');
     expect(out).toContain('DEMO Result: dry run, nothing written; 1 file(s) passed every check.');
-    expect(out).not.toContain('W-RECENT-DAY');
     expect(ctx.fetchCalls).toEqual([]);
     expect(ctx.err()).toBe('');
     expect(readdirSync(ctx.cwd)).toEqual([]);
@@ -64,7 +60,7 @@ describe('apaleo-odoo export --demo', () => {
     expect(ctx.out()).toContain('DEMO Result: dry run, nothing written; 0 file(s) passed every check. 1 without bookings.');
   });
 
-  it('Demo file is marked in its name: writes the example file into ./demo-output only, with DEMO in the file name, every Text1 and the protocol', async () => {
+  it('Demo file is marked in its name: writes the example file into ./demo-output only, with DEMO in the file name, the External IDs, every reference and the protocol', async () => {
     // A variable that would redirect a real export must not move the demo output.
     const ctx = bareContext({ APALEO_ODOO_OUTPUT_DIR: 'exports' });
     expect(await runCli(['export', '--month', '2026-09', '--demo'], ctx)).toBe(0);
@@ -73,17 +69,14 @@ describe('apaleo-odoo export --demo', () => {
     expect(readdirSync(folder).sort()).toEqual([FILE, PROTOCOL, 'manifest.json'].sort());
 
     const demo = decode(readFileSync(join(folder, FILE)));
-    // The example file with "DEMO " before every Text1, and nothing else changed.
-    expect(demo).toBe(decode(EXAMPLE).replace(/<Text1>/g, '<Text1>DEMO '));
-    const texts = [...demo.matchAll(/<Text1>([^<]*)<\/Text1>/g)].map((match) => match[1] ?? '');
-    expect(texts).toHaveLength(2 * 21);
-    expect(texts.every((text) => text.startsWith('DEMO '))).toBe(true);
+    // The example file with "DEMO " before every reference and _DEMO in the External IDs, and nothing else changed.
+    expect(demo).toBe(decode(EXAMPLE).replaceAll('apaleo_c1_BSP_', 'apaleo_c1_BSP_DEMO_').replaceAll(',apaleo BSP ', ',DEMO apaleo BSP '));
     const protocol = readFileSync(join(folder, PROTOCOL), 'utf8').split('\n');
     expect(protocol[0]).toBe('DEMO');
     expect(protocol[1]).toMatch(/^DEMO: bundled sample data/);
-    expect(protocol).toContain('  Mandant: 7777, Geschäftsbereich 0, Leitwährung CHF');
+    expect(protocol).toContain('  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR');
     expect(JSON.parse(readFileSync(join(folder, 'manifest.json'), 'utf8'))).toMatchObject({
-      files: [{ file: FILE, status: 'current', bookings: 21, journalTotalCents: 214_442, currency: 'CHF', mandant: '7777', geschaeftsbereich: 0 }],
+      files: [{ file: FILE, status: 'current', bookings: 19, entries: 8, currency: 'EUR', odooCompanyId: 1, odooJournal: 'APA' }],
     });
     expect(ctx.fetchCalls).toEqual([]);
 

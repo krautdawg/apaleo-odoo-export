@@ -1,6 +1,6 @@
 export { apaleoVatOf, vatDirection, type ApaleoVat } from './apaleo-vat.js';
 export { buildBookings } from './build.js';
-export { accountLabel, commandLabel, kostOf, paymentLabel, percentLabel, revenueLabel, text1, text2 } from './fields.js';
+export { paymentLabel, percentLabel, receiptOf, revenueLabel, sideLabel } from './describe.js';
 export {
   depositDirection,
   inferReleaseRates,
@@ -11,8 +11,7 @@ export {
   resolutionRate,
   type ReleaseRate,
 } from './release.js';
-export { journalTotalCents, taxByMwstCode } from './summary.js';
-export { inclusiveCheckTax, normaliseTaxes, taxFromGross } from './taxes.js';
+export { normaliseTaxes, taxFromGross } from './taxes.js';
 export {
   SKIP_REASONS,
   type AccountTotal,

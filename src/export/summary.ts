@@ -5,9 +5,9 @@ import { formatTable } from '../cli/table.js';
 import type { PeriodPart } from './period.js';
 
 const SKIP_LABELS: Readonly<Record<SkipReason, string>> = {
-  VAT_ACCOUNT_LINE: 'apaleo VAT account line (Abacus books the MWST from TaxData)',
+  VAT_ACCOUNT_LINE: 'apaleo VAT account line (Odoo computes the VAT from the tax of the base line)',
   ZERO_AMOUNT: 'amount 0.00',
-  SAME_ACCOUNT: 'both sides on the same Abacus account',
+  SAME_ACCOUNT: 'both sides on the same Odoo account',
 };
 
 export interface SummaryInput {
@@ -19,35 +19,37 @@ export interface SummaryInput {
   summary?: PostingSummary;
   /** The target's import block (`TargetWriter.importBlock`), once the file is rendered. */
   importBlock?: readonly string[];
-  /** The line of the tax return for a rate (`TargetWriter.taxReturnLine`), for example `Ziffer 343`. */
+  /** The line of the tax return for a rate (`TargetWriter.taxReturnLine`), for example `Kz 86`. */
   taxReturnLine?: TaxReturnLine;
   findings: readonly Finding[];
 }
 
 type TaxReturnLine = (ratePercent: number) => string | undefined;
 
-/** `313 3.8 % (Ziffer 343)`, `V10 10 %` for a rate without a line of the tax return, `no MWST-Code 0 %` without code. */
-function codeAndRate(mwstCode: string, ratePercent: number, taxReturnLine: TaxReturnLine): string {
-  const line = mwstCode === '' ? undefined : taxReturnLine(ratePercent);
-  return `${mwstCode || 'no MWST-Code'} ${ratePercent} %${line ? ` (${line})` : ''}`;
+/** `tax_ust_7_skr03 7 % (Kz 86)`, `__import__.ust_10 10 %` for a rate without a line of the tax return, `no tax 0 %` without a tax. */
+function taxAndRate(tax: string, ratePercent: number, taxReturnLine: TaxReturnLine): string {
+  const line = tax === '' ? undefined : taxReturnLine(ratePercent);
+  return `${tax || 'no tax'} ${ratePercent} %${line ? ` (${line})` : ''}`;
 }
 
-/** Why the tax of the bookings and apaleo's VAT differ by a few Rappen, for the Treuhänder. */
+/** Why the tax per line and apaleo's precise VAT differ by a few cents, and where Odoo's own VAT is, for the Steuerberater. */
 export const VAT_ROUNDING_NOTE =
-  "Each booking carries apaleo's tax of its line, rounded to the Rappen, while apaleo rounds only the precise total of its lines per day, " +
-  "so a difference (apaleo VAT minus tax) of a few Rappen is this rounding, not an error.";
+  "The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line " +
+  "rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) " +
+  "of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, " +
+  "and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.";
 
 /**
  * The posting summary as aligned text, for the dry run and the protocol file:
- * the import block, totals per Abacus account, revenue, deposit and write-off VAT
- * per MWST-Code and rate (bookings against apaleo, with the Ziffer of the
- * MWST-Abrechnung for a Swiss rate), Kurtaxe and other levies per account, payments per
- * clearing account, deposits received, released and refunded, accounts
+ * the import block (with Odoo's VAT per tax, entries, lines and rounding lines),
+ * totals per Odoo account, revenue, deposit and write-off VAT per Odoo tax and
+ * rate (with the UStVA Kennzahl), Kurtaxe and other levies per account, payments
+ * per clearing account, deposits received, released and refunded, accounts
  * receivable, skipped lines and every finding. It renders the totals of the
  * posting run (`PostingSummary`) and computes none of its own.
  */
 export function renderSummary({ propertyId, part, ledgerLines, bookings, summary, importBlock, taxReturnLine, findings }: SummaryInput): string {
-  const out: string[] = [`Property ${propertyId}, ${part.from} to ${part.to}: ${ledgerLines} apaleo lines, ${bookings} Abacus bookings`, ''];
+  const out: string[] = [`Property ${propertyId}, ${part.from} to ${part.to}: ${ledgerLines} apaleo lines, ${bookings} Odoo bookings`, ''];
   if (importBlock) out.push(...importBlock, '');
   if (summary) out.push(...postingSection(summary, taxReturnLine ?? (() => undefined)));
   out.push('Findings:');
@@ -62,13 +64,14 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
 
   const accounts = summary.accounts.map((a) => [a.account, formatCents(a.sollCents), formatCents(a.habenCents), formatCents(a.balanceCents)]);
   section(
-    'Totals per Abacus account (Collective account with the gross amount, Single account with the gross amount minus the MWST):',
+    'Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount ' +
+      "minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
     formatTable([['account', 'Soll', 'Haben', 'balance'], ...accounts], [1, 2, 3], '  '),
   );
 
-  section('Revenue and MWST per MWST-Code and rate, with the Ziffer of the MWST-Abrechnung for each Swiss rate:', vatLines(summary.revenueByRate));
-  section('Deposits and their MWST per MWST-Code and rate (received minus released):', vatLines(summary.depositVatByRate));
-  section('Written-off receivables (Debitorenverluste) and the MWST correction per MWST-Code and rate:', vatLines(summary.writeOffsByRate));
+  section("Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):", vatLines(summary.revenueByRate));
+  section("Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):", vatLines(summary.depositVatByRate));
+  section("Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate (before the base fitting):", vatLines(summary.writeOffsByRate));
   out.push(VAT_ROUNDING_NOTE, '');
   section(`Kurtaxe and other guest levies per account (apaleo city tax, total ${formatCents(summary.cityTaxCents)}):`, levyLines(summary.levies, taxReturnLine).join('\n'));
 
@@ -88,8 +91,7 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
     ),
   );
   out.push(
-    `Accounts receivable (Debitoren, Soll positive): ${formatCents(summary.accountsReceivableCents)}`,
-    `VAT rounding differences: ${formatCents(summary.roundingCents)}`,
+    `Accounts receivable (Forderungen Firmenrechnungen, Soll positive): ${formatCents(summary.accountsReceivableCents)}`,
     '',
   );
 
@@ -99,28 +101,29 @@ function postingSection(summary: PostingSummary, taxReturnLine: TaxReturnLine): 
 }
 
 /**
- * `  2210 without MWST: 12.60` or
- * `  3400 with MWST-Code 313 3.8 % (Ziffer 343): gross 2.08, tax 0.08`, one line per account, code and rate.
+ * `  1590 without tax: 12.60` or
+ * `  8300 with tax_ust_7_skr03 7 % (Kz 86): gross 2.14, tax 0.14`, one line per account, tax and rate.
  */
 function levyLines(levies: readonly LevyTotal[], taxReturnLine: TaxReturnLine): string[] {
   return levies.map((levy) =>
-    levy.mwstCode === ''
-      ? `  ${levy.account} without MWST: ${formatCents(levy.grossCents)}`
-      : `  ${levy.account} with MWST-Code ${codeAndRate(levy.mwstCode, levy.ratePercent, taxReturnLine)}: gross ${formatCents(levy.grossCents)}, tax ${formatCents(levy.vatCents)}`,
+    levy.tax === ''
+      ? `  ${levy.account} without tax: ${formatCents(levy.grossCents)}`
+      : `  ${levy.account} with ${taxAndRate(levy.tax, levy.ratePercent, taxReturnLine)}: gross ${formatCents(levy.grossCents)}, tax ${formatCents(levy.vatCents)}`,
   );
 }
 
 /**
- * `V10 10 %: net 77.46, tax 7.74, gross 85.20, apaleo VAT 7.75, difference 0.01 (apaleo precise 7.74545454)`,
- * or `313 3.8 % (Ziffer 343): …` for a Swiss rate, one line per MWST-Code and rate; bookings without MWST-Code as `no MWST-Code 0 %`.
+ * `tax_ust_7_skr03 7 % (Kz 86): net 112.15, apaleo per line 7.85, gross 120.00, apaleo precise 7.85 (7.85046729), difference (per line minus precise) 0.00`,
+ * one line per Odoo tax and rate; bookings without a tax as `no tax 0 %`. Net and the tax per line are apaleo's, before the base fitting;
+ * Odoo's modelled VAT per tax is in the target's import block.
  */
 function vatTotalLines(totals: readonly VatTotal[], taxReturnLine: TaxReturnLine): string {
   return totals
     .map((t) => {
-      const apaleo = decimalToCents(t.apaleoVat);
+      const precise = decimalToCents(t.apaleoVat);
       return (
-        `  ${codeAndRate(t.mwstCode, t.ratePercent, taxReturnLine)}: net ${formatCents(t.netCents)}, tax ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
-        `apaleo VAT ${formatCents(apaleo)}, difference ${formatCents(apaleo - t.vatCents)} (apaleo precise ${t.apaleoVat})`
+        `  ${taxAndRate(t.tax, t.ratePercent, taxReturnLine)}: net ${formatCents(t.netCents)}, apaleo per line ${formatCents(t.vatCents)}, gross ${formatCents(t.grossCents)}, ` +
+        `apaleo precise ${formatCents(precise)} (${t.apaleoVat}), difference (per line minus precise) ${formatCents(t.vatCents - precise)}`
       );
     })
     .join('\n');

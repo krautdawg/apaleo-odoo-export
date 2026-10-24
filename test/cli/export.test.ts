@@ -7,8 +7,7 @@ import { sha256, type Manifest } from '../../src/export/index.js';
 import { ApaleoError, ApaleoPermissionError } from '../../src/sources/apaleo/index.js';
 import { BSP } from '../helpers/apaleo.js';
 import { addSecondProperty, exportConfig, exportSetup, latePosting, type ExportSetup } from '../helpers/export.js';
-import { block, transaction, value, values } from '../helpers/abacus.js';
-import { describeDifference } from '../helpers/golden.js';
+import { describeUtf8Difference } from '../helpers/golden.js';
 
 /**
  * End-to-end through `runCli` with a fake context: fixed clock 2026-10-20, the
@@ -19,19 +18,19 @@ import { describeDifference } from '../helpers/golden.js';
  */
 const UPDATE = process.env.UPDATE_GOLDEN === '1';
 const GOLDEN = new URL('../golden/export/', import.meta.url);
-const FILE = 'ABACUS_Buchungen_20260901-20260930_BSP.xml';
-const PROTOCOL = 'ABACUS_Buchungen_20260901-20260930_BSP.protokoll.txt';
-const MAPPING = readFileSync(join(import.meta.dirname, '../fixtures/mapping/abacus-beispiel.csv'), 'utf8');
+const FILE = 'ODOO_Buchungen_20260901-20260930_BSP.csv';
+const PROTOCOL = 'ODOO_Buchungen_20260901-20260930_BSP.protokoll.txt';
+const MAPPING = readFileSync(join(import.meta.dirname, '../fixtures/mapping/odoo-beispiel.csv'), 'utf8');
 
 const folder = (setup: ExportSetup, month = '2026-09', property = BSP) => join(setup.ctx.cwd, 'exports', property, month);
 const read = (setup: ExportSetup, name: string, month?: string) => readFileSync(join(folder(setup, month), name));
 const manifestOf = (setup: ExportSetup, month?: string) => JSON.parse(read(setup, 'manifest.json', month).toString('utf8')) as Manifest;
-const xmlOf = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
+const csvOf = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
 function expectGolden(name: string, actual: Uint8Array): void {
   const path = new URL(name, GOLDEN);
   if (UPDATE) writeFileSync(path, actual);
-  const difference = describeDifference(readFileSync(path), actual);
+  const difference = describeUtf8Difference(readFileSync(path), actual);
   expect(difference, `${name} differs from the golden file:\n${difference}`).toBeUndefined();
 }
 
@@ -45,7 +44,7 @@ function chargeOn(day: `${number}-${number}-${number}`, entry: string) {
 }
 
 describe('apaleo-odoo export', () => {
-  it('Files after a run: writes the golden Abacus file, its protocol with the Abacus import block and the manifest for a month, and exits 0', async () => {
+  it('Files after a run: writes the golden Odoo file, its protocol with the Odoo import block and the manifest for a month, and exits 0', async () => {
     const setup = exportSetup();
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
     expect(setup.ctx.out()).toContain(`BSP 2026-09 (2026-09-01 to 2026-09-30): written exports/BSP/2026-09/${FILE} (24 bookings)`);
@@ -63,28 +62,31 @@ describe('apaleo-odoo export', () => {
     expect(entry).not.toHaveProperty('sollTotal');
     expect(entry).not.toHaveProperty('habenTotal');
     expect(entry).not.toHaveProperty('taxByRate');
-    const collectiveAmounts = Array.from({ length: 24 }, (_, i) => value(block(transaction(xmlOf(file), i + 1), 'CollectiveInformation'), 'KeyAmount'));
-    const journalTotal = collectiveAmounts.reduce((sum, amount) => sum + Math.round(Number(amount) * 100), 0);
-    expect(entry).toMatchObject({ journalTotalCents: journalTotal, currency: 'EUR', mandant: '1234', geschaeftsbereich: 0 });
-    expect(entry?.taxByMwstCode).toEqual([
-      { mwstCode: 'V10', ratePercent: 10, taxCents: 5_848 },
-      { mwstCode: 'V20', ratePercent: 20, taxCents: 767 },
+    expect(entry).not.toHaveProperty('taxByMwstCode');
+    // The debit total is the sum of the debit column of the file.
+    const debits = csvOf(file).split('\n').slice(1, -1).map((row) => row.split(',')[7] ?? '0');
+    const debitTotal = debits.reduce((sum, amount) => sum + Math.round(Number(amount) * 100), 0);
+    expect(entry).toMatchObject({ debitTotalCents: debitTotal, currency: 'EUR', odooCompanyId: 1, odooJournal: 'APA', entries: 5, lines: debits.length });
+    expect(entry?.vatByTax?.map((v) => [v.tax, v.ratePercent])).toEqual([
+      ['account.1_account_tax_template_sales_20_code022', 20],
+      ['account.1_account_tax_template_sales_10_code029', 10],
     ]);
     expect(entry?.mappingSha256).toBe(sha256(readFileSync(join(setup.ctx.cwd, 'mapping-BSP.csv'))));
 
     const protocol = read(setup, PROTOCOL).toString('utf8');
-    expect(protocol).toContain('Totals per Abacus account');
-    expect(protocol).toContain('Import into Abacus FIBU (compare with the Mandant before importing, see docs/abacus-format.md):');
+    expect(protocol).toContain('Totals per Odoo account');
+    expect(protocol).toContain('Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):');
+    expect(protocol).toContain('apaleo entries per line of the file (entry number and receipt or reference):');
     expect(protocol).toContain(`  File: ${FILE}`);
     expect(protocol).toContain(`SHA-256: ${sha256(file)}`);
     expect(protocol).toContain('Tool: apaleo-odoo 0.0.0');
   });
 
-  it('Protocol names the Mandant: the import block and the manifest entry name Mandant 1234 and Geschäftsbereich 2', async () => {
-    const setup = exportSetup({ config: exportConfig().replace('  mandant: 1234\n', '  mandant: 1234\n  geschaeftsbereich: 2\n') });
+  it('Protocol names company and journal: the import block and the manifest entry name company 3 and journal APB', async () => {
+    const setup = exportSetup({ config: exportConfig().replace('  version: 18\n', '  version: 18\n  companyId: 3\n  journal: APB\n').replace('  journal: APA\n', '') });
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
-    expect(read(setup, PROTOCOL).toString('utf8')).toContain('\n  Mandant: 1234, Geschäftsbereich 2, Leitwährung EUR\n');
-    expect(manifestOf(setup).files[0]).toMatchObject({ file: FILE, mandant: '1234', geschaeftsbereich: 2 });
+    expect(read(setup, PROTOCOL).toString('utf8')).toContain('\n  Company: id 3 (odoo.companyId, the company that owns the taxes), journal APB, currency EUR\n');
+    expect(manifestOf(setup).files[0]).toMatchObject({ file: FILE, odooCompanyId: 3, odooJournal: 'APB' });
   });
 
   it('exits 2 and explains --month and --from/--to when the period is missing', async () => {
@@ -114,10 +116,10 @@ describe('apaleo-odoo export', () => {
   it('splits a range across two months into two files', async () => {
     const setup = exportSetup({ data: chargeOn('2026-10-02', 'BSPE0100') });
     expect(await runCli(['export', '--from', '2026-09-20', '--to', '2026-10-05', '--property', BSP], setup.ctx)).toBe(0);
-    expect(readdirSync(folder(setup, '2026-09'))).toContain('ABACUS_Buchungen_20260920-20260930_BSP.xml');
-    const october = transaction(xmlOf(read(setup, 'ABACUS_Buchungen_20261001-20261005_BSP.xml', '2026-10')), 1);
-    // The Belegnummer starts with MMDD of the file's first day.
-    expect([value(block(october, 'SingleInformation'), 'Account'), value(october, 'DocumentNumber'), value(october, 'EntryDate')]).toEqual(['3400', '1001000001', '2026-10-02']);
+    expect(readdirSync(folder(setup, '2026-09'))).toContain('ODOO_Buchungen_20260920-20260930_BSP.csv');
+    const october = csvOf(read(setup, 'ODOO_Buchungen_20261001-20261005_BSP.csv', '2026-10'));
+    expect(october.split('\n')[1]).toMatch(/^apaleo_c1_BSP_20261002,apaleo BSP 2026-10-02,2026-10-02,APA,/);
+    expect(october).toContain(',4010,Erlöse Beherbergung 10 %,0.00,89.09,account.1_account_tax_template_sales_10_code029\n');
   });
 
   it('refuses a period that reaches today in the property time zone, taken from ctx.now()', async () => {
@@ -156,33 +158,31 @@ describe('apaleo-odoo export', () => {
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--dry-run'], setup.ctx)).toBe(0);
     const out = setup.ctx.out();
     for (const text of [
-      'Totals per Abacus account (Collective account with the gross amount, Single account with the gross amount minus the MWST):',
-      'Revenue and MWST per MWST-Code and rate',
-      'Deposits and their MWST per MWST-Code and rate',
-      'Kurtaxe and other guest levies per account (apaleo city tax, total 6.40):\n  2210 without MWST: 6.40\n',
+      "Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):",
+      "Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):",
+      "Deposits and apaleo's VAT per Odoo tax and rate",
+      'Kurtaxe and other guest levies per account (apaleo city tax, total 6.40):\n  3600 without tax: 6.40\n',
       'Payments per clearing account:',
       'Deposits (Anzahlungen) received, released and refunded:\n  received        395.00\n  released        395.00\n  of it refunded   10.00\n',
-      'Accounts receivable (Debitoren, Soll positive): 115.00',
+      'Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 115.00',
       'gross (unsigned)',
       'Skipped lines:',
       'Findings:',
     ]) {
       expect(out).toContain(text);
     }
-    // No Ziffer of the MWST-Abrechnung for a non-Swiss rate.
-    expect(out).toContain('  V10 10 %: net 584.82, tax 58.48, gross 643.30, apaleo VAT 58.48, difference 0.00 (apaleo precise 58.48181818)');
-    expect(out).not.toContain('(Ziffer');
-    expect(out).toContain("Each booking carries apaleo's tax of its line, rounded to the Rappen");
+    // No Kennzahl for a non-German rate.
+    expect(out).toContain('  account_tax_template_sales_10_code029 10 %: net 584.82, apaleo per line 58.48, gross 643.30, apaleo precise 58.48 (58.48181818), difference (per line minus precise) 0.00');
+    expect(out).not.toContain('(Kz');
+    expect(out).toContain("The revenue, deposit and write-off sections show apaleo's figures before the base fitting");
     // The import block, before the totals.
-    const importBlock = out.indexOf('Import into Abacus FIBU');
+    const importBlock = out.indexOf('Import into Odoo Accounting');
     expect(importBlock).toBeGreaterThan(0);
-    expect(importBlock).toBeLessThan(out.indexOf('Totals per Abacus account'));
+    expect(importBlock).toBeLessThan(out.indexOf('Totals per Odoo account'));
     for (const line of [
       `  File: ${FILE}`,
-      '  Bookings: 24 Einzelbuchungen (one Transaction each)',
-      '  Mandant: 1234, Geschäftsbereich 0, Leitwährung EUR',
-      '  Belegnummern: 0901000001 to 0901000024',
-      '  MWST-Codes: V10 (10 %; tax -58.48 EUR), V20 (20 %; tax -7.67 EUR)',
+      '  Revision: 1 (first file of the period)',
+      '  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR',
     ]) {
       expect(out).toContain(`\n${line}\n`);
     }
@@ -221,22 +221,22 @@ describe('re-running an export', () => {
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
     const out = setup.ctx.out();
     expect(out).toContain('E-FILE-EXISTS');
-    expect(out).toContain('Abacus does not recognise a file it has already imported, so importing both files would book those days twice.');
-    expect(out).toContain('If the Treuhänder has already imported the old file, delete its bookings in Abacus first: in the Nebenjournal before they are transferred, or by reversing them');
+    expect(out).toContain('With --overwrite the new file gets the next revision and new External IDs');
+    expect(out).toContain('delete the draft entries of the earlier revision in Odoo (filter by the reference "apaleo BSP") and reverse its posted entries');
     expect(out).toContain('--overwrite');
     expect(read(setup, FILE)).toEqual(before);
   });
 
-  it('with --overwrite keeps the old file as .replaced-<timestamp>.xml and records both in the manifest', async () => {
+  it('with --overwrite keeps the old file as .replaced-<timestamp>.csv and records both in the manifest', async () => {
     const setup = await exportedOnce();
     const old = read(setup, FILE);
     latePosting(setup.data);
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--overwrite'], setup.ctx)).toBe(0);
-    const backup = 'ABACUS_Buchungen_20260901-20260930_BSP.replaced-20261021T093000Z.xml';
+    const backup = 'ODOO_Buchungen_20260901-20260930_BSP.replaced-20261021T093000Z.csv';
     expect(readdirSync(folder(setup)).sort()).toEqual(
-      [FILE, PROTOCOL, backup, 'ABACUS_Buchungen_20260901-20260930_BSP.replaced-20261021T093000Z.protokoll.txt', 'manifest.json'].sort(),
+      [FILE, PROTOCOL, backup, 'ODOO_Buchungen_20260901-20260930_BSP.replaced-20261021T093000Z.protokoll.txt', 'manifest.json'].sort(),
     );
-    expect(setup.ctx.out()).toContain('the previous file was kept as .replaced-*.xml');
+    expect(setup.ctx.out()).toContain('the previous file was kept as .replaced-*.csv');
     expect(read(setup, backup)).toEqual(old);
     const fresh = read(setup, FILE);
     expect(manifestOf(setup).files.map((e) => [e.file, e.status, e.sha256, e.bookings])).toEqual([
@@ -266,7 +266,7 @@ describe('re-running an export', () => {
 
   it('rewrites a missing protocol and a stale manifest entry after an interrupted run, without touching the file', async () => {
     const setup = await exportedOnce();
-    const xml = read(setup, FILE);
+    const csv = read(setup, FILE);
     rmSync(join(folder(setup), PROTOCOL));
     const stale = manifestOf(setup);
     writeFileSync(join(folder(setup), 'manifest.json'), JSON.stringify({ files: stale.files.map((e) => ({ ...e, sha256: 'stale' })) }));
@@ -274,9 +274,9 @@ describe('re-running an export', () => {
     const out = setup.ctx.out();
     expect(out).toContain(`unchanged exports/BSP/2026-09/${FILE}`);
     expect(out).toContain(`N-COMPANIONS-REPAIRED: ${PROTOCOL} and manifest.json did not match ${FILE}`);
-    expect(read(setup, FILE)).toEqual(xml);
-    expect(read(setup, PROTOCOL).toString('utf8')).toContain(`\nSHA-256: ${sha256(xml)}\n`);
-    expect(manifestOf(setup).files.map((e) => [e.file, e.status, e.sha256])).toEqual([[FILE, 'current', sha256(xml)]]);
+    expect(read(setup, FILE)).toEqual(csv);
+    expect(read(setup, PROTOCOL).toString('utf8')).toContain(`\nSHA-256: ${sha256(csv)}\n`);
+    expect(manifestOf(setup).files.map((e) => [e.file, e.status, e.sha256])).toEqual([[FILE, 'current', sha256(csv)]]);
     expect(readdirSync(folder(setup)).sort()).toEqual([FILE, PROTOCOL, 'manifest.json'].sort());
   });
 
@@ -312,48 +312,28 @@ describe('re-running an export', () => {
     expect(await runCli(['export', '--from', '2026-09-20', '--to', '2026-09-30', '--property', BSP], setup.ctx)).toBe(1);
     expect(setup.ctx.out()).toContain('E-PERIOD-OVERLAP');
     expect(setup.ctx.out()).toContain(`${join(folder(setup), FILE)} already covers some of the days 2026-09-20 to 2026-09-30`);
-    expect(setup.ctx.out()).toContain('Importing both files would book those days twice in Abacus');
+    expect(setup.ctx.out()).toContain('importing both would overwrite reviewed drafts with the other file\'s content or book those days twice in Odoo');
     expect(readdirSync(folder(setup))).toHaveLength(3);
   });
 
-  it('Config changed the content: a change of abacus.geschaeftsbereich refuses the re-run with E-FILE-EXISTS, and --overwrite writes the new Division', async () => {
+  it('Config changed the content: a change of the odoo journal refuses the re-run with E-FILE-EXISTS, and --overwrite writes the new journal', async () => {
     const setup = await exportedOnce();
     const configPath = join(setup.ctx.cwd, 'apaleo-odoo.config.yaml');
-    writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('  mandant: 1234\n', '  mandant: 1234\n  geschaeftsbereich: 5\n'));
+    writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('  journal: APA\n', '  journal: APB\n'));
     const old = read(setup, FILE);
-    expect(values(xmlOf(old), 'Division').every((division) => division === '0')).toBe(true);
+    expect(csvOf(old)).toContain(',APA,');
 
     const start = setup.ctx.out().length;
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
     const refused = setup.ctx.out().slice(start);
     expect(refused).toContain('E-FILE-EXISTS');
-    expect(refused).toContain('A change of the abacus section (Mandant, Geschäftsbereich, Abrechnungsart, version, MWST accounts) also changes the file');
     expect(refused).not.toContain('unchanged exports');
     expect(read(setup, FILE)).toEqual(old);
 
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--overwrite'], setup.ctx)).toBe(0);
-    const divisions = values(xmlOf(read(setup, FILE)), 'Division');
-    expect(divisions).toHaveLength(24);
-    expect(divisions.every((division) => division === '5')).toBe(true);
-    expect(read(setup, PROTOCOL).toString('utf8')).toContain('  Mandant: 1234, Geschäftsbereich 5, Leitwährung EUR\n');
-    expect(manifestOf(setup).files.map((e) => e.status)).toEqual(['replaced', 'current']);
-  });
-
-  it('Config changed the interface version: abacus.version 2024.00 refuses the re-run with E-FILE-EXISTS, and --overwrite writes version 2024.00', async () => {
-    const setup = await exportedOnce();
-    const configPath = join(setup.ctx.cwd, 'apaleo-odoo.config.yaml');
-    writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('  mandant: 1234\n', '  mandant: 1234\n  version: "2024.00"\n'));
-    const old = read(setup, FILE);
-    expect(values(xmlOf(old), 'Version')).toEqual(['2015.00']);
-
-    const start = setup.ctx.out().length;
-    expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
-    expect(setup.ctx.out().slice(start)).toContain('E-FILE-EXISTS');
-    expect(read(setup, FILE)).toEqual(old);
-
-    expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--overwrite'], setup.ctx)).toBe(0);
-    expect(values(xmlOf(read(setup, FILE)), 'Version')).toEqual(['2024.00']);
-    expect(read(setup, PROTOCOL).toString('utf8')).toContain('  Interface: FIBU / XML Buchungen / AbaDefault, version 2024.00\n');
+    expect(csvOf(read(setup, FILE))).toContain(',APB,');
+    expect(csvOf(read(setup, FILE))).not.toContain(',APA,');
+    expect(read(setup, PROTOCOL).toString('utf8')).toContain('journal APB, currency EUR');
     expect(manifestOf(setup).files.map((e) => e.status)).toEqual(['replaced', 'current']);
   });
 
@@ -361,7 +341,7 @@ describe('re-running an export', () => {
     const setup = await exportedOnce();
     const manifestPath = join(folder(setup), 'manifest.json');
     const [entry] = manifestOf(setup).files;
-    writeFileSync(manifestPath, JSON.stringify({ files: [{ ...entry, taxByMwstCode: undefined, bodySha256: 'from an earlier version', taxByRate: [], futureField: 1 }] }));
+    writeFileSync(manifestPath, JSON.stringify({ files: [{ ...entry, vatByTax: undefined, bodySha256: 'from an earlier version', taxByRate: [], futureField: 1 }] }));
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
     expect(setup.ctx.out()).toContain(`unchanged exports/BSP/2026-09/${FILE}`);
     expect(setup.ctx.out()).not.toContain('N-COMPANIONS-REPAIRED');
@@ -372,13 +352,13 @@ describe('re-running an export', () => {
     expect(replaced).toMatchObject({ status: 'replaced', bodySha256: 'from an earlier version', taxByRate: [], futureField: 1 });
     expect(current).toMatchObject({ file: FILE, status: 'current', bookings: 25 });
     expect(current).not.toHaveProperty('bodySha256');
-    expect(current?.taxByMwstCode?.[0]).toEqual({ mwstCode: 'V10', ratePercent: 10, taxCents: 5_848 + 891 });
+    expect(current?.vatByTax?.find((v) => v.ratePercent === 10)).toMatchObject({ tax: 'account.1_account_tax_template_sales_10_code029' });
   });
 
-  it('compares the whole file: the Abacus file has no creation time', async () => {
+  it('compares the whole file: the Odoo file has no creation time', async () => {
     const setup = await exportedOnce();
     const file = read(setup, FILE);
-    expect(xmlOf(file)).not.toMatch(/2026-10-2\dT|\d{17}/);
+    expect(csvOf(file)).not.toMatch(/2026-10-2\dT|\d{17}/);
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
     expect(read(setup, FILE)).toEqual(file);
   });

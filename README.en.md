@@ -27,10 +27,10 @@ There is no npm package or container image release yet. You install from source.
    The commands below use `apaleo-odoo` (after `pnpm link --global`). Without it, type `node dist/cli/main.js` instead.
 
 3. Try it on the bundled demo data, without apaleo: `node dist/cli/main.js export --month 2026-09 --demo --dry-run`.
-4. Copy `apaleo-odoo.config.example.yaml` to `apaleo-odoo.config.yaml`, fill in the client id, the Abacus Mandant (`abacus.mandant`) and your property under `properties` (`apaleo-odoo properties` lists the ids; `export` exports every property listed there), and set the secret in the environment (`APALEO_CLIENT_SECRET`), never in the file. Then create the mapping, have your Treuhänder check it, and export:
+4. Copy `apaleo-odoo.config.example.yaml` to `apaleo-odoo.config.yaml`, fill in the client id, the Odoo journal and version (`odoo.journal`, `odoo.version`) and your property under `properties` (`apaleo-odoo properties` lists the ids; `export` exports every property listed there), and set the secret in the environment (`APALEO_CLIENT_SECRET`), never in the file. Then create the mapping, have your Treuhänder check it, and export:
 
    ```sh
-   apaleo-odoo init-mapping --property BSP --template kmu-hotel
+   apaleo-odoo init-mapping --property BSP --template skr03-hotel
    apaleo-odoo export --month 2026-09 --dry-run
    apaleo-odoo export --month 2026-09
    ```

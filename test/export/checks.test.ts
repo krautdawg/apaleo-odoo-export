@@ -1,27 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import type { AccountTotals } from '../../src/core/source.js';
-import { checkAccountMovements, checkAggregates, checkConservation, checkMwstCodeRates, checkVatByRate, plausibilityFindings, type CheckOptions } from '../../src/export/index.js';
+import { checkAccountMovements, checkAggregates, checkConservation, checkTaxRates, checkVatByRate, plausibilityFindings, type CheckOptions } from '../../src/export/index.js';
 import { buildBookings, type PostingResult } from '../../src/posting/index.js';
 import { ChartIndex } from '../../src/core/chart.js';
 import { BSP, LIVE_DAY, LIVE_PROPERTIES, loadLiveData } from '../helpers/apaleo.js';
 import { vieMapping } from '../helpers/live-mapping.js';
 import { FakeSource } from '../helpers/fake-source.js';
-import { abacusMovements } from '../../src/abacus/index.js';
+import { odooMovements } from '../../src/odoo/index.js';
 import {
   ACCOUNTS,
   BEISPIEL,
   BEISPIEL_CHART as CHART,
   BEISPIEL_MAPPING,
-  CHART as SWISS,
-  KMU_MAPPING,
+  CHART as GERMAN,
   LEDGER,
   OPTIONS as POSTING_OPTIONS,
+  SKR03_MAPPING,
   charge,
-  post as postSwiss,
-  swissTax,
+  germanTax,
+  post as postGerman,
 } from '../helpers/posting.js';
 
-const OPTIONS: CheckOptions = { mapping: BEISPIEL_MAPPING, chart: CHART, movements: abacusMovements };
+const OPTIONS: CheckOptions = { mapping: BEISPIEL_MAPPING, chart: CHART, movements: odooMovements };
+const AT10 = 'account_tax_template_sales_10_code029';
+const AT20 = 'account_tax_template_sales_20_code022';
 const post = (lines: typeof LEDGER) => buildBookings(lines, BEISPIEL_MAPPING, CHART, POSTING_OPTIONS);
 const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' } as const;
 
@@ -45,20 +47,20 @@ describe('plausibility checks on the fixture month', () => {
   });
 });
 
-describe('one rate per MWST-Code (E-MWST-CODE-RATES)', () => {
-  it('finds nothing when every code has one rate, also with bookings without MWST', () => {
-    expect(checkMwstCodeRates(LEDGER, post(LEDGER), OPTIONS)).toEqual([]);
+describe('one rate per Odoo tax (E-TAX-RATES)', () => {
+  it('finds nothing when every tax has one rate, also with bookings without tax', () => {
+    expect(checkTaxRates(LEDGER, post(LEDGER), OPTIONS)).toEqual([]);
   });
 
-  it('names the code, its rates in order and the mapping rows when one code carries two rates', () => {
+  it('names the tax, its rates in order and the mapping rows when one tax carries two rates', () => {
     const result = withDefect((r) => {
-      const taxed = r.bookings.filter((booking) => booking.tax?.mwstCode === 'V20');
-      for (const booking of taxed) if (booking.tax) booking.tax.mwstCode = 'V10';
+      for (const booking of r.bookings) if (booking.vat?.taxRef === AT20) booking.vat.taxRef = AT10;
     });
-    const [finding, ...rest] = checkMwstCodeRates(LEDGER, result, OPTIONS);
+    const [finding, ...rest] = checkTaxRates(LEDGER, result, OPTIONS);
     expect(rest).toEqual([]);
-    expect(finding).toMatchObject({ code: 'E-MWST-CODE-RATES', field: 'mwst_code', value: 'V10' });
-    expect(finding?.message).toMatch(/^the MWST-Code V10 is booked at 10 % and 20 % in this file \(lines? [\d, ]+ of the mapping file\)/);
+    expect(finding).toMatchObject({ code: 'E-TAX-RATES', field: 'odoo_tax', value: AT10 });
+    expect(finding?.message).toMatch(new RegExp(`^the tax ${AT10} is booked at 10 % and 20 % in this file \\(lines? [\\d, ]+ of the mapping file\\)`));
+    expect(finding?.message).toContain('a tax has one rate in the accounting program');
     expect(finding?.message).toContain('No file was written');
   });
 });
@@ -79,48 +81,44 @@ describe('conservation (E-CONSERVATION)', () => {
   });
 });
 
-/** The 98.00 logis charge of 2026-09-14: Collective 1101, Single 3400, D, gross 98.00, tax -8.91. */
-const logis = (r: PostingResult) => must(r.bookings.find((b) => b.businessDate === '2026-09-14' && b.singleAccount === '3400'));
+/** The 98.00 logis charge of 2026-09-14: debit 2000, credit 4010 with the 10 % tax on the credit side, apaleo tax 8.91. */
+const logis = (r: PostingResult) => must(r.bookings.find((b) => b.businessDate === '2026-09-14' && b.credit.account === '4010'));
 
 describe('account movement per day (E-ACCOUNT-BALANCE)', () => {
-  it('Side bug is caught: DebitCredit C where the apaleo line debits the Collective account names the day, the account and both amounts', () => {
-    // The 98.00 logis charge of 2026-09-14: the folio (1101) is debited in apaleo, so DebitCredit must be D.
+  it('Side bug is caught: debit and credit account swapped names the day, the Odoo account and both amounts', () => {
     const result = withDefect((r) => {
       const booking = logis(r);
-      booking.debitCredit = 'C';
-      if (booking.tax) booking.tax.taxCents = -booking.tax.taxCents;
+      [booking.debit, booking.credit] = [booking.credit, booking.debit];
+      if (booking.vat) booking.vat.side = 'debit';
     });
     const findings = checkAccountMovements(LEDGER, result, OPTIONS);
     expect(findings.map((f) => [f.code, f.value])).toEqual([
-      ['E-ACCOUNT-BALANCE', '1101'],
-      ['E-ACCOUNT-BALANCE', '3400'],
+      ['E-ACCOUNT-BALANCE', '2000'],
+      ['E-ACCOUNT-BALANCE', '4010'],
     ]);
-    expect(findings[0]?.message).toContain('on 2026-09-14 account 1101 moves -54.00 in the bookings, but the apaleo lines mapped to it move 142.00');
-    expect(findings[1]?.message).toContain('on 2026-09-14 account 3400 moves 89.09 in the bookings, but the apaleo lines mapped to it move -89.09 (Soll positive, Haben negative)');
+    expect(findings[0]?.message).toContain('on 2026-09-14 account 2000 moves -54.00 in the bookings, but the apaleo lines mapped to it move 142.00');
+    expect(findings[1]?.message).toContain('on 2026-09-14 account 4010 moves 89.09 in the bookings, but the apaleo lines mapped to it move -89.09 (Soll positive, Haben negative)');
   });
 
-  it('catches swapped accounts, a lost tax and a booking on the wrong day', () => {
-    const swapped = withDefect((r) => {
-      const booking = logis(r);
-      [booking.collectiveAccount, booking.singleAccount] = [booking.singleAccount, booking.collectiveAccount];
-    });
-    expect(checkAccountMovements(LEDGER, swapped, OPTIONS).map((f) => f.value)).toEqual(['1101', '3400']);
-    const untaxed = withDefect((r) => void delete logis(r).tax);
-    expect(checkAccountMovements(LEDGER, untaxed, OPTIONS).map((f) => f.value)).toEqual(['3400']);
+  it('catches a wrong account, a lost tax and a booking on the wrong day', () => {
+    const wrong = withDefect((r) => void (logis(r).credit.account = '4020'));
+    expect(checkAccountMovements(LEDGER, wrong, OPTIONS).map((f) => f.value)).toEqual(['4010', '4020']);
+    const untaxed = withDefect((r) => void delete logis(r).vat);
+    expect(checkAccountMovements(LEDGER, untaxed, OPTIONS).map((f) => f.value)).toEqual(['4010']);
     const moved = withDefect((r) => void (must(r.bookings[0]).businessDate = '2026-09-15'));
     expect(checkAccountMovements(LEDGER, moved, OPTIONS).map((f) => f.message.slice(0, 13))).toContain('on 2026-09-14');
   });
 });
 
 describe('tax per rate (E-VAT-TOTAL)', () => {
-  const drinks = (r: PostingResult) => must(r.bookings.find((b) => b.singleAccount === '3100' && b.grossCents === 2_400));
+  const drinks = (r: PostingResult) => must(r.bookings.find((b) => b.credit.account === '4030' && b.grossCents === 2_400));
 
-  it('compares the tax of the bookings with apaleo\'s per-line taxes, deposits included', () => {
+  it("compares apaleo's tax the bookings carry with apaleo's per-line taxes, deposits included", () => {
     expect(checkVatByRate(LEDGER, post(LEDGER), OPTIONS)).toEqual([]);
   });
 
-  it('is raised for 20 % when the bookings carry less tax than apaleo charged, naming both amounts and apaleo\'s precise total', () => {
-    const result = withDefect((r) => void (must(drinks(r).tax).taxCents = -398));
+  it("is raised for 20 % when the bookings carry less tax than apaleo charged, naming both amounts and apaleo's precise total", () => {
+    const result = withDefect((r) => void (must(drinks(r).vat).apaleoTaxCents = 398));
     const findings = checkVatByRate(LEDGER, result, OPTIONS);
     expect(findings.map((f) => [f.code, f.value])).toEqual([['E-VAT-TOTAL', '20']]);
     expect(findings[0]?.message).toContain(
@@ -130,18 +128,18 @@ describe('tax per rate (E-VAT-TOTAL)', () => {
   });
 
   it('is raised per rate when a booking carries the wrong rate', () => {
-    const result = withDefect((r) => void (must(logis(r).tax).percent = 20));
+    const result = withDefect((r) => void (must(logis(r).vat).percent = 20));
     expect(checkVatByRate(LEDGER, result, OPTIONS).map((f) => [f.code, f.value])).toEqual([
       ['E-VAT-TOTAL', '10'],
       ['E-VAT-TOTAL', '20'],
     ]);
   });
 
-  it('allows one cent per rounding difference reported at the same rate', () => {
+  it('allows one cent per rounding difference accepted at the same rate', () => {
     const offByOne = (roundings: ReadonlyMap<number, number>) =>
       withDefect((r) => {
         r.vatRoundingByRate = roundings;
-        must(drinks(r).tax).taxCents = -401;
+        must(drinks(r).vat).apaleoTaxCents = 401;
       });
     expect(checkVatByRate(LEDGER, offByOne(new Map([[20, 1]])), OPTIONS)).toEqual([]);
     expect(checkVatByRate(LEDGER, offByOne(new Map()), OPTIONS).map((f) => f.code)).toEqual(['E-VAT-TOTAL']);
@@ -151,42 +149,43 @@ describe('tax per rate (E-VAT-TOTAL)', () => {
     expect(otherRate[0]?.message).toContain('the rounding total allows 0.00');
   });
 
-  describe('at the Swiss rates', () => {
-    const minibar = (sourceEntryNumber: string) => charge({ credit: ACCOUNTS.other81, grossCents: 2_680, netCents: 2_479, taxes: swissTax(8.1, 201), sourceEntryNumber });
+  describe('at the German rates', () => {
+    // 12.59 at 19 %: 12.59 × 19 / 119 = 2.0101 → 2.01, twice 4.02.
+    const minibar = (sourceEntryNumber: string) => charge({ credit: ACCOUNTS.other19, grossCents: 1_259, netCents: 1_058, taxes: germanTax(19, 201), sourceEntryNumber });
     const lines = [minibar('M1'), minibar('M2')];
-    const swiss: CheckOptions = { mapping: KMU_MAPPING, chart: SWISS, movements: abacusMovements };
-    const swissDefect = (defect: (result: PostingResult) => void) => {
-      const result = postSwiss(lines);
+    const german: CheckOptions = { mapping: SKR03_MAPPING, chart: GERMAN, movements: odooMovements };
+    const germanDefect = (defect: (result: PostingResult) => void) => {
+      const result = postGerman(lines);
       const copy = { ...result, bookings: structuredClone(result.bookings) };
       defect(copy);
       return copy;
     };
 
-    it('Tax total per rate: bookings at 8.1 % with 4.00 against apaleo\'s 4.02 give E-VAT-TOTAL with both amounts and the precise total', () => {
-      expect(checkVatByRate(lines, postSwiss(lines), swiss)).toEqual([]);
-      const findings = checkVatByRate(lines, swissDefect((r) => void (must(r.bookings[0]?.tax).taxCents = -199)), swiss);
-      expect(findings.map((f) => [f.code, f.value])).toEqual([['E-VAT-TOTAL', '8.1']]);
-      expect(findings[0]?.message).toContain('at 8.1 % the bookings carry 4.00 tax, but apaleo charged 4.02');
+    it("Tax total per rate: bookings at 19 % with 4.00 apaleo tax against apaleo's 4.02 give E-VAT-TOTAL with both amounts and the precise total", () => {
+      expect(checkVatByRate(lines, postGerman(lines), german)).toEqual([]);
+      const findings = checkVatByRate(lines, germanDefect((r) => void (must(r.bookings[0]?.vat).apaleoTaxCents = 199)), german);
+      expect(findings.map((f) => [f.code, f.value])).toEqual([['E-VAT-TOTAL', '19']]);
+      expect(findings[0]?.message).toContain('at 19 % the bookings carry 4.00 tax, but apaleo charged 4.02');
       expect(findings[0]?.message).toContain("apaleo's precise total is 4.02");
     });
 
-    it('Roundings at another rate: two W-VAT-ROUNDING at 3.8 % do not excuse two Rappen more tax at 8.1 %', () => {
-      const result = swissDefect((r) => {
-        r.vatRoundingByRate = new Map([[3.8, 2]]);
-        must(r.bookings[0]?.tax).taxCents = -203;
+    it('Roundings at another rate: two accepted roundings at 7 % do not excuse two cents more tax at 19 %', () => {
+      const result = germanDefect((r) => {
+        r.vatRoundingByRate = new Map([[7, 2]]);
+        must(r.bookings[0]?.vat).apaleoTaxCents = 203;
       });
-      expect(checkVatByRate(lines, result, swiss).map((f) => [f.code, f.value])).toEqual([['E-VAT-TOTAL', '8.1']]);
+      expect(checkVatByRate(lines, result, german).map((f) => [f.code, f.value])).toEqual([['E-VAT-TOTAL', '19']]);
     });
   });
 
-  it('Line rounding is not an error: the recorded VIE day, where the bookings carry 7.74 at 10 % and apaleo\'s precise total is 7.74545454', async () => {
+  it("Line rounding is not an error: the recorded VIE day, where the bookings carry 7.74 at 10 % and apaleo's precise total is 7.74545454", async () => {
     const live = await loadLiveData();
     const lines = (live.ledger.VIE ?? []).filter((line) => line.businessDate === LIVE_DAY);
     const chart = new ChartIndex(live.charts.VIE ?? []);
     const mapping = vieMapping();
     const result = buildBookings(lines, mapping, chart, POSTING_OPTIONS);
     expect(result.summary.revenueByRate.find((r) => r.ratePercent === 10)).toMatchObject({ vatCents: 774, apaleoVat: '7.74545454' });
-    expect(plausibilityFindings(lines, result, { mapping, chart, movements: abacusMovements })).toEqual([]);
+    expect(plausibilityFindings(lines, result, { mapping, chart, movements: odooMovements })).toEqual([]);
   });
 });
 

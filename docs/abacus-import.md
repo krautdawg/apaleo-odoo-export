@@ -26,7 +26,7 @@ Die Schnittstellenversion steht in der Datei (`abacus.version`, Standard `2015.0
 
 Die Datei nennt den Mandanten in `Parameter/Mandant` und in jeder Buchung (`abacus.mandant`). Mit der Importeinstellung «nur Buchungen mit gleicher Mandantennummer» lehnt Abacus eine Datei im falschen Mandanten ab; lass sie eingeschaltet.
 
-Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-odoo doctor` und das Protokoll warnen dann mit `W-MANDANT-SHARED`.
+Bucht dein Treuhänder mehrere Hotels in einen gemeinsamen Mandanten, bekommt jedes Hotel einen eigenen Geschäftsbereich (`properties[].geschaeftsbereich`) oder einen eigenen Mandanten (`properties[].mandant`). Sonst können sich die Belegnummern zweier Hotels wiederholen; `apaleo-odoo doctor` warnt dann mit `W-MANDANT-SHARED`.
 
 ```yaml
 abacus:
@@ -90,7 +90,7 @@ Mach den ersten Import mit deinem Treuhänder in einem Testmandanten, oder lass 
 - [ ] Anzahlungen erscheinen mit ihrer MWST im Monat, in dem sie eingehen (Vorauszahlungen, MWSTG Art. 40 Abs. 1 Bst. c), und ihre Auflösung und Rückzahlung buchen die MWST wieder zurück. Vergleiche sie pro Konto: Soll, Haben und Saldo des Anzahlungskontos (Beispiel `2030`) in der Saldenliste entsprechen seiner Zeile in «Totals per Abacus account». Im MWST-Journal lassen sie sich nicht getrennt ablesen, weil sie den MWST-Code der Erlöse tragen (Beispiel `313`).
 - [ ] Der Debitorenverlust erscheint als Entgeltsminderung, die die geschuldete MWST mindert, nicht als Vorsteuer. Vergleiche ihn pro Konto: Das Verlustkonto (Beispiel `3805`) zeigt in der Saldenliste dieselben Summen wie seine Zeile in «Totals per Abacus account»; seine MWST ist in der Summe seines MWST-Codes enthalten.
 - [ ] Das Konto der Kurtaxe (Beispiel `2210`) und die Konten ohne MWST (zum Beispiel `3600`, `3680`, `2039` und `3808`) haben in F21 keinen Standard-MWST-Code. Eine Kurtaxe mit MWST-Code trägt einen Code für Ziffer 910, nie den Code `490` (Ziffer 900). Vergleiche die Abgaben pro Konto mit «Kurtaxe and other guest levies» im Protokoll (im Testmonat `2210 without MWST: 12.60`).
-- [ ] Rechnet der Mandant nach vereinnahmten Entgelten ab (`abacus.abrechnungsart: vereinnahmt`, Warnung `W-ABRECHNUNGSART-VEREINNAHMT`): Der Saldo des Hilfskontos `2202` am Periodenende ist geprüft; der bezahlte Teil ist auf `2200` umgebucht, und für die offenen Debitoren ist die Debitorenkorrektur gemacht ([mapping-guide.md](mapping-guide.md#vereinnahmte-entgelte)).
+- [ ] Rechnet der Mandant nach vereinnahmten Entgelten ab (`abacus.abrechnungsart: vereinnahmt`, Warnung `W-ABRECHNUNGSART-VEREINNAHMT`): Der Saldo des Hilfskontos `2202` am Periodenende ist geprüft; der bezahlte Teil ist auf `2200` umgebucht, und für die offenen Debitoren ist die Debitorenkorrektur gemacht ([posting-rules.md](posting-rules.md)).
 - [ ] Eine Zahlung landet auf dem Transferkonto ohne MWST, eine Rechnung an eine Firma auf den Debitoren als Sachkonto.
 - [ ] Abacus meldet keine doppelten Belegnummern, auch nicht mit einer zweiten Datei eines anderen Monats.
 - [ ] Umlaute und das Eurozeichen sind im Buchungstext lesbar.

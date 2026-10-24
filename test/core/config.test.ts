@@ -14,7 +14,11 @@ import { runCli } from '../../src/cli/run.js';
 import { EXIT_OK, type Command } from '../../src/cli/command.js';
 import { createTestContext } from '../helpers/context.js';
 
-const VALID = 'abacus:\n  mandant: 1234\n';
+/** The smallest valid config: the required odoo section. */
+const VALID = 'odoo:\n  journal: APA\n  version: 18\n';
+const ODOO_DEFAULTS = { journal: 'APA', version: 18, companyId: 1, currency: 'EUR', taxRounding: 'per_line' };
+/** The optional abacus section of the Abacus writer, Mandant 1234. */
+const ABACUS = 'abacus:\n  mandant: 1234\n';
 const ABACUS_DEFAULTS = {
   mandant: '1234',
   leitwaehrung: 'CHF',
@@ -57,7 +61,7 @@ describe('loading', () => {
     expect(config).toEqual({
       apaleo: APALEO_DEFAULTS,
       output: { dir: './exports' },
-      abacus: ABACUS_DEFAULTS,
+      odoo: ODOO_DEFAULTS,
       posting: { text2: 'receipt' },
       properties: [],
       checks: { aggregates: false },
@@ -66,21 +70,29 @@ describe('loading', () => {
     expect(secrets.apaleoClientSecret).toBeUndefined();
   });
 
-  it('Abacus section missing: names abacus.mandant as required and points to docs/configuration.md', async () => {
+  it('Odoo section missing: names odoo.journal and odoo.version as required and points to docs/configuration.md', async () => {
     const error = await loadError('output:\n  dir: ./x\n');
-    expect(error.message).toContain('abacus.mandant: is required');
+    expect(error.message).toContain('odoo.journal: is required');
+    expect(error.message).toContain('odoo.version: is required');
     expect(error.message).toContain('docs/configuration.md');
+    expect(error.message).not.toContain('abacus');
+  });
+
+  it('Abacus section no longer needed: an odoo section without abacus section loads', async () => {
+    const { config } = await load(VALID);
+    expect(config.abacus).toBeUndefined();
+    expect(config.odoo).toEqual(ODOO_DEFAULTS);
   });
 
   it.each([
     ['bmd:\n  buchsymbol: HO\n', 'bmd'],
     ['datev:\n  beraternummer: 1234567\n  mandantennummer: 42\n', 'datev'],
-  ])('Old BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming abacus', async (text, section) => {
+  ])('Old BMD or DATEV section: rejects %j, saying the section is not one of apaleo-odoo and naming odoo', async (text, section) => {
     for (const file of [text, `${VALID}${text}`]) {
       const error = await loadError(file);
       expect(error.message).toContain(`${section} is not a section of apaleo-odoo`);
-      expect(error.message).toContain('abacus section');
-      expect(error.message).toContain('abacus.mandant');
+      expect(error.message).toContain('odoo section');
+      expect(error.message).toContain('odoo.journal');
     }
   });
 
@@ -102,9 +114,9 @@ describe('loading', () => {
   });
 
   it('loads JSON by extension', async () => {
-    const json = JSON.stringify({ abacus: { mandant: '1234', leitwaehrung: 'EUR' } });
+    const json = JSON.stringify({ odoo: { journal: 'APA', version: 19, roundingAccount: '2700' } });
     const { config } = await load(json, {}, 'config.json');
-    expect(config.abacus.leitwaehrung).toBe('EUR');
+    expect(config.odoo).toMatchObject({ version: 19, taxRounding: 'per_tax', roundingAccount: '2700' });
   });
 
   it('reads the client secret from the environment only', async () => {
@@ -114,13 +126,14 @@ describe('loading', () => {
 
   const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
 
-  it('accepts the example config, whose abacus section holds the defaults and the example Mandant 1234', async () => {
-    expect(example).toMatch(/abacus:\n[\s\S]*mandant: 1234/);
-    expect(example).not.toMatch(/^bmd:/m);
+  it('accepts the example config, whose odoo section holds journal APA, Odoo 18 and the defaults, and which has no abacus section', async () => {
+    expect(example).toMatch(/^odoo:\n/m);
+    expect(example).not.toMatch(/^(bmd|abacus):/m);
     const { config } = await load(example, { APALEO_CLIENT_ID: 'client-1' });
     expect(config.output.dir).toBe('./exports');
     expect(config.apaleo.clientId).toBe('client-1');
-    expect(config.abacus).toEqual(ABACUS_DEFAULTS);
+    expect(config.odoo).toEqual(ODOO_DEFAULTS);
+    expect(config.abacus).toBeUndefined();
     expect(config.posting).toEqual({ text2: 'receipt' });
     expect(config.checks).toEqual({ aggregates: false });
     expect(config.schedule).toEqual({ timezone: 'Europe/Zurich', cadence: 'monthly', daily: { offsetDays: 2 }, monthly: { dayOfMonth: 3 }, finalAfter: '06:00', catchUpDays: 40 });
@@ -135,11 +148,12 @@ describe('loading', () => {
     expect(withEnv.config.apaleo.clientId).toBe('client-1');
   });
 
-  it('reports an empty required value as required', async () => {
-    const error = await loadError('abacus:\n  mandant:\n  leitwaehrung: CHF\n');
-    expect(error.message).toContain('abacus.mandant: is required');
-    expect(await loadError('abacus:\n').then((e) => e.message)).toContain('abacus.mandant: is required');
-    expect(await loadError('abacus:\n  mandant:\n', { APALEO_CLIENT_ID: 'x' }).then((e) => e.message)).toContain('abacus.mandant: is required');
+  it('Empty section or value: an empty odoo.journal, or an odoo section with every key commented out, is reported as required', async () => {
+    const error = await loadError('odoo:\n  journal:\n  version: 18\n');
+    expect(error.message).toContain('odoo.journal: is required');
+    expect(await loadError('odoo:\n  # journal: APA\n').then((e) => e.message)).toContain('odoo.version: is required');
+    expect(await loadError('odoo:\n  journal:\n  version: 18\n', { APALEO_CLIENT_ID: 'x' }).then((e) => e.message)).toContain('odoo.journal: is required');
+    expect(await loadError(`${VALID}abacus:\n  mandant:\n`).then((e) => e.message)).toContain('abacus.mandant: is required');
   });
 });
 
@@ -179,18 +193,18 @@ describe('apaleo section', () => {
 
 describe('validation errors name the key path', () => {
   it('Invalid config value: abacus.geschaeftsbereich -1 names the key and the allowed range', async () => {
-    const error = await loadError(`${VALID}  geschaeftsbereich: -1\n`);
+    const error = await loadError(`${VALID}${ABACUS}  geschaeftsbereich: -1\n`);
     expect(error.message).toContain('abacus.geschaeftsbereich: must be a whole number between 0 and 99999999 (got -1)');
   });
 
   it('reports missing required keys', async () => {
     const error = await loadError('output:\n  dir: ./x\n');
-    expect(error.message).toContain('abacus.mandant: is required');
+    expect(error.message).toContain('odoo.journal: is required');
   });
 
   it('reports unknown keys with their path', async () => {
-    const error = await loadError(`${VALID}  mandnat: 1\nfoo: 1\n`);
-    expect(error.message).toContain('abacus.mandnat: unknown key');
+    const error = await loadError(`${VALID}  jorunal: X\nfoo: 1\n`);
+    expect(error.message).toContain('odoo.jorunal: unknown key');
     expect(error.message).toContain('foo: unknown key');
   });
 
@@ -222,31 +236,31 @@ describe('validation errors name the key path', () => {
   });
 });
 
-describe('abacus section', () => {
-  it('is required: a section whose keys are all commented out names abacus.mandant', async () => {
-    expect((await loadError('abacus:\n  # mandant: 1234\n')).message).toContain('abacus.mandant: is required');
+describe('abacus section (optional, read by the Abacus writer until o04)', () => {
+  it('is optional; a present section whose keys are all commented out counts as missing', async () => {
+    expect((await load(`${VALID}abacus:\n  # mandant: 1234\n`)).config.abacus).toBeUndefined();
   });
 
   it('Abacus defaults: only mandant set', async () => {
-    const { config } = await load(VALID);
+    const { config } = await load(`${VALID}${ABACUS}`);
     expect(config.abacus).toEqual(ABACUS_DEFAULTS);
   });
 
   it('Mandant missing: names abacus.mandant as required and says it is the Mandantennummer in Abacus', async () => {
-    const error = await loadError(`abacus:\n  leitwaehrung: CHF\n`);
+    const error = await loadError(`${VALID}abacus:\n  leitwaehrung: CHF\n`);
     expect(error.message).toContain('abacus.mandant: is required');
     expect(error.message).toContain('Mandantennummer of the hotel in Abacus');
   });
 
   it('Invalid Leitwährung: names abacus.leitwaehrung and the allowed values CHF and EUR', async () => {
-    const error = await loadError(`abacus:\n  mandant: 1234\n  leitwaehrung: USD\n`);
+    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  leitwaehrung: USD\n`);
     expect(error.message).toContain('abacus.leitwaehrung: must be "CHF" or "EUR"');
     expect(error.message).toContain('(got "USD")');
   });
 
   it('reads every key, numbers and quoted text alike, and the version written as a YAML number', async () => {
     const { config } = await load(
-      `abacus:\n  mandant: "7777"\n  leitwaehrung: EUR\n  abrechnungsart: vereinnahmt\n  version: 2024.00\n` +
+      `${VALID}abacus:\n  mandant: "7777"\n  leitwaehrung: EUR\n  abrechnungsart: vereinnahmt\n  version: 2024.00\n` +
         '  mwstKonto: "2200"\n  mwstHilfskonto: 2209\n  mwstCodes:\n    normal: V81\n    reduziert: 312\n    beherbergung: V38\n  geschaeftsbereich: 12\n',
     );
     expect(config.abacus).toEqual({
@@ -259,7 +273,7 @@ describe('abacus section', () => {
       mwstCodes: { normal: 'V81', reduziert: '312', beherbergung: 'V38' },
       geschaeftsbereich: 12,
     });
-    expect((await load(`abacus:\n  mandant: 1\n  version: "2020.00"\n`)).config.abacus?.version).toBe('2020.00');
+    expect((await load(`${VALID}abacus:\n  mandant: 1\n  version: "2020.00"\n`)).config.abacus?.version).toBe('2020.00');
   });
 
   it.each([
@@ -274,12 +288,12 @@ describe('abacus section', () => {
     ['geschaeftsbereich: -1', 'abacus.geschaeftsbereich: must be a whole number between 0 and 99999999'],
   ])('rejects %s', async (line, message) => {
     const section = line.startsWith('mandant:') ? `  ${line}\n` : `  mandant: 1234\n  ${line}\n`;
-    const error = await loadError(`abacus:\n${section}`);
+    const error = await loadError(`${VALID}abacus:\n${section}`);
     expect(error.message).toContain(message);
   });
 
   it('rejects an MWST-Code that is not 1 to 3 characters of A-Z, a-z and 0-9, and an unknown key', async () => {
-    const error = await loadError(`abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "3111"\n    reduziert: "V-2"\n  mwstcode: 311\n`);
+    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "3111"\n    reduziert: "V-2"\n  mwstcode: 311\n`);
     expect(error.message).toContain('abacus.mwstCodes.normal: must be an MWST-Code of the Mandant: 1 to 3 characters of A-Z, a-z and 0-9');
     expect(error.message).toContain('abacus.mwstCodes.reduziert: must be an MWST-Code');
     expect(error.message).toContain('abacus.mwstcode: unknown key');
@@ -290,47 +304,36 @@ describe('abacus section', () => {
     ['reduziert: 0x1F', 'abacus.mwstCodes.reduziert: 0x1F is read as the number 31, not as the text "0x1F"; write it in quotes, for example reduziert: "0x1F"'],
     ['beherbergung: 1e2', 'abacus.mwstCodes.beherbergung: 1e2 is read as the number 100, not as the text "1e2"'],
   ])('MWST-Code written as a rewritten YAML number: rejects %s with a hint to quote it', async (line, message) => {
-    const error = await loadError(`abacus:\n  mandant: 1234\n  mwstCodes:\n    ${line}\n`);
+    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    ${line}\n`);
     expect(error.message).toContain(message);
   });
 
   it('rejects a rewritten number as Mandant or account, also for a property and in JSON, and keeps quoted codes', async () => {
-    const yaml = await loadError(`abacus:\n  mandant: 0x4D2\n  mwstKonto: 02200\nproperties:\n  - id: BSP\n    mandant: 1.0e3\n`);
+    const yaml = await loadError(`${VALID}abacus:\n  mandant: 0x4D2\n  mwstKonto: 02200\nproperties:\n  - id: BSP\n    mandant: 1.0e3\n`);
     expect(yaml.message).toContain('abacus.mandant: 0x4D2 is read as the number 1234');
     expect(yaml.message).toContain('abacus.mwstKonto: 02200 is read as the number 2200');
     expect(yaml.message).toContain('properties.0.mandant: 1.0e3 is read as the number 1000');
-    const json = await loadError(JSON.stringify({ abacus: { mandant: 1234 } }).replace('1234', '1e2'), {}, 'config.json');
+    const json = await loadError(JSON.stringify({ odoo: { journal: 'APA', version: 18 }, abacus: { mandant: 1234 } }).replace('1234', '1e2'), {}, 'config.json');
     expect(json.message).toContain('abacus.mandant: 1e2 is read as the number 100, not as the text "1e2"; write it in quotes, for example "mandant": "1e2"');
-    const { config } = await load(`abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "011"\n    reduziert: 312\n`);
+    const { config } = await load(`${VALID}abacus:\n  mandant: 1234\n  mwstCodes:\n    normal: "011"\n    reduziert: 312\n`);
     expect(config.abacus?.mwstCodes).toEqual({ normal: '011', reduziert: '312', beherbergung: '313' });
-    const other = await load(`abacus:\n  mandant: 1234\n  geschaeftsbereich: 0x0C\n`);
+    const other = await load(`${VALID}abacus:\n  mandant: 1234\n  geschaeftsbereich: 0x0C\n`);
     expect(other.config.abacus?.geschaeftsbereich).toBe(12);
   });
 
-  it('the abacus section of the example config holds the defaults and has no "ß"', async () => {
-    const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
-    const lines = example.split('\n');
-    const start = lines.indexOf('abacus:');
-    const end = lines.findIndex((line, i) => i > start && /^\S/.test(line));
-    const block = lines.slice(start, end);
-    expect(block.join('\n')).not.toContain('ß');
-    const { config } = await load(`${block.join('\n')}\n`);
-    expect(config.abacus).toEqual(ABACUS_DEFAULTS);
-  });
-
   it('lets each property override mandant and geschaeftsbereich', async () => {
-    const { config } = await load(`abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n    mandant: 4711\n    geschaeftsbereich: 2\n`);
+    const { config } = await load(`${VALID}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n    mandant: 4711\n    geschaeftsbereich: 2\n`);
     expect(config.properties).toEqual([{ id: 'BSP' }, { id: 'BS2', mandant: '4711', geschaeftsbereich: 2 }]);
-    const error = await loadError(`abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n    mandant: 12A\n`);
+    const error = await loadError(`${VALID}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n    mandant: 12A\n`);
     expect(error.message).toContain('properties.0.mandant: must be the Mandantennummer in Abacus');
   });
 });
 
 describe('odoo section', () => {
-  const odoo = (lines: string) => `${VALID}odoo:\n${lines}`;
+  const odoo = (lines: string) => `odoo:\n${lines}`;
 
-  it('is optional until Odoo is the default target', async () => {
-    expect((await load(VALID)).config.odoo).toBeUndefined();
+  it('is required: Odoo is the default target', async () => {
+    expect((await loadError('posting:\n  text2: receipt\n')).message).toContain('odoo.journal: is required: name the code of the Odoo journal');
   });
 
   it('Odoo defaults: only journal APA and version 17 give company 1, EUR and per_line', async () => {
@@ -382,28 +385,24 @@ describe('odoo section', () => {
   });
 
   it('reads codes written as numbers as text, refuses rewritten ones, and lets each property set its journal', async () => {
-    const { config } = await load(`${VALID}odoo:\n  journal: 100\n  version: 18\n  companyId: 3\n  currency: CHF\nproperties:\n  - id: BSP\n  - id: BS2\n    journal: APA2\n`);
+    const { config } = await load(`odoo:\n  journal: 100\n  version: 18\n  companyId: 3\n  currency: CHF\nproperties:\n  - id: BSP\n  - id: BS2\n    journal: APA2\n`);
     expect(config.odoo).toEqual({ journal: '100', version: 18, companyId: 3, currency: 'CHF', taxRounding: 'per_line' });
     expect(config.properties).toEqual([{ id: 'BSP' }, { id: 'BS2', journal: 'APA2' }]);
-    const error = await loadError(`${VALID}odoo:\n  journal: 011\n  version: 17\n  taxRounding: per_tax\n  roundingAccount: 0x10\nproperties:\n  - id: BSP\n    journal: 1e2\n`);
+    const error = await loadError(`odoo:\n  journal: 011\n  version: 17\n  taxRounding: per_tax\n  roundingAccount: 0x10\nproperties:\n  - id: BSP\n    journal: 1e2\n`);
     expect(error.message).toContain('odoo.journal: 011 is read as the number 11');
     expect(error.message).toContain('odoo.roundingAccount: 0x10 is read as the number 16');
     expect(error.message).toContain('properties.0.journal: 1e2 is read as the number 100');
-    expect((await loadError(`${VALID}odoo:\n  journal: APA\n  version: 17\nproperties:\n  - id: BSP\n    journal: apa\n`)).message).toContain('properties.0.journal: must be the code of the Odoo journal');
+    expect((await loadError(`odoo:\n  journal: APA\n  version: 17\nproperties:\n  - id: BSP\n    journal: apa\n`)).message).toContain('properties.0.journal: must be the code of the Odoo journal');
   });
 
-  it('the commented odoo block of the example config loads once uncommented', async () => {
+  it('the odoo block of the example config loads on its own', async () => {
     const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
     const lines = example.split('\n');
-    const start = lines.indexOf('# odoo:');
+    const start = lines.indexOf('odoo:');
     expect(start).toBeGreaterThan(0);
-    const end = lines.findIndex((line, i) => i > start && !line.startsWith('#'));
-    const block = lines
-      .slice(start, end)
-      .map((line) => line.replace(/^# /, ''))
-      .filter((line) => !/^\s*#/.test(line));
-    const { config } = await load(`${VALID}${block.join('\n')}\n`);
-    expect(config.odoo).toEqual({ journal: 'APA', version: 18, companyId: 1, currency: 'EUR', taxRounding: 'per_line' });
+    const end = lines.findIndex((line, i) => i > start && /^\S/.test(line));
+    const { config } = await load(`${lines.slice(start, end).join('\n')}\n`);
+    expect(config.odoo).toEqual(ODOO_DEFAULTS);
   });
 });
 

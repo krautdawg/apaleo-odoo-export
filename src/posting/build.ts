@@ -2,10 +2,10 @@ import type { ChartIndex } from '../core/chart.js';
 import { REPORT_PROBLEM_HINT } from '../core/errors.js';
 import type { Finding } from '../core/findings.js';
 import type { AccountRef, LedgerLine } from '../core/source.js';
-import { KOST_TYPES, NO_TAX_TYPES, VAT_ACCOUNT_TYPES, checkCoverage, mwstCodeOf, resolve, rowRate, type Mapping, type MappingRow } from '../mapping/index.js';
+import { NO_TAX_TYPES, VAT_ACCOUNT_TYPES, checkCoverage, resolve, rowRate, taxOf, type Mapping, type MappingRow } from '../mapping/index.js';
+import type { Side } from '../odoo/types.js';
 import { apaleoVatOf, type ApaleoVat } from './apaleo-vat.js';
-import { accountText, lineFinding, percentText, rowText } from './describe.js';
-import { kostOf, text1, text2 } from './fields.js';
+import { accountText, lineFinding, percentText, receiptOf, rowText, sideLabel } from './describe.js';
 import { guardVat, type PostedSide } from './guard.js';
 import { inferReleaseRates, isUntaxedRelease, resolutionRate, type ReleaseRate } from './release.js';
 import { SummaryBuilder } from './summary.js';
@@ -22,7 +22,6 @@ type LineOutcome =
       debit: PostedSide;
       credit: PostedSide;
       findings: Finding[];
-      roundingCents: number;
       /** The booked tax differs by one cent from the VAT apaleo moved for the line. */
       apaleoRounding: boolean;
       /** The VAT rate of the booking (0 without tax). */
@@ -38,8 +37,9 @@ interface PostingContext {
 }
 
 /**
- * Turns ledger lines into Abacus Einzelbuchungen, one booking per line (no Sammelbuchung).
- * Pure and deterministic: the same lines and mapping always give the same result.
+ * Turns ledger lines into Odoo bookings, one booking per line; the Odoo writer
+ * nets the bookings of a day into one journal entry. Pure and deterministic:
+ * the same lines and mapping always give the same result.
  * Every line is either booked, listed in `skipped` with its reason, or named in
  * an `E-` finding that blocks the export. Unmapped accounts are reported once
  * per account (`E-UNMAPPED`, as in `mapping check --from --to`).
@@ -48,7 +48,7 @@ export function buildBookings(lines: readonly LedgerLine[], mapping: Mapping, ch
   const releases = inferReleaseRates(lines, chart);
   const context: PostingContext = { mapping, chart, options, releases };
   const rateOf = (line: LedgerLine) => resolutionRate(line, releases);
-  const findings: Finding[] = checkCoverage(mapping, lines, chart, { rateOf, mwstCodes: options.mwstCodes }).filter(
+  const findings: Finding[] = checkCoverage(mapping, lines, chart, { rateOf, version: options.version }).filter(
     (finding) => finding.code === 'E-UNMAPPED',
   );
   const bookings: PostedBooking[] = [];
@@ -66,7 +66,7 @@ export function buildBookings(lines: readonly LedgerLine[], mapping: Mapping, ch
     } else if (outcome.kind === 'booked') {
       bookings.push(outcome.booking);
       findings.push(...outcome.findings);
-      summary.addBooking(line, outcome.booking, outcome.debit, outcome.credit, outcome.roundingCents, outcome.apaleoVat);
+      summary.addBooking(line, outcome.booking, outcome.debit, outcome.credit, outcome.apaleoVat);
       if (outcome.apaleoRounding) vatRoundingByRate.set(outcome.rate, (vatRoundingByRate.get(outcome.rate) ?? 0) + 1);
     }
   }
@@ -85,7 +85,7 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
   if (percents.length > 1) {
     return fail(
       'E-VAT-MIXED',
-      `it carries more than one VAT rate (${percents.map(percentText).join(', ')}), but an Abacus booking has one. ${REPORT_PROBLEM_HINT}`,
+      `it carries more than one VAT rate (${percents.map(percentText).join(', ')}), but an Odoo base line has one tax. ${REPORT_PROBLEM_HINT}`,
     );
   }
   const release = context.releases.get(line);
@@ -102,24 +102,24 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
   const creditRow = mappedRow(line.credit, rate, context);
   // checkCoverage resolves with the same rate and reports the account once as E-UNMAPPED.
   if (!debitRow || !creditRow) return { kind: 'unmapped' };
-  if (debitRow.abacusAccount === creditRow.abacusAccount) return { kind: 'skip', reason: 'SAME_ACCOUNT' };
+  if (debitRow.odooAccount === creditRow.odooAccount) return { kind: 'skip', reason: 'SAME_ACCOUNT' };
 
   const d = postedSide(line.debit, debitRow);
   const c = postedSide(line.credit, creditRow);
   for (const side of [d, c]) {
+    if (side.kind === 'no-tax-type') {
+      return fail(
+        'E-TAX-NOT-ALLOWED',
+        `${accountText(side.ref)} uses ${rowText(side.row)}, which has the Odoo tax ${side.row.odooTax}, but a ${side.ref.type} account carries no VAT: ` +
+          'Odoo would compute VAT on the money or the claim. Leave odoo_tax and tax_percent empty on that line, ' +
+          'put the tax on the revenue or deposit row, and run "apaleo-odoo mapping check"',
+      );
+    }
     if (side.kind === 'no-rate') {
       return fail(
         'E-VAT-RATE-MISSING',
-        `${rowText(side.row)} has the MWST-Code "${side.row.mwstCode}" but no valid mwst_percent ("${side.row.mwstPercent}"), so the rate Abacus books is unknown. ` +
-          'Fill in mwst_percent on that line, and run "apaleo-odoo mapping check"',
-      );
-    }
-    if (side.kind === 'no-tax-type') {
-      return fail(
-        'E-MWST-CODE-NOT-ALLOWED',
-        `${accountText(side.ref)} uses ${rowText(side.row)}, which has the MWST-Code ${side.row.mwstCode}, but a ${side.ref.type} account books no MWST: ` +
-          'Abacus would book the MWST on it instead of the revenue or deposit account. Leave mwst_code and mwst_percent empty on that line, ' +
-          'put the MWST-Code on the revenue or deposit row, and run "apaleo-odoo mapping check"',
+        `${rowText(side.row)} has the Odoo tax "${side.row.odooTax}" but no valid tax_percent ("${side.row.taxPercent}"), so the rate Odoo books is unknown. ` +
+          'Fill in tax_percent on that line, and run "apaleo-odoo mapping check"',
       );
     }
   }
@@ -127,8 +127,8 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
   if (d.vat && c.vat) {
     return fail(
       'E-TWO-VAT-SIDES',
-      `both accounts have an MWST-Code (debit ${d.ref.number} on ${rowText(d.row)}, credit ${c.ref.number} on ${rowText(c.row)}), ` +
-        'but an Abacus booking carries the MWST on its Single account only. Ask your Treuhänder how to book such moves, for example through a transfer account',
+      `both accounts have an Odoo tax (debit ${d.ref.number} on ${rowText(d.row)}, credit ${c.ref.number} on ${rowText(c.row)}), ` +
+        'but an Odoo booking carries the tax on one side only. Ask your Steuerberater how to book such moves, for example through a transfer account',
     );
   }
   const vatSide = d.vat ? d : c.vat ? c : undefined;
@@ -136,83 +136,58 @@ function postLine(line: LedgerLine, context: PostingContext): LineOutcome {
   if (guard.failed) return { kind: 'failed', findings: guard.findings };
   return {
     kind: 'booked',
-    booking: toBooking(line, d, c, vatSide, guard.steuerCents, context),
+    booking: toBooking(line, d, c, vatSide, guard.taxCents, context),
     debit: d,
     credit: c,
     findings: guard.findings,
-    roundingCents: guard.roundingCents,
     apaleoRounding: guard.apaleoRounding,
     rate: vatSide?.rate ?? 0,
     apaleoVat: apaleoVatOf(line, release),
   };
 }
 
-/** The row for one side, or undefined when it is missing or has no Abacus account (reported as `E-UNMAPPED`). */
+/** The row for one side, or undefined when it is missing or has no Odoo account (reported as `E-UNMAPPED`). */
 function mappedRow(account: AccountRef, rate: number | undefined, { mapping, chart }: PostingContext): MappingRow | undefined {
   const row = resolve(mapping, account, { rate, chart });
-  return row && row.abacusAccount !== '' ? row : undefined;
+  return row && row.odooAccount !== '' ? row : undefined;
 }
 
 type SideOutcome = ({ kind: 'ok' } & PostedSide) | { kind: 'no-rate' | 'no-tax-type'; ref: AccountRef; row: MappingRow };
 
 /**
- * The side with its MWST-Code and rate; `no-rate` when an MWST-Code has no known
- * rate, `no-tax-type` when a payment, guest claim or Debitor row has an MWST-Code.
+ * The side with its Odoo tax and rate; `no-tax-type` when a payment, guest claim
+ * or company-invoice row has a tax, `no-rate` when a tax has no known rate.
  */
 function postedSide(ref: AccountRef, row: MappingRow): SideOutcome {
-  const code = mwstCodeOf(row);
-  if (code !== undefined && (NO_TAX_TYPES.has(row.apaleoType) || NO_TAX_TYPES.has(ref.type))) return { kind: 'no-tax-type', ref, row };
+  const tax = taxOf(row);
+  if (tax !== undefined && (NO_TAX_TYPES.has(row.apaleoType) || NO_TAX_TYPES.has(ref.type))) return { kind: 'no-tax-type', ref, row };
   const rate = rowRate(row);
   if (rate === undefined) return { kind: 'no-rate', ref, row };
-  return { kind: 'ok', ref, row, mwstCode: code, rate, vat: code !== undefined };
+  return { kind: 'ok', ref, row, tax, rate, vat: tax !== undefined };
 }
 
 /**
- * Side rule (design decision 5): the VAT side is always the Single account,
- * because only `SingleInformation` carries `TaxData`, and `DebitCredit` is the
- * side of the Collective account (`D` when the line debits it; a negative gross
- * swaps the sides). Without a VAT side, a revenue or write-off side (the one whose
- * Kostenstelle Abacus accepts) is the Single account, so an untaxed charge keeps
- * its Kostenstelle like its allowance does. Otherwise the debited account is the
- * Collective account with `D`. The amount is the absolute gross; the tax is
- * apaleo's tax rounded to Rappen, negative when the VAT side is credited.
+ * The booking of a line (design decision 4): the line's debit and credit
+ * accounts, swapped for a negative gross, with the absolute gross. The side whose
+ * row has an Odoo tax is the VAT side; it carries the tax, the row's rate and
+ * apaleo's tax rounded half away from zero to cents (unsigned). Each side gets
+ * the label of its account and the booking's rate, never a guest name.
  */
-function toBooking(
-  line: LedgerLine,
-  debit: PostedSide,
-  credit: PostedSide,
-  vatSide: PostedSide | undefined,
-  steuerCents: number,
-  { chart, options }: PostingContext,
-): PostedBooking {
+function toBooking(line: LedgerLine, debit: PostedSide, credit: PostedSide, vatSide: PostedSide | undefined, taxCents: number, { chart, options }: PostingContext): PostedBooking {
   const negative = line.grossCents < 0;
   // The account the line really debits, and the one it credits, after a negative gross swaps them.
   const [debited, credited] = negative ? [credit, debit] : [debit, credit];
-  const single = vatSide ?? kostSide(debit, credit) ?? credited;
-  const collective = single === debit ? credit : debit;
-  const debitCredit = collective === debited ? 'D' : 'C';
-  const labelled = vatSide ?? credit;
-  const kost = kostOf(single.row);
-  const text = text1(line, labelled.ref, chart, vatSide?.rate ?? 0);
-  const reference = text2(line, options.text2);
-  const taxCents = steuerCents === 0 ? 0 : debitCredit === 'D' ? -steuerCents : steuerCents;
+  const rate = vatSide?.rate ?? 0;
+  const side = (posted: PostedSide) => ({ account: posted.row.odooAccount, label: sideLabel(posted.ref, chart, rate) });
+  const vatSideName: Side | undefined = vatSide === undefined ? undefined : vatSide === debited ? 'debit' : 'credit';
+  const receipt = receiptOf(line, options.text2);
   return {
-    collectiveAccount: collective.row.abacusAccount,
-    singleAccount: single.row.abacusAccount,
-    debitCredit,
     businessDate: line.businessDate,
+    debit: side(debited),
+    credit: side(credited),
     grossCents: Math.abs(line.grossCents),
-    ...(vatSide ? { tax: { mwstCode: vatSide.mwstCode ?? '', percent: vatSide.rate, taxCents } } : {}),
-    ...(kost === undefined ? {} : { kost }),
-    text1: text,
-    ...(reference === '' ? {} : { text2: reference }),
+    ...(vatSide && vatSideName && { vat: { side: vatSideName, taxRef: vatSide.tax ?? '', percent: vatSide.rate, apaleoTaxCents: taxCents } }),
     sourceEntryNumbers: [line.sourceEntryNumber],
+    ...(receipt !== '' && { receipt }),
   };
-}
-
-/** The one side whose row type takes a Kostenstelle (revenue, write-off), or undefined when none or both do. */
-function kostSide(debit: PostedSide, credit: PostedSide): PostedSide | undefined {
-  const d = KOST_TYPES.has(debit.row.apaleoType);
-  const c = KOST_TYPES.has(credit.row.apaleoType);
-  return d === c ? undefined : d ? debit : credit;
 }

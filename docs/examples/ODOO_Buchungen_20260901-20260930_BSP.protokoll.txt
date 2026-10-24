@@ -1,0 +1,96 @@
+Odoo journal entries (import file). No warranty, not tax advice: have your Steuerberater check the bookings.
+
+Property BSP, 2026-09-01 to 2026-09-30: 24 apaleo lines, 19 Odoo bookings
+
+Import into Odoo Accounting (compare with the Odoo company before importing, see docs/odoo-format.md):
+  File: ODOO_Buchungen_20260901-20260930_BSP.csv
+  Revision: 1 (first file of the period)
+  Entries: 8 draft journal entries (one per business day) with 24 lines, references "apaleo BSP <date>"
+  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR
+  Rounding method: per_line; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Line")
+  Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)
+  Odoo VAT against apaleo's tax per line: 19 % Odoo 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; 7 % Odoo 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
+  Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 64.19, Odoo VAT 12.19, apaleo per line 12.20, difference (Odoo minus apaleo) -0.01; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 634.44, Odoo VAT 44.40, apaleo per line 44.40, difference (Odoo minus apaleo) 0.00
+  Rounding lines: 3; lines netted to zero and left out: 5
+  Steps: activate only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import
+  After the import: every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post the entries
+
+Totals per Odoo account before the base fitting (the side without tax with the gross amount, the side with the tax with the gross amount minus apaleo's tax per line; the bases and rounding lines in the file can differ by a cent per tax, see the import block):
+  account    Soll   Haben  balance
+  1001     250.70    0.00   250.70
+  1360     506.02  107.00   399.02
+  1401     185.50    0.00   185.50
+  1410     835.22  835.22     0.00
+  1711     300.00  300.00     0.00
+  8200       0.00   80.00   -80.00
+  8300       0.00  634.44  -634.44
+  8400       0.00   64.18   -64.18
+
+Revenue and apaleo's VAT per Odoo tax and rate, with the UStVA Kennzahl (before the base fitting):
+  no tax 0 %: net 80.00, apaleo per line 0.00, gross 80.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
+  tax_ust_7_skr03 7 % (Kz 86): net 634.44, apaleo per line 44.40, gross 678.84, apaleo precise 44.41 (44.41009346), difference (per line minus precise) -0.01
+  tax_ust_19_skr03 19 % (Kz 81): net 64.18, apaleo per line 12.20, gross 76.38, apaleo precise 12.20 (12.19512605), difference (per line minus precise) 0.00
+
+Deposits and apaleo's VAT per Odoo tax and rate (received minus released, before the base fitting):
+  tax_ust_7_skr03 7 % (Kz 86): net 0.00, apaleo per line 0.00, gross 0.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
+
+Written-off receivables (Forderungsverluste) and apaleo's VAT correction per Odoo tax and rate (before the base fitting):
+  none
+
+The revenue, deposit and write-off sections show apaleo's figures before the base fitting: net is the gross minus apaleo's tax of each line rounded to the cent (apaleo per line), and apaleo precise is apaleo's exact tax summed and rounded once, so a difference (per line minus precise) of a few cents is this rounding, not an error. Odoo computes the VAT itself from the base of each line; the file fits each base to apaleo's gross, and the import block shows per tax the base in the file and Odoo's VAT against apaleo per line (difference Odoo minus apaleo): compare those with Odoo.
+
+Kurtaxe and other guest levies per account (apaleo city tax, total 0.00):
+  none
+
+Payments per clearing account:
+  account  amount
+  1001     250.70
+  1360     399.02
+
+Deposits (Anzahlungen) received, released and refunded:
+  received        321.00
+  released        321.00
+  of it refunded  107.00
+
+Accounts receivable (Forderungen Firmenrechnungen, Soll positive): 185.50
+
+Skipped lines:
+  reason                               lines  gross (unsigned)
+  both sides on the same Odoo account      5            621.22
+
+Findings:
+  N-ODOO-ROUNDING-LINE (Account): 2026-09-10, account 8300, 7 %: no base plus Odoo's tax reaches apaleo's gross 95.00 exactly, so the line "Erlöse Speisen 7 % (Rundungsausgleich)" of 0.01 adds the missing cent
+  N-ODOO-ROUNDING-LINE (Account): 2026-09-14, account 8300, 7 %: no base plus Odoo's tax reaches apaleo's gross 100.04 exactly, so the line "Erlöse Stornogebühren 7 % (Rundungsausgleich)" of 0.01 adds the missing cent
+  N-ODOO-ROUNDING-LINE (Account): 2026-09-28, account 8400, 19 %: no base plus Odoo's tax reaches apaleo's gross 4.98 exactly, so the line "Erlöse sonstige 19 % (Rundungsausgleich)" of 0.01 adds the missing cent
+
+apaleo entries per line of the file (entry number and receipt or reference):
+  2026-09-03 1360 Zahlung Visa debit 321.00: BSPE0001 (PSP-BSP-0001)
+  2026-09-03 1711 Anzahlungen 7 % credit 300.00: BSPE0001 (PSP-BSP-0001)
+  2026-09-10 1410 Gästeforderungen debit 250.70: BSPE0002 (BSP-BRAVO-1-V1), BSPE0003 (BSP-BRAVO-1-V1), BSPE0004 (BSP-BRAVO-1-V1), BSPE0005 (BSP-BRAVO-1-V1)
+  2026-09-10 8300 Erlöse Beherbergung 7 % credit 112.15: BSPE0002 (BSP-BRAVO-1-V1)
+  2026-09-10 8300 Erlöse Speisen 7 % credit 88.78: BSPE0003 (BSP-BRAVO-1-V1)
+  2026-09-10 8400 Erlöse Getränke 19 % credit 10.00: BSPE0004 (BSP-BRAVO-1-V1)
+  2026-09-10 8400 Erlöse sonstige 19 % credit 20.00: BSPE0005 (BSP-BRAVO-1-V1)
+  2026-09-10 8300 Erlöse Speisen 7 % (Rundungsausgleich) credit 0.01: BSPE0003 (BSP-BRAVO-1-V1)
+  2026-09-11 1001 Zahlung bar debit 250.70: BSPE0006 (KASSE-BSP-1)
+  2026-09-11 1410 Gästeforderungen credit 250.70: BSPE0006 (KASSE-BSP-1)
+  2026-09-12 1360 Zahlung Visa credit 107.00: BSPE0010 (PSP-BSP-0002)
+  2026-09-12 1711 Anzahlungen 7 % debit 300.00: BSPE0009 (BSP-ALPHA-1-V1), BSPE0010 (PSP-BSP-0002)
+  2026-09-12 8300 Erlöse Beherbergung 7 % credit 200.00: BSPE0007 (BSP-ALPHA-1-V1), BSPE0008 (BSP-ALPHA-1-V1)
+  2026-09-14 1360 Zahlung Mastercard debit 100.04: BSPE0012 (PSP-BSP-0003)
+  2026-09-14 8300 Erlöse Stornogebühren 7 % credit 93.49: BSPE0011 (BSP-CHARLIE-1-V1)
+  2026-09-14 8300 Erlöse Stornogebühren 7 % (Rundungsausgleich) credit 0.01: BSPE0011 (BSP-CHARLIE-1-V1)
+  2026-09-17 1360 Zahlung Visa debit 80.00: BSPE0014 (PSP-BSP-0004)
+  2026-09-17 8200 Erlöse ohne USt credit 80.00: BSPE0013 (BSP-EXT-1-V1)
+  2026-09-18 1401 Forderungen Firmenrechnungen debit 185.50: BSPE0017 (BSP-2026-0815)
+  2026-09-18 8300 Erlöse Beherbergung 7 % credit 140.00: BSPE0015 (BSP-DELTA-1-V1)
+  2026-09-18 8400 Erlöse Getränke 19 % credit 30.00: BSPE0016 (BSP-DELTA-1-V1)
+  2026-09-28 1360 Zahlung Mastercard debit 4.98: BSPE0019 (PSP-BSP-0005)
+  2026-09-28 8400 Erlöse sonstige 19 % credit 4.18: BSPE0018 (BSP-ECHO-1-V1)
+  2026-09-28 8400 Erlöse sonstige 19 % (Rundungsausgleich) credit 0.01: BSPE0018 (BSP-ECHO-1-V1)
+
+File: ODOO_Buchungen_20260901-20260930_BSP.csv
+SHA-256: f587b8aa9c35ff2baafb7770ddeaedad1eafe5b76982cc22a719acd734fc1c67
+Mapping SHA-256: 1074386dc0f37ce4f0830f675ba0da1489f09203d58c5d8fbc44bbdeef2de017
+Tool: apaleo-odoo 0.0.0
+Created: 2026-10-05T08:00:00.000Z

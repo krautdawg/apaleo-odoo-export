@@ -1,0 +1,85 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-17T12:30:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Müller, Hans",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Other (no VAT)",
+        "number": "RevenueOther_Without:0.00",
+        "parentNumber": "RevenueOther",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 80,
+      "netAmount": 80,
+      "receipt": {
+        "type": "Custom",
+        "number": "BSP-EXT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0013",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-17T12:35:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Müller, Hans (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 80,
+      "netAmount": 80,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-BSP-0004"
+      },
+      "sourceEntryNumber": "BSPE0014",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    },
+    {
+      "timestamp": "2026-09-17T12:35:00Z",
+      "date": "2026-09-17",
+      "debitedAccount": {
+        "name": "Müller, Hans",
+        "number": "BSP-EXT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Müller, Hans (Offset)",
+        "number": "BSP-EXT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -80,
+      "netAmount": -80,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-BSP-0004"
+      },
+      "sourceEntryNumber": "BSPE0014",
+      "reference": "BSP-EXT-1",
+      "referenceType": "External"
+    }
+  ]
+}

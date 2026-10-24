@@ -14,7 +14,7 @@ import { normaliseTaxes, taxFromGross, taxPercents } from './taxes.js';
  * Other untaxed lines on a Liabilities account (a prepayment received or a
  * deposit refunded without `taxes[]`) take the rate of a matching
  * `PostPrepaymentVat` line too: when apaleo booked or reversed VAT for them,
- * booking them on the 0 % deposit row would leave the VAT open in Abacus, or
+ * booking them on the 0 % deposit row would leave the VAT open in Odoo, or
  * never declare it. Without such a line they keep rate 0 (no chart fallback).
  */
 
@@ -82,9 +82,9 @@ function reversedVat(line: LedgerLine): number {
 
 const groupKey = (line: LedgerLine) => `${line.businessDate}\u0000${line.reference}\u0000${depositDirection(line)}`;
 
-/** The rates the tool knows: the Swiss 2.6 %, 3.8 % and 8.1 % plus every positive VAT rate in the chart. */
+/** The rates the tool knows: the German 7 % and 19 % plus every positive VAT rate in the chart. */
 function knownRates(chart: ChartIndex | undefined): number[] {
-  const rates = new Set<number>([2.6, 3.8, 8.1]);
+  const rates = new Set<number>([7, 19]);
   for (const account of chart?.accounts ?? []) if (account.vat && account.vat.percent > 0) rates.add(account.vat.percent);
   return [...rates].sort((a, b) => a - b);
 }

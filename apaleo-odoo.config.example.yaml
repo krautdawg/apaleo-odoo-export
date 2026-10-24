@@ -24,79 +24,54 @@ apaleo:
   # baseUrl: https://api.apaleo.com
   # identityUrl: https://identity.apaleo.com
 
-# Was der Abacus-Mandant deines Treuhänders festlegt. Frag deinen Treuhänder.
-# Siehe docs/configuration.md und docs/abacus-format.md.
-abacus:
-  # Die Mandantennummer in Abacus, 1 bis 6 Ziffern. Ohne Standardwert.
-  mandant: 1234
-  # Die Leitwährung des Mandanten: CHF (Standard) oder EUR. Jedes Hotel muss
+# Odoo: wohin die Buchungssätze in Odoo gehen. Was jeder Wert in der
+# Importdatei bewirkt, steht in docs/odoo-format.md und docs/configuration.md.
+odoo:
+  # Das Kürzel des Journals (Typ „Sonstige“), in das die Buchungssätze
+  # importiert werden: 1 bis 5 Zeichen A-Z und 0-9. Ohne Standardwert.
+  journal: APA
+  # Die Odoo-Version der Datenbank: 17, 18 oder 19. Ohne Standardwert. Sie
+  # bestimmt die Rundungsmethode ohne Angabe und die Codes von Kasse und
+  # Geldtransit, die init-mapping einträgt.
+  version: 18
+  # Die Datenbank-ID des Unternehmens, dem die Steuern gehören (bei einer
+  # Niederlassung das Hauptunternehmen). Standard 1.
+  companyId: 1
+  # Die Währung des Unternehmens: EUR (Standard) oder CHF. Jedes Hotel muss
   # in dieser Währung buchen, das Tool rechnet nicht um.
-  leitwaehrung: CHF
-  # Die MWST-Abrechnungsart: vereinbart (Standard) oder vereinnahmt.
-  abrechnungsart: vereinbart
-  # Die Version der AbaConnect-Schnittstelle: "2015.00" (Standard), "2020.00",
-  # "2022.00" oder "2024.00". Nur ändern, wenn Abacus die Datei ablehnt.
-  version: "2015.00"
-  # Steuerkonto und Hilfskonto der MWST-Codes, wie im KMU-Mustermandanten.
-  mwstKonto: 2200
-  mwstHilfskonto: 2202
-  # Die MWST-Codes aus der MWST-Tabelle des Mandanten. init-mapping schreibt sie
-  # in die Kontenzuordnung, mapping check prüft sie.
-  mwstCodes:
-    normal: 311        # Normalsatz 8,1 %
-    reduziert: 312     # reduzierter Satz 2,6 %
-    beherbergung: 313  # Sondersatz Beherbergung 3,8 %
-  # Der Geschäftsbereich, 0 ohne Geschäftsbereiche. Bucht dein Treuhänder zwei
-  # Hotels in denselben Mandanten, gib jedem einen eigenen Geschäftsbereich
-  # (properties[].geschaeftsbereich), sonst warnt das Tool mit W-MANDANT-SHARED.
-  geschaeftsbereich: 0
-
-# Odoo: wohin die Buchungssätze in Odoo gehen. Bis Odoo das Standardziel ist,
-# ist der Abschnitt optional; nimm die Rauten weg, um ihn zu nutzen. Was jeder
-# Wert in der Importdatei bewirkt, steht in docs/odoo-format.md.
-# odoo:
-#   # Das Kürzel des Journals (Typ „Sonstige“), in das die Buchungssätze
-#   # importiert werden: 1 bis 5 Zeichen A-Z und 0-9. Ohne Standardwert.
-#   journal: APA
-#   # Die Odoo-Version der Datenbank: 17, 18 oder 19. Ohne Standardwert.
-#   version: 18
-#   # Die Datenbank-ID des Unternehmens, dem die Steuern gehören (bei einer
-#   # Niederlassung das Hauptunternehmen). Standard 1.
-#   companyId: 1
-#   # Die Währung des Unternehmens: EUR (Standard) oder CHF. Jedes Hotel muss
-#   # in dieser Währung buchen, das Tool rechnet nicht um.
-#   currency: EUR
-#   # Die Rundungsmethode des Unternehmens (Einstellungen > Buchhaltung >
-#   # Steuern > Rundungsmethode): per_line oder per_tax. Standard: per_line
-#   # für Odoo 17 und 18, per_tax für Odoo 19. Muss zu Odoo passen.
-#   # taxRounding: per_line
-#   # Ein Konto ohne Steuer für den Rundungscent bei per_tax, zum Beispiel
-#   # "2700". Mit per_tax Pflicht.
-#   # roundingAccount: "2700"
+  currency: EUR
+  # Die Rundungsmethode des Unternehmens (Einstellungen > Buchhaltung >
+  # Steuern > Rundungsmethode): per_line oder per_tax. Standard: per_line
+  # für Odoo 17 und 18, per_tax für Odoo 19. Muss zu Odoo passen.
+  # taxRounding: per_line
+  # Ein Konto ohne Steuer für den Rundungscent bei per_tax, je nach
+  # Kontenrahmen: SKR03 zum Beispiel "2700" (Sonstige Erträge), SKR04 zum
+  # Beispiel "4830" (Sonstige betriebliche Erträge). Mit per_tax Pflicht.
+  # roundingAccount: "2700"
 
 posting:
-  # Was in Text2 jeder Buchung steht: "receipt" nimmt den Beleg aus apaleo
-  # (Rechnung, Zahlungsreferenz) und sonst die Reservationsreferenz;
-  # "reference" nimmt immer die Reservationsreferenz. Nie ein Gastname.
+  # Was das Protokoll zu jeder apaleo-Zeile nennt (nie die Importdatei):
+  # "receipt" nimmt den Beleg aus apaleo (Rechnung, Zahlungsreferenz) und sonst
+  # die Referenz der Reservierung; "reference" nimmt immer die Referenz. Nie
+  # ein Gastname.
   text2: receipt
 
 output:
-  # Ordner für die erzeugten Abacus-Dateien, relativ zum Arbeitsverzeichnis.
+  # Ordner für die erzeugten Odoo-Importdateien, relativ zum Arbeitsverzeichnis.
   dir: ./exports
 
 # Die apaleo-Hotels, mit denen das Tool arbeitet, jedes mit seiner Kontenzuordnung
 # (CSV, relativ zum Arbeitsverzeichnis; Standard ./mapping-<id>.csv). Leg die
-# Kontenzuordnung mit "apaleo-odoo init-mapping --property BSP --template kmu-hotel" an
-# und lass sie von deinem Treuhänder prüfen. Die IDs listet "apaleo-odoo properties".
-# "apaleo-odoo export --month 2026-10" exportiert jedes hier eingetragene Hotel.
-# Bucht dein Treuhänder zwei Hotels in einen Mandanten, braucht jedes einen eigenen
-# Geschäftsbereich, sonst können sich die Belegnummern wiederholen (W-MANDANT-SHARED).
+# Kontenzuordnung mit "apaleo-odoo init-mapping --property BSP --template skr03-hotel"
+# (oder skr04-hotel) an und lass sie von deinem Steuerberater prüfen. Die IDs listet
+# "apaleo-odoo properties". "apaleo-odoo export --month 2026-10" exportiert jedes hier
+# eingetragene Hotel. Ein Hotel kann ein eigenes Journal haben (journal).
 # properties:
 #   - id: BSP
 #     mapping: ./mapping-BSP.csv
 #   - id: BSP2
 #     mapping: ./mapping-BSP2.csv
-#     geschaeftsbereich: 2
+#     journal: APB
 
 checks:
   # Vergleicht das Buchungsjournal zusätzlich mit den Tagessummen von apaleo pro
@@ -113,7 +88,7 @@ schedule:
   # Auch APALEO_ODOO_TIMEZONE.
   timezone: Europe/Zurich
   # Ein Rhythmus pro Installation, damit nie tägliche und monatliche Dateien bei
-  # Abacus ankommen: "monthly" (eine Importdatei pro Monat für den Treuhänder) oder "daily"
+  # Odoo ankommen: "monthly" (eine Importdatei pro Monat für die Kanzlei) oder "daily"
   # (etwa 30 Importe im Monat).
   cadence: monthly
   monthly:

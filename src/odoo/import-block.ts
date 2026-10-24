@@ -1,6 +1,6 @@
 import type { OdooVersion } from '../core/config.js';
-import { formatRate, formatSignedAmount, kennzahl, roundingMethodLabel, taxExternalId } from './format.js';
-import type { OdooRenderOptions } from './types.js';
+import { formatAmount, formatRate, formatSignedAmount, kennzahl, roundingMethodLabel, taxExternalId } from './format.js';
+import type { OdooBooking, OdooRenderOptions } from './types.js';
 import type { RenderedOdooCsv } from './writer.js';
 
 /** Where the accountant filters the entries of a file in Odoo: the start of every reference. */
@@ -15,7 +15,12 @@ export function referencePrefix(options: Pick<OdooRenderOptions, 'propertyId' | 
  * writes it, their rate and UStVA Kennzahl; Odoo's modelled tax per rate is
  * compared with apaleo's over the whole file.
  */
-export function importBlock(rendered: Pick<RenderedOdooCsv, 'entries' | 'roundingLines' | 'droppedKeys' | 'vat'>, options: OdooRenderOptions, fileName: string, version?: OdooVersion): string[] {
+export function importBlock(
+  rendered: Pick<RenderedOdooCsv, 'entries' | 'roundingLines' | 'droppedKeys' | 'vat' | 'taxTotals'>,
+  options: OdooRenderOptions,
+  fileName: string,
+  version?: OdooVersion,
+): string[] {
   const { entries, roundingLines, droppedKeys } = rendered;
   const lines = entries.reduce((sum, entry) => sum + entry.lines.length, 0);
   const taxes = new Map<string, number>();
@@ -32,7 +37,16 @@ export function importBlock(rendered: Pick<RenderedOdooCsv, 'entries' | 'roundin
   }
   const vat = [...perRate]
     .sort(([a], [b]) => b - a)
-    .map(([percent, { odoo, apaleo }]) => `${formatRate(percent)} % Odoo ${formatSignedAmount(odoo)}, apaleo ${formatSignedAmount(apaleo)}, difference ${formatSignedAmount(odoo - apaleo)}`);
+    .map(
+      ([percent, { odoo, apaleo }]) =>
+        `${formatRate(percent)} % Odoo ${formatSignedAmount(odoo)}, apaleo per line ${formatSignedAmount(apaleo)}, difference (Odoo minus apaleo) ${formatSignedAmount(odoo - apaleo)}`,
+    );
+  const perTax = rendered.taxTotals.map(
+    (total) =>
+      `${taxExternalId(total.taxRef, options.companyId)} ${formatRate(total.percent)} %${kennzahl(total.percent) ? ` (${kennzahl(total.percent)})` : ''}: ` +
+      `base in the file ${formatSignedAmount(total.baseCents)}, Odoo VAT ${formatSignedAmount(total.odooTaxCents)}, apaleo per line ${formatSignedAmount(total.apaleoTaxCents)}, ` +
+      `difference (Odoo minus apaleo) ${formatSignedAmount(total.odooTaxCents - total.apaleoTaxCents)}`,
+  );
   const prefix = referencePrefix(options);
   const revision =
     options.revision === 1
@@ -48,9 +62,28 @@ export function importBlock(rendered: Pick<RenderedOdooCsv, 'entries' | 'roundin
     `  Company: id ${options.companyId} (odoo.companyId, the company that owns the taxes), journal ${options.journal}, currency ${options.currency}`,
     `  Rounding method: ${rounding}; must equal Settings > Accounting > Taxes > Rounding Method ("${roundingMethodLabel(options.taxRounding, version)}")`,
     `  Taxes: ${taxList.join(', ') || 'none'}`,
-    `  Odoo VAT against apaleo VAT: ${vat.join('; ') || 'none'}`,
+    `  Odoo VAT against apaleo's tax per line: ${vat.join('; ') || 'none'}`,
+    `  Base and VAT per tax: ${perTax.join('; ') || 'none'}`,
     `  Rounding lines: ${roundingLines}; lines netted to zero and left out: ${droppedKeys}`,
     '  Steps: activate only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import',
     '  After the import: every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post the entries',
   ];
+}
+
+/**
+ * For the protocol only: per line of every entry, the apaleo entry numbers it
+ * nets, each with the receipt (or reference) of its booking:
+ * `2026-09-14 8300 Erlöse Beherbergung 7 % credit 112.15: BSPE0002 (BSP-2026-0001)`.
+ */
+export function entryLineSources(rendered: Pick<RenderedOdooCsv, 'entries'>, bookings: readonly Pick<OdooBooking, 'sourceEntryNumbers' | 'receipt'>[]): string[] {
+  const receipts = new Map<string, string>();
+  for (const booking of bookings) for (const entry of booking.sourceEntryNumbers) if (booking.receipt) receipts.set(entry, booking.receipt);
+  const lines = rendered.entries.flatMap((entry) =>
+    entry.lines.map((line) => {
+      const side = line.amountCents > 0 ? 'debit' : 'credit';
+      const sources = [...new Set(line.sourceEntryNumbers)].map((number) => (receipts.has(number) ? `${number} (${receipts.get(number) ?? ''})` : number));
+      return `  ${entry.date} ${line.account} ${line.label} ${side} ${formatAmount(Math.abs(line.amountCents))}: ${sources.join(', ') || 'rounding'}`;
+    }),
+  );
+  return ['apaleo entries per line of the file (entry number and receipt or reference):', ...lines];
 }

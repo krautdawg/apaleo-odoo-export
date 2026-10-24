@@ -43,6 +43,8 @@ export interface OdooBooking {
   vat?: OdooVat;
   /** The apaleo entry numbers behind the booking, for the protocol (never in the file). */
   sourceEntryNumbers: readonly string[];
+  /** The receipt number of the line, or its reference without one (`posting.text2`), for the protocol (never in the file). */
+  receipt?: string;
 }
 
 /** What a line of an entry is: netted bookings, or a cent added by the base fitting. */
@@ -120,4 +122,16 @@ export interface OdooVatComparison {
   odooTaxCents: number;
   apaleoTaxCents: number;
   differenceCents: number;
+}
+
+/** The base and Odoo's modelled tax of one Odoo tax over a whole file, signed: output tax positive, refund side negative. */
+export interface OdooTaxTotal {
+  /** The tax value as the bookings carry it (chart-template id or full External ID). */
+  taxRef: string;
+  percent: number;
+  /** The fitted base lines with the tax, credited positive. */
+  baseCents: number;
+  odooTaxCents: number;
+  /** apaleo's rounded tax of the bookings with the tax. */
+  apaleoTaxCents: number;
 }

@@ -4,87 +4,80 @@
       "timestamp": "2026-09-17T12:30:00Z",
       "date": "2026-09-17",
       "debitedAccount": {
-        "name": "Receivables for Folio BSP-EXT-1",
+        "name": "Müller, Hans",
         "number": "BSP-EXT-1_Receivables",
         "parentNumber": "1200",
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Revenues Food and beverages (2.6%)",
-        "number": "RevenueFoodAndBeverages_Reduced:2.60",
-        "parentNumber": "RevenueFoodAndBeverages",
+        "name": "Revenues Other (no VAT)",
+        "number": "RevenueOther_Without:0.00",
+        "parentNumber": "RevenueOther",
         "type": "Revenues"
       },
       "command": "PostCharge",
-      "currency": "CHF",
-      "grossAmount": 15.39,
-      "netAmount": 15,
-      "taxes": [
-        {
-          "type": "Reduced",
-          "percent": 2.6,
-          "amount": 0.39
-        }
-      ],
+      "currency": "EUR",
+      "grossAmount": 80,
+      "netAmount": 80,
       "receipt": {
         "type": "Custom",
-        "number": "TAKEAWAY-BSP-1"
+        "number": "BSP-EXT-1-V1"
       },
-      "sourceEntryNumber": "BSPE0015",
+      "sourceEntryNumber": "BSPE0013",
       "reference": "BSP-EXT-1",
       "referenceType": "External"
     },
     {
-      "timestamp": "2026-09-17T12:31:00Z",
+      "timestamp": "2026-09-17T12:35:00Z",
       "date": "2026-09-17",
       "debitedAccount": {
-        "name": "Cash Payment",
-        "number": "1600",
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
         "parentNumber": "1000",
         "type": "Payments"
       },
       "creditedAccount": {
-        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "name": "Müller, Hans (Offset)",
         "number": "BSP-EXT-1_Receivables/Offset",
         "parentNumber": "1200",
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": 15.39,
-      "netAmount": 15.39,
+      "currency": "EUR",
+      "grossAmount": 80,
+      "netAmount": 80,
       "receipt": {
-        "type": "Custom",
-        "number": "TAKEAWAY-BSP-1"
+        "type": "PspReference",
+        "number": "PSP-BSP-0004"
       },
-      "sourceEntryNumber": "BSPE0016",
+      "sourceEntryNumber": "BSPE0014",
       "reference": "BSP-EXT-1",
       "referenceType": "External"
     },
     {
-      "timestamp": "2026-09-17T12:31:00Z",
+      "timestamp": "2026-09-17T12:35:00Z",
       "date": "2026-09-17",
       "debitedAccount": {
-        "name": "Receivables for Folio BSP-EXT-1",
+        "name": "Müller, Hans",
         "number": "BSP-EXT-1_Receivables",
         "parentNumber": "1200",
         "type": "Receivables"
       },
       "creditedAccount": {
-        "name": "Receivables for Folio BSP-EXT-1 (Offset)",
+        "name": "Müller, Hans (Offset)",
         "number": "BSP-EXT-1_Receivables/Offset",
         "parentNumber": "1200",
         "type": "Receivables"
       },
       "command": "PostPayment",
-      "currency": "CHF",
-      "grossAmount": -15.39,
-      "netAmount": -15.39,
+      "currency": "EUR",
+      "grossAmount": -80,
+      "netAmount": -80,
       "receipt": {
-        "type": "Custom",
-        "number": "TAKEAWAY-BSP-1"
+        "type": "PspReference",
+        "number": "PSP-BSP-0004"
       },
-      "sourceEntryNumber": "BSPE0016",
+      "sourceEntryNumber": "BSPE0014",
       "reference": "BSP-EXT-1",
       "referenceType": "External"
     }

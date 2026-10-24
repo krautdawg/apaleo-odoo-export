@@ -154,7 +154,7 @@ describe('injected context', () => {
 
   it.each(['APALEO_ABACUS_CONFIG', 'APALEO_BMD_CONFIG', 'APALEO_DATEV_CONFIG'])('Old variable names are not read: reads ./apaleo-odoo.config.yaml and ignores the old %s', async (variable) => {
     const ctx = createTestContext({
-      files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n' },
+      files: { 'apaleo-odoo.config.yaml': 'odoo:\n  journal: APA\n  version: 18\n' },
       env: { [variable]: '/x/old.yaml' },
     });
     expect(await runCli(['doctor'], ctx)).toBe(0);
@@ -163,17 +163,14 @@ describe('injected context', () => {
     expect(ctx.out()).not.toContain('/x/old.yaml');
   });
 
-  it('doctor prints the effective odoo values and the sentence on the rounding method when the section is present', async () => {
-    const config = 'abacus:\n  mandant: 1234\nodoo:\n  journal: APA\n  version: 19\n  roundingAccount: "2700"\n';
+  it('doctor prints the effective odoo values and the sentence on the rounding method', async () => {
+    const config = 'odoo:\n  journal: APA\n  version: 19\n  roundingAccount: "2700"\n';
     const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
     expect(await runCli(['doctor'], ctx)).toBe(0);
     expect(ctx.out()).toContain('Odoo:          version 19, company 1, journal APA, currency EUR');
     expect(ctx.out()).toContain('Tax rounding:  per_tax, rounding account 2700');
     expect(ctx.out()).toContain('must equal the rounding method of the Odoo company (Settings > Accounting > Taxes > Rounding Method: "Round per Tax")');
-
-    const without = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n' } });
-    expect(await runCli(['doctor'], without)).toBe(0);
-    expect(without.out()).not.toContain('Odoo');
+    expect(ctx.out()).not.toContain('Abacus');
   });
 
   it('output depends only on the context clock', async () => {
@@ -189,7 +186,7 @@ describe('injected context', () => {
 
   it('doctor reports a valid config and whether the secret is set', async () => {
     const ctx = createTestContext({
-      files: { 'conf/my.yaml': 'abacus:\n  mandant: 1234\n' },
+      files: { 'conf/my.yaml': 'odoo:\n  journal: APA\n  version: 18\n' },
       env: { APALEO_CLIENT_SECRET: 's3cr3t' },
     });
     expect(await runCli(['doctor', '--config', 'conf/my.yaml'], ctx)).toBe(0);
@@ -201,7 +198,7 @@ describe('injected context', () => {
   });
 
   it('doctor prints the effective schedule time zone: Europe/Zurich by default, else the configured or APALEO_ODOO_TIMEZONE zone', async () => {
-    const config = 'abacus:\n  mandant: 1234\n';
+    const config = 'odoo:\n  journal: APA\n  version: 18\n';
     const swiss = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
     expect(await runCli(['doctor'], swiss)).toBe(0);
     expect(swiss.out()).toContain('Schedule:      cadence monthly, time zone Europe/Zurich');
@@ -213,20 +210,20 @@ describe('injected context', () => {
     expect(env.out()).toContain('Schedule:      cadence monthly, time zone Europe/Vienna');
   });
 
-  it('doctor reports the example config valid with its Abacus Mandant 1234', async () => {
+  it('doctor reports the example config valid with its odoo section: journal APA, Odoo 18, no abacus section', async () => {
     const example = readFileSync(new URL('../../apaleo-odoo.config.example.yaml', import.meta.url), 'utf8');
     const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': example } });
     expect(await runCli(['doctor'], ctx)).toBe(0);
     expect(ctx.out()).toContain('Config:        valid');
-    expect(ctx.out()).toContain('Abacus:        Mandant 1234, Leitwährung CHF, vereinbart, version 2015.00');
-    expect(ctx.out()).not.toContain('BMD');
+    expect(ctx.out()).toContain('Odoo:          version 18, company 1, journal APA, currency EUR');
+    expect(ctx.out()).not.toMatch(/BMD|Abacus/);
   });
 
   it('Two properties share a Mandant: doctor shows the abacus section and warns W-MANDANT-SHARED, naming both properties', async () => {
-    const config = 'abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n';
+    const config = 'odoo:\n  journal: APA\n  version: 18\nabacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n';
     const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config } });
     expect(await runCli(['doctor'], ctx)).toBe(0);
-    expect(ctx.out()).toContain('Abacus:        Mandant 1234, Leitwährung CHF, vereinbart, version 2015.00');
+    expect(ctx.out()).toContain('Abacus:        Mandant 1234, Leitwährung CHF (read only by the Abacus writer, removed in a later version)');
     expect(ctx.out()).toContain('W-MANDANT-SHARED');
     expect(ctx.out()).toContain('the properties BSP, BS2 all book into the Abacus Mandant 1234, Geschäftsbereich 0');
     expect(ctx.out()).toContain('Belegnummern could repeat there; give each property its own Geschäftsbereich');
@@ -235,15 +232,15 @@ describe('injected context', () => {
     expect(own.out()).not.toContain('W-MANDANT-SHARED');
   });
 
-  it('doctor exits 1 for an invalid config, and for an old BMD or DATEV config naming the abacus section', async () => {
-    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n  geschaeftsbereich: -1\n' } });
+  it('doctor exits 1 for an invalid config, and for an old BMD or DATEV config naming the odoo section', async () => {
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'odoo:\n  journal: APA\n  version: 18\nabacus:\n  mandant: 1234\n  geschaeftsbereich: -1\n' } });
     expect(await runCli(['doctor'], ctx)).toBe(1);
     expect(ctx.err()).toContain('abacus.geschaeftsbereich');
     for (const [section, text] of [['datev', 'datev:\n  beraternummer: 1234567\n'], ['bmd', 'bmd:\n  buchsymbol: HO\n']] as const) {
       const old = createTestContext({ files: { 'apaleo-odoo.config.yaml': text } });
       expect(await runCli(['doctor'], old)).toBe(1);
       expect(old.err()).toContain(`${section} is not a section of apaleo-odoo`);
-      expect(old.err()).toContain('abacus section');
+      expect(old.err()).toContain('odoo section');
     }
   });
 });

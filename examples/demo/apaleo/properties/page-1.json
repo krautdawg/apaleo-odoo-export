@@ -4,23 +4,23 @@
       "id": "BSP",
       "code": "BSP",
       "isTemplate": false,
-      "name": "Hotel Beispiel",
-      "description": "Hotel Beispiel, a fabricated 20-room hotel in Switzerland for the demo",
-      "companyName": "Beispiel Hotel AG",
-      "commercialRegisterEntry": "CHE-000.000.000 (fictitious)",
-      "taxId": "CHE-000.000.000 MWST",
+      "name": "Hotel Beispiel Berlin",
+      "description": "Hotel Beispiel Berlin, a fabricated 25-room hotel in Germany for the German fixture month",
+      "companyName": "Beispiel Hotel GmbH",
+      "commercialRegisterEntry": "HRB 000000 B (fictitious)",
+      "taxId": "DE000000000",
       "location": {
-        "addressLine1": "Musterstrasse 1",
-        "postalCode": "6003",
-        "city": "Luzern",
-        "countryCode": "CH"
+        "addressLine1": "Musterstraße 1",
+        "postalCode": "10115",
+        "city": "Berlin",
+        "countryCode": "DE"
       },
       "paymentTerms": {
         "de": "Zahlbar bei Anreise",
         "en": "Payment on arrival"
       },
-      "timeZone": "Europe/Zurich",
-      "currencyCode": "CHF",
+      "timeZone": "Europe/Berlin",
+      "currencyCode": "EUR",
       "created": "2026-01-05T09:00:00Z",
       "status": "Live",
       "isArchived": false

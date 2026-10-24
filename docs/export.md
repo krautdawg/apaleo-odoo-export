@@ -52,10 +52,10 @@ Ein Zeitraum wird an Monatsgrenzen geteilt, damit jede Datei in einem Kalendermo
 
 Für jedes Hotel und jeden Monat, in dieser Reihenfolge:
 
-1. Das Hotel und jede apaleo-Zeile des Monats sind in der Leitwährung des Mandanten (`abacus.leitwaehrung`, `E-CURRENCY`). Eine Abacus-Buchung steht in der Leitwährung, ohne Fremdwährung, und das Tool rechnet nicht um. Ein Hotel in einer anderen Währung wird deshalb abgelehnt, bevor das Buchungsjournal gelesen wird.
-2. Die Kontenzuordnung lässt sich lesen; eine Zuordnung von apaleo-bmd-export, eine aus einer deutschen Einrichtung (apaleo-datev-export) und den Kontenexport eines kostenpflichtigen Connectors lehnt das Tool ab (`E-EXPORT`, siehe [troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)).
-3. Jedes im Zeitraum gebuchte Konto ist zugeordnet (`E-UNMAPPED`, `E-VAT-MISMATCH`, `E-VAT-RATE-UNKNOWN`, wie bei `mapping check --from --to`).
-4. Die Buchungsregeln und ihre MWST-Prüfung pro Zeile ([posting-rules.md](posting-rules.md)). Danach trägt jeder MWST-Code in den Buchungen des Monats genau einen Satz (`E-MWST-CODE-RATES`): Ein MWST-Code hat in der MWST-Tabelle des Mandanten an einem Datum nur einen Satz. Zwei Zeilen der Kontenzuordnung mit demselben Code und verschiedenen Sätzen sind erlaubt, solange nicht beide im selben Monat gebucht werden, zum Beispiel beim Satzwechsel am 1. Januar.
+1. Das Hotel und jede apaleo-Zeile des Monats sind in der Währung des Odoo-Unternehmens (`odoo.currency`, `E-CURRENCY`). Ein Buchungssatz in Odoo steht in dieser Währung, und das Tool rechnet nicht um. Ein Hotel in einer anderen Währung wird deshalb abgelehnt, bevor das Buchungsjournal gelesen wird.
+2. Die Kontenzuordnung lässt sich lesen; eine Zuordnung von apaleo-abacus-export, apaleo-bmd-export oder apaleo-datev-export und den Kontenexport eines kostenpflichtigen Connectors lehnt das Tool ab (`E-EXPORT`, siehe [troubleshooting.md](troubleshooting.md#einrichtung-aus-deutschland-oder-österreich-übernommen)).
+3. Jedes im Zeitraum gebuchte Konto ist zugeordnet (`E-UNMAPPED`, `E-VAT-MISMATCH`, `E-VAT-RATE-UNKNOWN`, wie bei `mapping check --from --to`). Für die Zeilen, die der Monat nutzt, warnt der Export wie `mapping check` mit `W-TAX-UNCHECKED` und `W-TAX-KZ45`; eine bekannte Steuer mit falschem Satz (`W-TAX-RATE` in `mapping check`) stoppt den Monat mit `E-TAX-RATE-WRONG`.
+4. Die Buchungsregeln und ihre Steuerprüfung pro Zeile ([posting-rules.md](posting-rules.md)). Danach trägt jede Odoo-Steuer in den Buchungen des Monats genau einen Satz (`E-TAX-RATES`): Eine Steuer hat in Odoo nur einen Satz. Zwei Zeilen der Kontenzuordnung mit derselben Steuer und verschiedenen Sätzen sind erlaubt, solange nicht beide im selben Monat gebucht werden.
 5. Plausibilitätsprüfungen auf dem Ergebnis, die nachrechnen, was die Buchungen ergeben müssen:
    - `E-CONSERVATION`: Jede apaleo-Zeile ist gebucht oder übersprungen, nach Anzahl und Betrag ohne Vorzeichen.
    - `E-ACCOUNT-BALANCE`: Pro Geschäftstag und Abacus-Konto bewegen die Buchungen das Konto genau so wie die apaleo-Zeilen, die ihm zugeordnet sind: das Konto der `CollectiveInformation` mit dem Bruttobetrag, das Konto der `SingleInformation` mit dem Bruttobetrag ohne die MWST, jedes mit seiner Seite aus `DebitCredit`. Die MWST-Buchung auf dem Steuerkonto zählt hier nicht mit. Das findet Fehler bei Soll/Haben und Vorzeichen.
@@ -68,25 +68,25 @@ Ein Monat ohne Buchungen schreibt keine Datei (`N-NO-BOOKINGS`).
 
 ### MWST im Protokoll: pro Buchung gerundet, apaleo genau
 
-Das Protokoll und der Probelauf zeigen pro MWST-Code und Satz, für die Erlöse, die Anzahlungen und die Debitorenverluste, Netto, MWST und Brutto der Buchungen, daneben die MWST von apaleo und die Differenz (MWST von apaleo minus MWST der Buchungen). Bei den Schweizer Sätzen steht die Ziffer der MWST-Abrechnung dabei (8,1 % Ziffer 303, 2,6 % Ziffer 313, 3,8 % Ziffer 343), so wie in der Demo:
+Das Protokoll und der Probelauf zeigen pro MWST-Code und Satz, für die Erlöse, die Anzahlungen und die Debitorenverluste, Netto, die Steuer pro Zeile (`apaleo per line`) und Brutto der Buchungen vor der Basisanpassung, daneben die genaue MWST von apaleo (`apaleo precise`) und die Differenz (Steuer pro Zeile minus genaue MWST). Odoos eigene Umsatzsteuer und den Nettobetrag in der Datei zeigt der Importblock pro Steuer, mit der Differenz Odoo minus apaleo. Bei den Schweizer Sätzen steht die Ziffer der MWST-Abrechnung dabei (8,1 % Ziffer 303, 2,6 % Ziffer 313, 3,8 % Ziffer 343), so wie in der Demo:
 
 ```
 Revenue and MWST per MWST-Code and rate, with the Ziffer of the MWST-Abrechnung for each Swiss rate:
-  no MWST-Code 0 %: net 80.00, tax 0.00, gross 80.00, apaleo VAT 0.00, difference 0.00 (apaleo precise 0)
-  312 2.6 % (Ziffer 313): net 15.00, tax 0.39, gross 15.39, apaleo VAT 0.39, difference 0.00 (apaleo precise 0.39)
-  313 3.8 % (Ziffer 343): net 645.61, tax 24.53, gross 670.14, apaleo VAT 24.53, difference 0.00 (apaleo precise 24.53306358)
-  311 8.1 % (Ziffer 303): net 80.00, tax 6.48, gross 86.48, apaleo VAT 6.48, difference 0.00 (apaleo precise 6.48)
+  no MWST-Code 0 %: net 80.00, apaleo per line 0.00, gross 80.00, apaleo precise 0.00 (0), difference (per line minus precise) 0.00
+  312 2.6 % (Ziffer 313): net 15.00, apaleo per line 0.39, gross 15.39, apaleo precise 0.39 (0.39), difference (per line minus precise) 0.00
+  313 3.8 % (Ziffer 343): net 645.61, apaleo per line 24.53, gross 670.14, apaleo precise 24.53 (24.53306358), difference (per line minus precise) 0.00
+  311 8.1 % (Ziffer 303): net 80.00, apaleo per line 6.48, gross 86.48, apaleo precise 6.48 (6.48), difference (per line minus precise) 0.00
 ```
 
 Ein anderer Satz bekommt keine Ziffer, zum Beispiel am aufgezeichneten Tag VIE (österreichische Sätze mit den Platzhalter-Codes der Testzuordnung), wo die Rundung pro Zeile einen Rappen ausmacht:
 
 ```
-  V10 10 %: net 77.46, tax 7.74, gross 85.20, apaleo VAT 7.75, difference 0.01 (apaleo precise 7.74545454)
+  V10 10 %: net 77.46, apaleo per line 7.74, gross 85.20, apaleo precise 7.75 (7.74545454), difference (per line minus precise) -0.01
 ```
 
 Jede Buchung trägt die Steuer ihrer apaleo-Zeile, auf den Rappen gerundet; apaleo hält die Steuer jeder Zeile genau (bis zu acht Nachkommastellen) und rundet erst die Summe des Tages. Die Differenz von ein paar Rappen ist diese Rundung, kein Fehler, und kein Grund, Buchungen zu ändern. In der MWST-Abrechnung zählt, was Abacus gebucht hat. Auf 5 Rappen rundet das Tool nie.
 
-Abacus bucht Bruttobeträge mit enthaltener MWST (`TaxIncluded` `I`); die Kontrolle ist die MWST, die im Bruttobetrag steckt (Betrag mal Satz durch 100 plus Satz, auf den Rappen gerundet). Weicht sie um einen Rappen von der Steuer aus apaleo ab, meldet der Export `W-VAT-ROUNDING`, und die Buchung behält die Steuer von apaleo.
+Odoo rechnet die Umsatzsteuer selbst aus dem Nettobetrag jeder Zeile und ihrer Steuer. Wie das Tool die Nettobeträge so wählt, dass Odoos Steuer den Bruttobetrag aus apaleo erreicht, steht in [odoo-format.md](odoo-format.md#basisanpassung-warum-manche-nettobeträge-um-einen-cent-abweichen).
 
 ## Ausgabeordner
 

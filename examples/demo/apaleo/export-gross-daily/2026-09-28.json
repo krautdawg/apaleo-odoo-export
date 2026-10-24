@@ -1,37 +1,91 @@
 {
   "transactions": [
     {
-      "timestamp": "2026-09-28T14:00:00Z",
+      "timestamp": "2026-09-28T22:10:00Z",
       "date": "2026-09-28",
       "debitedAccount": {
-        "name": "LossOfAccountsReceivable for Reservation BSP-FOXTROT-1",
-        "number": "BSP-FOXTROT-1_LossOfAccountsReceivable",
-        "parentNumber": "6900",
-        "type": "LossOfAccountsReceivable"
-      },
-      "creditedAccount": {
-        "name": "Receivables for Reservation BSP-FOXTROT-1",
-        "number": "BSP-FOXTROT-1_Receivables",
+        "name": "Receivables for Reservation BSP-ECHO-1",
+        "number": "BSP-ECHO-1_Receivables",
         "parentNumber": "1200",
         "type": "Receivables"
       },
-      "command": "PostToLossOfAccountsReceivables",
-      "currency": "CHF",
-      "grossAmount": 120,
-      "netAmount": 115.60693642,
+      "creditedAccount": {
+        "name": "Revenues Other (19%)",
+        "number": "RevenueOther_Normal:19.00",
+        "parentNumber": "RevenueOther",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 4.98,
+      "netAmount": 4.18487395,
       "taxes": [
         {
-          "type": "Special",
-          "percent": 3.8,
-          "amount": 4.39306358
+          "type": "Normal",
+          "percent": 19,
+          "amount": 0.79512605
         }
       ],
       "receipt": {
         "type": "Reservation",
-        "number": "BSP-FOXTROT-1-V1"
+        "number": "BSP-ECHO-1-V1"
       },
-      "sourceEntryNumber": "BSPE0021",
-      "reference": "BSP-FOXTROT-1",
+      "sourceEntryNumber": "BSPE0018",
+      "reference": "BSP-ECHO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-28T22:15:00Z",
+      "date": "2026-09-28",
+      "debitedAccount": {
+        "name": "MasterCard Credit Card Payment",
+        "number": "1104",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ECHO-1 (Offset)",
+        "number": "BSP-ECHO-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 4.98,
+      "netAmount": 4.98,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-BSP-0005"
+      },
+      "sourceEntryNumber": "BSPE0019",
+      "reference": "BSP-ECHO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-28T22:15:00Z",
+      "date": "2026-09-28",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ECHO-1",
+        "number": "BSP-ECHO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-ECHO-1 (Offset)",
+        "number": "BSP-ECHO-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -4.98,
+      "netAmount": -4.98,
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-BSP-0005"
+      },
+      "sourceEntryNumber": "BSPE0019",
+      "reference": "BSP-ECHO-1",
       "referenceType": "Guest"
     }
   ]

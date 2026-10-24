@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { configSchema } from '../../src/core/config.js';
 import type { LocalDate } from '../../src/core/date.js';
-import { UserError } from '../../src/core/errors.js';
 import type { TargetFileMeta, TargetWriter } from '../../src/export/index.js';
 import { createOdooTarget, odooMovements, odooTarget, OdooValidationError, renderOdooCsv, settingsFromConfig, type OdooBooking } from '../../src/odoo/index.js';
 import { allowance, depositRefund, drinks, odooOptions, payment, revenue, specDay, vat } from '../helpers/odoo.js';
@@ -10,7 +9,7 @@ const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
 
 /** A config with the given `odoo` section (journal APA, version 18 by default) and properties. */
 function config(odoo: Record<string, unknown> = {}, properties: Record<string, unknown>[] = []) {
-  return configSchema.parse({ abacus: { mandant: 1234 }, odoo: { journal: 'APA', version: 18, ...odoo }, properties });
+  return configSchema.parse({ odoo: { journal: 'APA', version: 18, ...odoo }, properties });
 }
 
 function meta(overrides: Partial<TargetFileMeta> = {}, from: LocalDate = '2026-09-01', to: LocalDate = '2026-09-30'): TargetFileMeta {
@@ -76,14 +75,29 @@ describe('odooTarget', () => {
     const own = config({ companyId: 3, currency: 'CHF', version: 19, roundingAccount: '2700' }, [{ id: 'BSP' }, { id: 'BS2', journal: 'APA2' }]);
     expect(settingsFromConfig({ config: own, propertyId: 'BSP' })).toEqual({ companyId: 3, currency: 'CHF', taxRounding: 'per_tax', version: 19, journal: 'APA', roundingAccount: '2700' });
     expect(settingsFromConfig({ config: own, propertyId: 'BS2' }).journal).toBe('APA2');
-    expect(odooTarget.manifestFields(meta({ config: own, propertyId: 'BS2' }))).toEqual({ odooCompanyId: 3, odooJournal: 'APA2' });
+    expect(odooTarget.manifestFields(meta({ config: own, propertyId: 'BS2' }), [])).toEqual({ odooCompanyId: 3, odooJournal: 'APA2', entries: 0, lines: 0, debitTotalCents: 0, vatByTax: [] });
   });
 
-  it('refuses to render without an odoo section, naming the keys to set', () => {
-    const noOdoo = configSchema.parse({ abacus: { mandant: 1234 } });
-    expect(() => odooTarget.render([], meta({ config: noOdoo }))).toThrow(UserError);
-    expect(() => odooTarget.render([], meta({ config: noOdoo }))).toThrow(/odoo\.journal and odoo\.version/);
-    expect(odooTarget.currency(noOdoo)).toBe('EUR');
+  it('Files after a run: the manifest fields carry entries, lines, the debit total and Odoo\'s VAT per tax with its base', () => {
+    expect(odooTarget.manifestFields(meta(), specDay())).toEqual({
+      odooCompanyId: 1,
+      odooJournal: 'APA',
+      entries: 1,
+      lines: 3,
+      debitTotalCents: 14_380,
+      vatByTax: [
+        { tax: 'account.1_tax_ust_19_skr03', ratePercent: 19, baseCents: 2_000, vatCents: 380 },
+        { tax: 'account.1_tax_ust_7_skr03', ratePercent: 7, baseCents: 11_215, vatCents: 785 },
+      ],
+    });
+  });
+
+  it('lists per line of the file the apaleo entries and their receipts for the protocol', () => {
+    const bookings = specDay().map((booking, i) => ({ ...booking, receipt: `R-${i + 1}` }));
+    const details = odooTarget.protocolDetails(bookings, meta());
+    expect(details[0]).toBe('apaleo entries per line of the file (entry number and receipt or reference):');
+    expect(details.slice(1).every((line) => /^ {2}2026-09-14 \d+ .+ (debit|credit) \d+\.\d\d: .+/.test(line))).toBe(true);
+    expect(details.join('\n')).toMatch(/\(R-1\)/);
   });
 
   it('Currency from the config: odoo.currency CHF', () => {
@@ -126,7 +140,8 @@ describe('odooTarget', () => {
     expect(text).toContain('Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR');
     expect(text).toContain('Rounding method: per_line; must equal Settings > Accounting > Taxes > Rounding Method ("Round per Line")');
     expect(text).toContain('Taxes: account.1_tax_ust_19_skr03 (19 %, Kz 81), account.1_tax_ust_7_skr03 (7 %, Kz 86)');
-    expect(text).toContain('Odoo VAT against apaleo VAT: 19 % Odoo 3.80, apaleo 3.80, difference 0.00; 7 % Odoo 7.85, apaleo 7.85, difference 0.00');
+    expect(text).toContain("Odoo VAT against apaleo's tax per line: 19 % Odoo 3.80, apaleo per line 3.80, difference (Odoo minus apaleo) 0.00; 7 % Odoo 7.85, apaleo per line 7.85, difference (Odoo minus apaleo) 0.00");
+    expect(text).toContain('Base and VAT per tax: account.1_tax_ust_19_skr03 19 % (Kz 81): base in the file 20.00, Odoo VAT 3.80, apaleo per line 3.80, difference (Odoo minus apaleo) 0.00; account.1_tax_ust_7_skr03 7 % (Kz 86): base in the file 112.15, Odoo VAT 7.85, apaleo per line 7.85, difference (Odoo minus apaleo) 0.00');
     expect(text).toContain('Rounding lines: 0');
     expect(text).toContain('only the target company in the company switcher, Accounting > Journal Entries > gear > Import records, upload the file, Test, Import');
     expect(text).toContain('every entry is a draft, no "Automatic Balancing Line" on the suspense account, the tax per rate equals this protocol; then post');

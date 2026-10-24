@@ -1,18 +1,16 @@
-import { resolve } from 'node:path';
 import { UsageError, UserError } from '../../core/errors.js';
 import {
+  TEMPLATE_NAMES,
   VAT_ACCOUNT_TYPES,
   appendRows,
-  carryOverAccounts,
   loadTemplate,
   mappingHeaderComment,
   newRows,
-  parseConnectorExport,
   parseMapping,
   renderMappingFile,
   suggestRows,
-  type ConnectorAccount,
   type MappingRowValues,
+  type TemplateName,
   type TemplateSettings,
 } from '../../mapping/index.js';
 import { CONFIG_OPTION, EXIT_OK, stringOption, type Command } from '../command.js';
@@ -22,40 +20,35 @@ import { mappingPath } from '../mapping-file.js';
 import { createSource, loadCommandConfig } from '../source.js';
 import { formatTable } from '../table.js';
 
-/** The templates `--template` accepts. */
-const TEMPLATES = ['kmu-hotel'] as const;
-
 export const initMapping: Command = {
   name: 'init-mapping',
-  summary: 'Write a mapping CSV for a property from its apaleo chart of accounts and the KMU hotel template',
-  usage: '--property <id> [--template kmu-hotel] [--out <file>] [--update] [--accounts-from <file>] [--config <path>]',
+  summary: 'Write a mapping CSV for a property from its apaleo chart of accounts and the SKR03 or SKR04 hotel template for Odoo',
+  usage: '--property <id> --template skr03-hotel|skr04-hotel [--out <file>] [--update] [--config <path>]',
   options: {
     property: { type: 'string', valueName: '<id>', description: 'apaleo property id, for example BSP' },
     template: {
       type: 'string',
-      valueName: '<kmu-hotel>',
-      description: 'Template of the suggestions: kmu-hotel, the Schweizer Kontenrahmen KMU for hotels (default)',
+      valueName: '<skr03-hotel|skr04-hotel>',
+      description: 'Template of the suggestions: skr03-hotel or skr04-hotel, the hotel accounts and taxes of Odoo\'s German chart SKR03 or SKR04',
     },
     out: { type: 'string', valueName: '<file>', description: 'Mapping file (default: properties[].mapping or ./mapping-<id>.csv)' },
     update: { type: 'boolean', description: 'Append rows for new apaleo accounts to an existing file; existing rows stay unchanged' },
-    'accounts-from': {
-      type: 'string',
-      valueName: '<file>',
-      description: 'Take the Abacus accounts and Kostenstellen from the account export of a paid connector',
-    },
     ...CONFIG_OPTION,
   },
   async run(args, ctx) {
     const propertyId = stringOption(args.values, 'property');
     if (!propertyId) throw new UsageError('init-mapping needs --property <id>. Run "apaleo-odoo properties" to list them.');
-    const template = stringOption(args.values, 'template') ?? 'kmu-hotel';
-    if (!(TEMPLATES as readonly string[]).includes(template)) {
-      throw new UsageError(`Unknown template "${template}". --template must be ${TEMPLATES.join(' or ')} (the Schweizer Kontenrahmen KMU for hotels).`);
+    const template = stringOption(args.values, 'template');
+    if (template === undefined) {
+      throw new UsageError(`init-mapping needs --template ${TEMPLATE_NAMES.join(' or ')}: the chart of accounts (SKR03 or SKR04) of the Odoo company.`);
+    }
+    if (!(TEMPLATE_NAMES as readonly string[]).includes(template)) {
+      throw new UsageError(`Unknown template "${template}". --template must be ${TEMPLATE_NAMES.join(' or ')} (the hotel templates for Odoo with SKR03 or SKR04).`);
     }
     const update = args.values.update === true;
 
     const loaded = await loadCommandConfig(args.values, ctx);
-    const settings: TemplateSettings = { mwstCodes: loaded.config.abacus.mwstCodes };
+    const settings: TemplateSettings = { version: loaded.config.odoo.version };
     const path = mappingPath(loaded, propertyId, stringOption(args.values, 'out'), ctx.cwd);
     const existing = await readIfExists(ctx, path);
     if (existing && !update) {
@@ -64,26 +57,20 @@ export const initMapping: Command = {
           'or choose another file with --out.',
       );
     }
-    // Read the files before calling apaleo, so a broken file fails fast.
+    // Read the file before calling apaleo, so a broken file fails fast.
     const mapping = existing ? parseMapping(existing, { path }) : undefined;
-    const connector = await readConnectorExport(ctx, stringOption(args.values, 'accounts-from'));
 
     const accounts = await createSource(loaded, ctx).getChartOfAccounts(propertyId);
-    const kmu = await loadTemplate();
-    let rows = suggestRows(accounts, kmu, settings);
-    if (connector) {
-      const carried = carryOverAccounts(rows, connector.accounts, accounts, kmu, settings);
-      rows = carried.rows;
-      printCarriedOver(ctx, connector.path, carried.carried, carried.notInChart, carried.withoutRow);
-    }
+    const rules = await loadTemplate(template as TemplateName);
+    const rows = suggestRows(accounts, rules, settings);
 
     if (!existing || !mapping) {
-      await writeFileAtomic(ctx, path, renderMappingFile([mappingHeaderComment(kmu, settings)], rows));
-      ctx.stdout.write(`Wrote ${path} from template ${kmu.id} for property ${propertyId}.\n`);
+      await writeFileAtomic(ctx, path, renderMappingFile([mappingHeaderComment(rules, settings)], rows));
+      ctx.stdout.write(`Wrote ${path} from template ${rules.id} for property ${propertyId} and Odoo ${settings.version}.\n`);
       printCounts(ctx, rows);
       ctx.stdout.write(
-        'Every row is a suggestion (Vorschlag, ungeprüft): have your Treuhänder check the file, fill in the empty Abacus accounts, ' +
-          'then run "apaleo-odoo mapping check".\n',
+        'Every row is a suggestion (Vorschlag, ungeprüft): have your Steuerberater check the file, compare the Kasse and Geldtransit codes ' +
+          'with the Kontenplan of the Odoo company, fill in the empty Odoo accounts, then run "apaleo-odoo mapping check".\n',
       );
       return EXIT_OK;
     }
@@ -100,42 +87,13 @@ export const initMapping: Command = {
   },
 };
 
-async function readConnectorExport(ctx: CommandContext, flag: string | undefined): Promise<{ path: string; accounts: ConnectorAccount[] } | undefined> {
-  if (flag === undefined) return undefined;
-  const path = resolve(ctx.cwd, flag);
-  const bytes = await readIfExists(ctx, path);
-  if (!bytes) throw new UserError(`No account export at ${path} (--accounts-from).`);
-  return { path, accounts: parseConnectorExport(bytes, path) };
-}
-
-function printCarriedOver(
-  ctx: CommandContext,
-  path: string,
-  carried: number,
-  notInChart: readonly ConnectorAccount[],
-  withoutRow: readonly ConnectorAccount[],
-): void {
-  ctx.stdout.write(`Took the Abacus account and Kostenstelle of ${carried} apaleo account(s) from the account export ${path}; MWST-Codes come from the template.\n`);
-  const list = (accounts: readonly ConnectorAccount[]) =>
-    formatTable(accounts.map((a) => [a.apaleoAccount, a.apaleoType, a.apaleoName, a.abacusAccount]), [], '  ');
-  if (notInChart.length > 0) {
-    ctx.stdout.write(`${notInChart.length} account(s) of the export are not in the apaleo chart of accounts and were not taken over:\n${list(notInChart)}`);
-  }
-  if (withoutRow.length > 0) {
-    ctx.stdout.write(
-      `${withoutRow.length} account(s) of the export are parent accounts without a row of their own (the wildcard rows map their sub-accounts by rate) ` +
-        `and were not taken over:\n${list(withoutRow)}`,
-    );
-  }
-}
-
 function printCounts(ctx: CommandContext, rows: readonly MappingRowValues[]): void {
   const needed = rows.filter((row) => !VAT_ACCOUNT_TYPES.has(row.apaleoType));
-  const mapped = needed.filter((row) => row.abacusAccount !== '').length;
+  const mapped = needed.filter((row) => row.odooAccount !== '').length;
   const vatRows = rows.length - needed.length;
   ctx.stdout.write(
     `${rows.length} rows: ${mapped} mapped, ${needed.length - mapped} unmapped` +
-      (vatRows > 0 ? `, ${vatRows} VAT account row(s) that need no Abacus account` : '') +
+      (vatRows > 0 ? `, ${vatRows} VAT account row(s) that need no Odoo account` : '') +
       '.\n',
   );
 }
@@ -147,7 +105,7 @@ function printAdded(ctx: CommandContext, added: readonly MappingRowValues[]): vo
     row.apaleoType,
     row.apaleoName,
     row.apaleoVatPercent === '' ? '' : `${row.apaleoVatPercent} %`,
-    row.abacusAccount || '(unmapped)',
+    row.odooAccount || '(unmapped)',
   ]);
   ctx.stdout.write(formatTable(rows, [], '  '));
   printCounts(ctx, added);
