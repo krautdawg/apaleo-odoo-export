@@ -11,8 +11,8 @@ const MWST_CODE = /^[A-Za-z0-9]{1,3}$/;
 const MAX_RATE = 99.99;
 /**
  * How far apaleo's tax of one line may lie from the inclusive tax of its gross
- * amount: one Rappen, the rounding difference the posting rules report as
- * `W-VAT-ROUNDING` (research open question 5). Every booking is one apaleo line.
+ * amount: one Rappen, the rounding difference of a per-line tax (research open
+ * question 5). Every booking is one apaleo line.
  */
 export const TAX_RATE_TOLERANCE_CENTS = 1;
 

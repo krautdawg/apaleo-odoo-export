@@ -31,20 +31,11 @@ const hundredths = (ratePercent: number) => BigInt(Math.round(ratePercent * 100)
 /**
  * The VAT contained in a gross amount in cents at a rate: `gross × rate / (100 + rate)`,
  * rounded half away from zero, with the sign of `grossCents`. Exact integer
- * arithmetic, so no floating-point noise can move a half Rappen. The tax of a
- * deposit release without `taxes[]` and with a chart rate only (design decision 4).
+ * arithmetic, so no floating-point noise can move a half cent. The tax of a
+ * deposit release without `taxes[]` and with a chart rate only.
  */
 export function taxFromGross(grossCents: number, ratePercent: number): number {
   const rate = hundredths(ratePercent);
   const cents = roundedQuotient(BigInt(Math.abs(grossCents)) * rate, 10_000n + rate);
   return grossCents < 0 && cents !== 0 ? -cents : cents;
-}
-
-/**
- * Abacus' check value of a booking with an inclusive gross amount (`TaxIncluded` `I`):
- * the tax contained in it, `round(|gross| × rate / (100 + rate))`, unsigned. It may
- * differ by one Rappen from apaleo's tax rounded on its own (`W-VAT-ROUNDING`).
- */
-export function inclusiveCheckTax(grossCents: number, ratePercent: number): number {
-  return Math.abs(taxFromGross(grossCents, ratePercent));
 }

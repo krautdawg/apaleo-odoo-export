@@ -4,7 +4,7 @@ import type { PeriodPart } from './period.js';
 
 /** What a target needs to name and render the file of one property and period. */
 export interface TargetFileMeta {
-  /** The whole config: a target reads its own section (for example `abacus`). */
+  /** The whole config: a target reads its own section (for example `odoo`). */
   config: Config;
   propertyId: string;
   part: PeriodPart;
@@ -27,7 +27,7 @@ export interface RenderedFile {
  * `sameContent`.
  */
 export interface TargetWriter<B> {
-  /** Short id, for example `abacus`. */
+  /** Short id, for example `odoo`. */
   readonly id: string;
   /**
    * The one currency (ISO 4217) every amount of the file is booked in, for this
@@ -54,24 +54,30 @@ export interface TargetWriter<B> {
    */
   movements(booking: B): [account: string, cents: number][];
   /**
-   * The import block of the protocol and the dry run: what the Treuhänder checks
+   * The import block of the protocol and the dry run: what the accountant checks
    * before importing the file (its name, number of lines, the settings of the
    * program it is imported into). One string per line, the first a title.
    */
   importBlock(bookings: readonly B[], meta: TargetFileMeta): string[];
   /**
+   * Extra lines for the protocol only, after the summary (for Odoo: per line of
+   * the file, the apaleo entries and receipts it nets). One string per line.
+   */
+  protocolDetails?(bookings: readonly B[], meta: TargetFileMeta): string[];
+  /**
    * The line of the tax return the tax at `ratePercent` is declared in, as the
-   * summary shows it after the MWST-Code and rate (for example `Ziffer 343`), or
-   * undefined for a rate the target knows no line for.
+   * summary shows it after the tax and rate (for example `Kz 86`), or undefined
+   * for a rate the target knows no line for.
    */
   taxReturnLine(ratePercent: number): string | undefined;
   /**
    * The target's own fields of the file's manifest entry: where the file books
-   * into in the target program (for Abacus the Mandant and Geschäftsbereich).
-   * Read from the same settings as `importBlock`, so the manifest and the
-   * protocol name the same unit. A target without such settings returns `{}`.
+   * into in the target program (for Odoo the company and journal) and what the
+   * file holds (for Odoo entries, lines, debit total and VAT per tax). Read from
+   * the same settings as `importBlock`, so the manifest and the protocol name
+   * the same unit. A target without such fields returns `{}`.
    */
-  manifestFields(meta: TargetFileMeta): TargetManifestFields;
+  manifestFields(meta: TargetFileMeta, bookings: readonly B[]): TargetManifestFields;
   /** The target's own words in the refusals of the output folder logic, which names no accounting program. */
   readonly advice: TargetAdvice;
 }
@@ -110,6 +116,13 @@ export interface TargetManifestFields {
   odooCompanyId?: number;
   /** The code of the Odoo journal the file is imported into. */
   odooJournal?: string;
+  /** The number of journal entries (one per business day) and of their lines. */
+  entries?: number;
+  lines?: number;
+  /** The sum of the debit column of the file, in cents. */
+  debitTotalCents?: number;
+  /** Odoo's modelled VAT per tax and rate in cents, signed as owed (a refund side reduces it), with the base of the tax. */
+  vatByTax?: { tax: string; ratePercent: number; baseCents: number; vatCents: number }[];
 }
 
 /** The part of a target the output folder logic uses. */

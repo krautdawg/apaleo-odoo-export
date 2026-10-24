@@ -5,17 +5,17 @@ import type { AccountRef, LedgerLine, LedgerTax } from '../core/source.js';
 import { VAT_RELEVANT_TYPES, type MappingRow } from '../mapping/index.js';
 import { accountText, lineFinding, percentText, rowText } from './describe.js';
 import { depositDirection, inferredTaxCents, isUntaxedRelease, type ReleaseRate } from './release.js';
-import { inclusiveCheckTax, taxPercents, taxTotal } from './taxes.js';
+import { taxPercents, taxTotal } from './taxes.js';
 
 /** One side of a ledger line with its mapping row. */
 export interface PostedSide {
   ref: AccountRef;
   row: MappingRow;
-  /** The row's MWST-Code; undefined without one. */
-  mwstCode: string | undefined;
-  /** The MWST rate Abacus books on the row (`mwst_percent`, 0 without MWST-Code). */
+  /** The row's Odoo tax; undefined without one. */
+  tax: string | undefined;
+  /** The VAT rate Odoo books on the row (`tax_percent`, 0 without tax). */
   rate: number;
-  /** The row has an MWST-Code: this side is the VAT side and goes into `SingleInformation`. */
+  /** The row has an Odoo tax: this side is the VAT side, a base line with the tax. */
   vat: boolean;
 }
 
@@ -34,11 +34,9 @@ export interface GuardResult {
   findings: Finding[];
   /** True when a finding blocks the booking. */
   failed: boolean;
-  /** The tax the booking carries, unsigned: apaleo's tax rounded to Rappen, or the inferred tax of a deposit line. */
-  steuerCents: number;
-  /** Abacus' check value minus the booked tax, signed like the line, when it is a one-Rappen rounding difference. */
-  roundingCents: number;
-  /** The booked tax differs by one cent from the VAT apaleo moved (a `PostPrepaymentVat` pair): the VAT check allows that cent. */
+  /** apaleo's tax of the booking, unsigned: its tax rounded to cents, or the inferred tax of a deposit line. */
+  taxCents: number;
+  /** The tax differs by one cent from the VAT apaleo moved (a `PostPrepaymentVat` pair): the VAT check allows that cent. */
   apaleoRounding: boolean;
 }
 
@@ -52,19 +50,18 @@ function sideText(side: PostedSide): string {
 }
 
 /**
- * The VAT consistency guard (design decision 6). Abacus receives the tax
- * explicitly with an inclusive gross amount, so the guard checks that the
- * VAT-side row books apaleo's rate, that the tax has the sign of the gross
- * amount, and that Abacus' own check value of the booking
- * (`round(|gross| × rate / (100 + rate))`) is within one Rappen of the tax.
- * The tax is apaleo's per-line tax rounded half away from zero; for an untaxed
- * deposit line it comes from the inferred rate (`PostPrepaymentVat` pair or
- * chart). Sub-Rappen digits of apaleo's tax never cause a finding, and nothing
- * is rounded to 5 Rappen.
+ * The VAT consistency guard (design decision 4). Odoo computes the tax itself
+ * from the net base of the VAT side, so the guard checks that the VAT-side row
+ * books apaleo's rate, that the tax has the sign of the gross amount, and that
+ * an untaxed line carries no tax above 0 %. The tax of the booking is apaleo's
+ * per-line tax rounded half away from zero; for an untaxed deposit line it comes
+ * from the inferred rate (`PostPrepaymentVat` pair or chart). The cent
+ * differences between Odoo's tax and apaleo's come only from Odoo's rounding
+ * and are reported by the writer's base fitting.
  */
 export function guardVat(input: GuardInput): GuardResult {
   const { line, taxes, release, vatSide } = input;
-  const result: GuardResult = { findings: [], failed: false, steuerCents: 0, roundingCents: 0, apaleoRounding: false };
+  const result: GuardResult = { findings: [], failed: false, taxCents: 0, apaleoRounding: false };
   const fail = (code: string, message: string) => {
     result.findings.push(lineFinding(code, line, message));
     result.failed = true;
@@ -82,8 +79,8 @@ export function guardVat(input: GuardInput): GuardResult {
         line,
         `it settles a deposit without a VAT amount; the tool books it at ${percentText(release.rate)}, the VAT rate of account ` +
           `${release.account} in the apaleo chart of accounts, with no PostPrepaymentVat line to check the amount against` +
-          `${release.rate === 0 ? ', so the booking carries no tax' : `, and computes the tax ${formatCents(result.steuerCents)} from the gross amount`}. ` +
-          'Have your Treuhänder check the deposit bookings',
+          `${release.rate === 0 ? ', so the booking carries no tax' : `, and computes the tax ${formatCents(result.taxCents)} from the gross amount`}. ` +
+          'Have your Steuerberater check the deposit bookings',
       ),
     );
     return result;
@@ -97,22 +94,22 @@ export function guardVat(input: GuardInput): GuardResult {
       : `${isUntaxedRelease(line) ? 'settles' : 'books'} a deposit taxed at ${percentText(expected)}${source}`;
     return fail(
       'E-VAT-MISSING',
-      `it ${what}, but neither side has an MWST-Code (debit on ${rowText(input.debit.row)}, credit on ${rowText(input.credit.row)}), so Abacus books no MWST. ` +
-        `Change the row for ${sideText(fix)} to an Abacus account with the MWST-Code and ${percentText(expected)}`,
+      `it ${what}, but neither side has an Odoo tax (debit on ${rowText(input.debit.row)}, credit on ${rowText(input.credit.row)}), so Odoo computes no VAT. ` +
+        `Change the row for ${sideText(fix)} to an Odoo account with the tax of ${percentText(expected)}`,
     );
   }
   if (!taxed && !release && vatSide.rate > 0) {
     return fail(
       'E-VAT-UNEXPECTED',
-      `apaleo charged no VAT on it, but ${sideText(vatSide)} books ${percentText(vatSide.rate)} with the MWST-Code ${vatSide.mwstCode}. ` +
-        'Change that row to an Abacus account without MWST, or check the VAT setting of the account in apaleo',
+      `apaleo charged no VAT on it, but ${sideText(vatSide)} books ${percentText(vatSide.rate)} with the Odoo tax ${vatSide.tax}. ` +
+        'Change that row to an Odoo account without tax, or check the VAT setting of the account in apaleo',
     );
   }
   if (vatSide.rate !== expected) {
     return fail(
       'E-VAT-RATE',
       `apaleo taxed it at ${percentText(expected)}${source}, but ${sideText(vatSide)} books ${percentText(vatSide.rate)}. ` +
-        `Change that row to an Abacus account and MWST-Code for ${percentText(expected)} (a period taxed at other rates needs its own mapping)`,
+        `Change that row to an Odoo account and tax for ${percentText(expected)} (a period taxed at other rates needs its own mapping)`,
     );
   }
 
@@ -121,60 +118,42 @@ export function guardVat(input: GuardInput): GuardResult {
     if (apaleoVat !== 0 && Math.sign(apaleoVat) !== Math.sign(line.grossCents)) {
       return fail('E-VAT-SIGN', `the VAT ${formatCents(apaleoVat)} and the gross amount have opposite signs. ${REPORT_PROBLEM_HINT}`);
     }
-    result.steuerCents = Math.abs(apaleoVat);
+    result.taxCents = Math.abs(apaleoVat);
   } else if (release) {
-    result.steuerCents = inferredTaxCents(line, release);
+    result.taxCents = inferredTaxCents(line, release);
   }
   if (release?.kind === 'pair' && !checkPair(result, line, release)) return result;
-  if (result.findings.length === 0 && expected > 0) checkInclusiveRounding(result, line, expected);
-  return result.failed ? result : inferred();
+  return inferred();
 }
 
 /**
  * The tax computed on all untaxed deposit lines of the day and reference
- * against the VAT apaleo moved on their `PostPrepaymentVat` lines; the rounding
- * difference is counted on the first line only. False when the booking fails.
+ * against the VAT apaleo moved on their `PostPrepaymentVat` lines. A difference
+ * of one cent (rounding several lines) is accepted and counted on the first
+ * line; a larger one fails the booking.
  */
 function checkPair(result: GuardResult, line: LedgerLine, release: Extract<ReleaseRate, { kind: 'pair' }>): boolean {
-  const first = release.releaseEntries[0] === line.sourceEntryNumber;
   const difference = release.releaseVatCents - release.pairVatCents;
-  if (difference === 0 || (Math.abs(difference) <= 1 && !first)) return true;
-  const entries = release.releaseEntries.length > 1 ? ` (together with ${release.releaseEntries.filter((e) => e !== line.sourceEntryNumber).join(', ')})` : '';
-  const reversed = depositDirection(line) > 0;
-  const describe =
-    `the tax contained in the deposit ${isUntaxedRelease(line) ? 'release' : 'line'}${entries} is ${formatCents(Math.abs(release.releaseVatCents))}, ` +
-    `but apaleo ${reversed ? 'reversed' : 'booked'} ${formatCents(Math.abs(release.pairVatCents))} on the PostPrepaymentVat line ${release.pairEntries.join(', ')}`;
-  // `difference` is signed in the direction of the VAT movement; as magnitudes it is that direction times the difference.
-  const magnitude = depositDirection(line) * difference;
-  if (Math.abs(magnitude) === 1) {
-    result.apaleoRounding = true;
-    result.roundingCents += Math.sign(line.grossCents) * magnitude;
-    result.findings.push(lineFinding('W-VAT-ROUNDING', line, `${describe}: a rounding difference of 0.01, added to the rounding total of the summary`));
+  if (difference === 0) return true;
+  if (Math.abs(difference) === 1) {
+    result.apaleoRounding = release.releaseEntries[0] === line.sourceEntryNumber;
     return true;
   }
-  result.findings.push(lineFinding('E-VAT-AMOUNT', line, `${describe} (difference ${formatCents(magnitude)}). ${REPORT_PROBLEM_HINT}`));
+  const entries = release.releaseEntries.length > 1 ? ` (together with ${release.releaseEntries.filter((e) => e !== line.sourceEntryNumber).join(', ')})` : '';
+  const reversed = depositDirection(line) > 0;
+  // `difference` is signed in the direction of the VAT movement; as magnitudes it is that direction times the difference.
+  const magnitude = depositDirection(line) * difference;
+  result.findings.push(
+    lineFinding(
+      'E-VAT-AMOUNT',
+      line,
+      `the tax contained in the deposit ${isUntaxedRelease(line) ? 'release' : 'line'}${entries} is ${formatCents(Math.abs(release.releaseVatCents))}, ` +
+        `but apaleo ${reversed ? 'reversed' : 'booked'} ${formatCents(Math.abs(release.pairVatCents))} on the PostPrepaymentVat line ${release.pairEntries.join(', ')} ` +
+        `(difference ${formatCents(magnitude)}). ${REPORT_PROBLEM_HINT}`,
+    ),
+  );
   result.failed = true;
   return false;
-}
-
-/** Abacus' check value of an inclusive booking, `round(|gross| × rate / (100 + rate))`, against the tax it carries. */
-function checkInclusiveRounding(result: GuardResult, line: LedgerLine, rate: number): void {
-  const gross = Math.abs(line.grossCents);
-  const check = inclusiveCheckTax(gross, rate);
-  const difference = check - result.steuerCents;
-  if (difference === 0) return;
-  const describe =
-    `Abacus checks the MWST as ${percentText(rate)} contained in the gross amount ${formatCents(gross)}, which is ${formatCents(check)}, ` +
-    `but the booking carries apaleo's tax ${formatCents(result.steuerCents)}`;
-  if (Math.abs(difference) === 1) {
-    result.roundingCents += Math.sign(line.grossCents) * difference;
-    result.findings.push(
-      lineFinding('W-VAT-ROUNDING', line, `${describe}: a rounding difference of 0.01. The booking keeps apaleo's tax; the difference is added to the rounding total of the summary`),
-    );
-    return;
-  }
-  result.findings.push(lineFinding('E-VAT-AMOUNT', line, `${describe} (difference ${formatCents(difference)}). ${REPORT_PROBLEM_HINT}`));
-  result.failed = true;
 }
 
 /** Where an inferred release rate comes from, for messages; empty for a taxed line. */

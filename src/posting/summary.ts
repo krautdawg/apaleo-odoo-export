@@ -1,14 +1,13 @@
-import { abacusMovements } from '../abacus/movements.js';
-import type { AbacusBooking } from '../abacus/types.js';
 import { depositMovement } from '../core/deposits.js';
 import type { Finding } from '../core/findings.js';
 import { negateDecimal, sumDecimals } from '../core/money.js';
 import type { LedgerLine } from '../core/source.js';
+import { odooMovements } from '../odoo/target.js';
 import type { ApaleoVat } from './apaleo-vat.js';
 import type { PostedSide } from './guard.js';
-import { SKIP_REASONS, type LevyTotal, type PostingSummary, type SkipReason, type VatTotal } from './types.js';
+import { SKIP_REASONS, type LevyTotal, type PostedBooking, type PostingSummary, type SkipReason, type VatTotal } from './types.js';
 
-/** Abacus account numbers in numeric order: shorter before longer numbers. */
+/** Odoo account codes in numeric order: shorter before longer codes. */
 const byNumber = (a: string, b: string) => a.length - b.length || a.localeCompare(b);
 
 const CITY_TAX_TYPES: ReadonlySet<string> = new Set(['CityTaxes', 'SecondCityTax', 'GuestLevies']);
@@ -20,28 +19,19 @@ function creditedAmount(line: LedgerLine, types: ReadonlySet<string> | string): 
 }
 
 /**
- * The MWST of the bookings per MWST-Code and rate, signed as owed (a credited Single account owes it),
- * so a write-off or an allowance reduces it; by rate, then code.
+ * The gross a side moves, signed as credited (owed), and the tax and net of
+ * that gross when the side is the booking's VAT side: apaleo's rounded tax with
+ * the sign of the gross, and the gross minus it (the net passed to Odoo).
  */
-export function taxByMwstCode(bookings: readonly Pick<AbacusBooking, 'tax'>[]): { mwstCode: string; ratePercent: number; taxCents: number }[] {
-  const totals = new Map<string, { mwstCode: string; ratePercent: number; taxCents: number }>();
-  for (const { tax } of bookings) {
-    if (!tax) continue;
-    const key = `${tax.mwstCode}\u0000${tax.percent}`;
-    const entry = totals.get(key) ?? { mwstCode: tax.mwstCode, ratePercent: tax.percent, taxCents: 0 };
-    entry.taxCents -= tax.taxCents;
-    totals.set(key, entry);
-  }
-  return [...totals.values()].sort((a, b) => a.ratePercent - b.ratePercent || a.mwstCode.localeCompare(b.mwstCode));
-}
-
-/** The journal total: every Einzelbuchung moves its gross amount once to Soll and once to Haben. */
-export function journalTotalCents(bookings: readonly Pick<AbacusBooking, 'grossCents'>[]): number {
-  return bookings.reduce((sum, booking) => sum + booking.grossCents, 0);
+function owedOn(line: LedgerLine, side: PostedSide, booking: PostedBooking): { net: number; vat: number; tax: string; rate: number } {
+  const gross = creditedAmount(line, side.ref.type);
+  if (!side.vat || !booking.vat) return { net: gross, vat: 0, tax: '', rate: 0 };
+  const vat = Math.sign(gross) * booking.vat.apaleoTaxCents;
+  return { net: gross - vat, vat, tax: booking.vat.taxRef, rate: booking.vat.percent };
 }
 
 interface VatEntry {
-  mwstCode: string;
+  tax: string;
   rate: number;
   net: number;
   vat: number;
@@ -60,47 +50,35 @@ export class SummaryBuilder {
   private readonly levies = new Map<string, LevyTotal>();
   private readonly deposits = { receivedCents: 0, releasedCents: 0, refundedCents: 0 };
   private accountsReceivable = 0;
-  private rounding = 0;
 
   /** `apaleoVat` is what `apaleoVatOf` gives for the line. */
-  addBooking(line: LedgerLine, booking: AbacusBooking, debit: PostedSide, credit: PostedSide, roundingCents: number, apaleoVat: readonly ApaleoVat[]): void {
-    for (const [account, cents] of abacusMovements(booking)) {
+  addBooking(line: LedgerLine, booking: PostedBooking, debit: PostedSide, credit: PostedSide, apaleoVat: readonly ApaleoVat[]): void {
+    for (const [account, cents] of odooMovements(booking)) {
       const entry = this.account(account);
       if (cents > 0) entry.soll += cents;
       else entry.haben -= cents;
     }
-    this.rounding += roundingCents;
-
-    // The VAT side is the Single account: credited with `D`, so its gross is owed (positive) then.
-    const singleCredited = booking.debitCredit === 'D' ? 1 : -1;
-    const tax = booking.tax;
     const side = (type: string) => (credit.ref.type === type ? credit : debit.ref.type === type ? debit : undefined);
     const revenue = side('Revenues');
     const deposit = revenue ? undefined : side('Liabilities');
     const vatSide = revenue ?? deposit;
     if (vatSide) {
-      const owed = tax && vatSide.vat
-        ? { net: singleCredited * booking.grossCents + tax.taxCents, vat: -tax.taxCents }
-        : { net: creditedAmount(line, vatSide.ref.type), vat: 0 };
-      const code = tax && vatSide.vat ? tax.mwstCode : '';
-      addVat(revenue ? this.revenue : this.depositVat, code, tax && vatSide.vat ? tax.percent : 0, owed, apaleoVat.map((vat) => vat.precise));
+      const owed = owedOn(line, vatSide, booking);
+      addVat(revenue ? this.revenue : this.depositVat, owed, apaleoVat.map((vat) => vat.precise));
     }
     const loss = vatSide ? undefined : side('LossOfAccountsReceivable');
     if (loss) {
-      // Written off (positive) when the write-off account is debited, so apaleo's VAT (signed as owed) is negated.
-      const taxed = loss.vat ? tax : undefined;
-      const written = taxed
-        ? { net: -singleCredited * booking.grossCents - taxed.taxCents, vat: taxed.taxCents }
-        : { net: -creditedAmount(line, loss.ref.type), vat: 0 };
-      addVat(this.writeOffs, taxed?.mwstCode ?? '', taxed?.percent ?? 0, written, apaleoVat.map((vat) => negateDecimal(vat.precise)));
+      // Written off (positive) when the write-off account is debited, so the owed amounts and apaleo's VAT are negated.
+      const owed = owedOn(line, loss, booking);
+      addVat(this.writeOffs, { ...owed, net: -owed.net, vat: -owed.vat }, apaleoVat.map((vat) => negateDecimal(vat.precise)));
     }
     this.cityTax += creditedAmount(line, CITY_TAX_TYPES);
     const levy = [credit, debit].find((posted) => CITY_TAX_TYPES.has(posted.ref.type));
-    if (levy) this.addLevy(line, levy, levy.vat ? tax : undefined);
+    if (levy) this.addLevy(levy, owedOn(line, levy, booking));
     for (const payment of [debit, credit]) {
       if (payment.ref.type !== 'Payments') continue;
       const signed = payment === debit ? line.grossCents : -line.grossCents;
-      this.payments.set(payment.row.abacusAccount, (this.payments.get(payment.row.abacusAccount) ?? 0) + signed);
+      this.payments.set(payment.row.odooAccount, (this.payments.get(payment.row.odooAccount) ?? 0) + signed);
     }
     const movement = depositMovement(line);
     if (movement?.direction === 'increase') this.deposits.receivedCents += movement.cents;
@@ -109,15 +87,12 @@ export class SummaryBuilder {
     this.accountsReceivable -= creditedAmount(line, 'AccountsReceivable');
   }
 
-  /** A levy line on its Abacus account, with the booking's MWST when the levy side carries the MWST-Code. */
-  private addLevy(line: LedgerLine, levy: PostedSide, tax: AbacusBooking['tax']): void {
-    const mwstCode = tax?.mwstCode ?? '';
-    const ratePercent = tax?.percent ?? 0;
-    const key = `${levy.row.abacusAccount}\u0000${mwstCode}\u0000${ratePercent}`;
-    const entry = this.levies.get(key) ?? { account: levy.row.abacusAccount, mwstCode, ratePercent, grossCents: 0, vatCents: 0 };
-    entry.grossCents += creditedAmount(line, levy.ref.type);
-    // The levy side is the Single account: credited (owed) with a negative tax.
-    entry.vatCents -= tax?.taxCents ?? 0;
+  /** A levy line on its Odoo account, with apaleo's tax when the levy side carries the Odoo tax. */
+  private addLevy(levy: PostedSide, owed: ReturnType<typeof owedOn>): void {
+    const key = `${levy.row.odooAccount}\u0000${owed.tax}\u0000${owed.rate}`;
+    const entry = this.levies.get(key) ?? { account: levy.row.odooAccount, tax: owed.tax, ratePercent: owed.rate, grossCents: 0, vatCents: 0 };
+    entry.grossCents += owed.net + owed.vat;
+    entry.vatCents += owed.vat;
     this.levies.set(key, entry);
   }
 
@@ -139,7 +114,7 @@ export class SummaryBuilder {
       depositVatByRate: vatTotals(this.depositVat),
       writeOffsByRate: vatTotals(this.writeOffs),
       cityTaxCents: this.cityTax,
-      levies: [...this.levies.values()].sort((a, b) => byNumber(a.account, b.account) || a.ratePercent - b.ratePercent || a.mwstCode.localeCompare(b.mwstCode)),
+      levies: [...this.levies.values()].sort((a, b) => byNumber(a.account, b.account) || a.ratePercent - b.ratePercent || a.tax.localeCompare(b.tax)),
       payments: [...this.payments].sort(([a], [b]) => byNumber(a, b)).map(([account, cents]) => ({ account, cents })),
       deposits: { ...this.deposits },
       accountsReceivableCents: this.accountsReceivable,
@@ -147,7 +122,6 @@ export class SummaryBuilder {
         const entry = this.skipped.get(reason);
         return entry ? [{ reason, lines: entry.lines, grossCents: entry.gross }] : [];
       }),
-      roundingCents: this.rounding,
       findings: [...counts].sort(([a], [b]) => a.localeCompare(b)).map(([code, count]) => ({ code, count })),
     };
   }
@@ -162,18 +136,18 @@ export class SummaryBuilder {
   }
 }
 
-function addVat(totals: Map<string, VatEntry>, mwstCode: string, rate: number, { net, vat }: { net: number; vat: number }, apaleoPrecise: readonly string[]): void {
-  const key = `${mwstCode}\u0000${rate}`;
-  const entry = totals.get(key) ?? { mwstCode, rate, net: 0, vat: 0, apaleo: [] };
+function addVat(totals: Map<string, VatEntry>, { net, vat, tax, rate }: { net: number; vat: number; tax: string; rate: number }, apaleoPrecise: readonly string[]): void {
+  const key = `${tax}\u0000${rate}`;
+  const entry = totals.get(key) ?? { tax, rate, net: 0, vat: 0, apaleo: [] };
   entry.net += net;
   entry.vat += vat;
   entry.apaleo.push(...apaleoPrecise);
   totals.set(key, entry);
 }
 
-/** One total per MWST-Code and rate, by rate and then code (no code first). */
+/** One total per Odoo tax and rate, by rate and then tax (no tax first). */
 function vatTotals(entries: ReadonlyMap<string, VatEntry>): VatTotal[] {
   return [...entries.values()]
-    .sort((a, b) => a.rate - b.rate || a.mwstCode.localeCompare(b.mwstCode))
-    .map(({ mwstCode, rate, net, vat, apaleo }) => ({ mwstCode, ratePercent: rate, netCents: net, vatCents: vat, grossCents: net + vat, apaleoVat: sumDecimals(apaleo) }));
+    .sort((a, b) => a.rate - b.rate || a.tax.localeCompare(b.tax))
+    .map(({ tax, rate, net, vat, apaleo }) => ({ tax, ratePercent: rate, netCents: net, vatCents: vat, grossCents: net + vat, apaleoVat: sumDecimals(apaleo) }));
 }

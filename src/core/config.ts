@@ -83,7 +83,7 @@ const abacusVersion = z.preprocess(
   z.enum(ABACUS_VERSIONS, { error: VERSION_MESSAGE }),
 );
 
-/** What the Treuhänder's Abacus Mandant decides about every file (docs/abacus-format.md). */
+/** What the Abacus Mandant decides about every file of the Abacus writer, which stays until o04 removes it (docs/abacus-format.md). */
 export const abacusSection = z.strictObject({
   /** The Mandantennummer, written into `Parameter/Mandant` and every `Client`. No default. */
   mandant,
@@ -132,9 +132,9 @@ export function defaultTaxRounding(version: OdooVersion): OdooTaxRounding {
 }
 
 /**
- * Where the journal entries go in Odoo (docs/odoo-format.md). Optional until o03
- * makes Odoo the default target. `taxRounding` defaults to the rounding method of
- * a new company of `version`, and `roundingAccount` is required with `per_tax`.
+ * Where the journal entries go in Odoo (docs/odoo-format.md). Required: Odoo is
+ * the default target. `taxRounding` defaults to the rounding method of a new
+ * company of `version`, and `roundingAccount` is required with `per_tax`.
  */
 export const odooSection = z
   .strictObject({
@@ -156,9 +156,9 @@ export const odooSection = z
     issue.addIssue({ code: 'custom', path: ['roundingAccount'], message: 'is required with taxRounding: per_tax' });
   });
 
-/** How the posting rules fill Abacus fields. */
+/** How the posting rules describe the bookings. */
 export const postingSection = z.strictObject({
-  /** `Text2`: the receipt (invoice) number when there is one (default), or always the reservation reference. */
+  /** What the protocol names per line: the receipt (invoice) number when there is one (default), or always the reservation reference. */
   text2: z.enum(['receipt', 'reference'], { error: 'must be "receipt" or "reference"' }).default('receipt'),
 });
 
@@ -252,10 +252,10 @@ export const scheduleSection = z
 export const configSections = {
   apaleo: apaleoSection.prefault({}),
   output: outputSection.prefault({}),
-  /** Required: `abacus.mandant` has no default, so a missing section reports that key. */
-  abacus: abacusSection.prefault({ mandant: undefined }),
-  /** Optional until Odoo is the default target (o03). */
-  odoo: odooSection.optional(),
+  /** Optional: read only by the Abacus writer, which stays with its own tests until o04 removes both. */
+  abacus: abacusSection.optional(),
+  /** Required: `odoo.journal` and `odoo.version` have no default, so a missing section reports those keys. */
+  odoo: odooSection.prefault({ journal: undefined, version: undefined }),
   posting: postingSection.prefault({}),
   properties: propertiesSection.default([]),
   checks: checksSection.prefault({}),
@@ -299,6 +299,7 @@ export function abacusUnitKey({ mandant, geschaeftsbereich }: AbacusUnit): strin
  */
 export function sharedMandantFindings(config: Pick<Config, 'abacus' | 'properties'>): Finding[] {
   const { abacus } = config;
+  if (!abacus) return [];
   const users = new Map<string, { unit: AbacusUnit; ids: string[] }>();
   for (const { id } of config.properties) {
     const unit = abacusUnitOf(abacus, config.properties, id);
@@ -315,28 +316,6 @@ export function sharedMandantFindings(config: Pick<Config, 'abacus' | 'propertie
         'or its own Mandant (properties[].mandant)',
       value: key,
     }));
-}
-
-/**
- * `W-ABRECHNUNGSART-VEREINNAHMT` when the Mandant accounts by vereinnahmte Entgelte
- * (a05 design decision 6): Abacus parks the tax of these bookings on the Hilfskonto
- * until a payment is recorded, normally in the Debitorenbuchhaltung, which this tool
- * does not feed. None with `vereinbart`.
- */
-export function abrechnungsartFindings(abacus: Pick<AbacusConfig, 'abrechnungsart' | 'mwstHilfskonto'>): Finding[] {
-  if (abacus.abrechnungsart !== 'vereinnahmt') return [];
-  return [
-    {
-      code: 'W-ABRECHNUNGSART-VEREINNAHMT',
-      message:
-        `abacus.abrechnungsart is vereinnahmt: Abacus books the MWST of these bookings to the Hilfskonto ${abacus.mwstHilfskonto} (abacus.mwstHilfskonto) ` +
-        'and moves it to the Steuerkonto only when a payment is recorded, normally in the Debitorenbuchhaltung, which this tool does not feed. ' +
-        'The file books the MWST on the charge date, while under vereinnahmte Entgelte it arises with the payment (MWSTG Art. 40 Abs. 2), ' +
-        'which matters for charges on accounts receivable that are unpaid at period end. Have your Treuhänder correct the Hilfskonto ' +
-        `${abacus.mwstHilfskonto} at period end as docs/mapping-guide.md describes, until a test import shows how Abacus treats these bookings`,
-      value: abacus.mwstHilfskonto,
-    },
-  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -623,8 +602,8 @@ function rejectForeignSections(raw: Record<string, unknown>, path: string): void
   const section = FOREIGN_SECTIONS.find((name) => raw[name] !== undefined);
   if (!section) return;
   throw new UserError(
-    `${section} is not a section of apaleo-odoo (${path}): this tool writes Abacus files. ` +
-      'Replace the section with an abacus section (abacus.mandant, abacus.leitwaehrung, abacus.mwstCodes); ' +
+    `${section} is not a section of apaleo-odoo (${path}): this tool writes Odoo journal entries. ` +
+      'Replace the section with an odoo section (odoo.journal, odoo.version, odoo.companyId); ' +
       `see ${EXAMPLE_CONFIG_FILE} and docs/configuration.md.`,
   );
 }
