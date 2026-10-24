@@ -378,7 +378,9 @@ describe('docs folder', () => {
     }
     expect(section(guide, '## Dieselbe Datei noch einmal importieren')).toContain('ändert nichts');
     const undo = section(guide, '## Eine Datei rückgängig machen');
-    for (const phrase of ['Lösche die Entwürfe', 'Storniere die gebuchten Buchungssätze']) expect(undo, phrase).toContain(phrase);
+    for (const phrase of ['Lösche die Entwürfe', 'Storniere die gebuchten Buchungssätze', 'Datum des ursprünglichen Buchungssatzes als „Stornodatum“ (Reversal Date)', 'berichtigte UStVA']) {
+      expect(undo, phrase).toContain(phrase);
+    }
     expect(section(guide, '## Fragen für die Kanzlei')).toMatch(/Ist-Versteuerung.*Zahlungsbasis/s);
   });
 
@@ -390,11 +392,28 @@ describe('docs folder', () => {
     expect(replace.indexOf('**Storniere**')).toBeLessThan(replace.indexOf('4. Importiere die neue Datei'));
   });
 
+  it('Corrected month after a posted import: the reversal carries the date of the original entry, so the month nets to zero in its own period', () => {
+    const replace = section(readRepoFile('docs/odoo-import.md'), '## Einen Monat ersetzen');
+    for (const phrase of ['„Stornobuchung“, Reverse Entry', '„Stornieren“, Reverse', '„Stornodatum“ (Reversal Date) auf das Datum des ursprünglichen Buchungssatzes', 'heutige Datum', 'Kz 81 und 86', 'ein Stornodatum für alle', 'berichtigte UStVA']) {
+      expect(replace, phrase).toContain(phrase);
+    }
+    expect(replace).not.toContain('Umkehren');
+    expect(replace.indexOf('Stornodatum')).toBeLessThan(replace.indexOf('4. Importiere die neue Datei'));
+  });
+
+  it('Corrected month: until o06 chooses the revision, the guide and the format doc say that --overwrite still writes revision 1', () => {
+    const replace = section(readRepoFile('docs/odoo-import.md'), '## Einen Monat ersetzen');
+    expect(replace).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*dieselben External IDs.*\*\*Entwürfe\*\*.*lehnt Odoo die neue Datei/s);
+    const format = section(readRepoFile('docs/odoo-format.md'), '## Korrekturen: Revisionen („Korrektur N“)');
+    expect(format).toMatch(/\*\*Noch nicht umgesetzt:\*\*.*o06.*Revision 1/s);
+    expect(format).toContain('„Stornodatum“ (Reversal Date)');
+  });
+
   it('First import in Odoo: the open questions of research §10 are a checklist for the first test import, and the guide is German as used in Germany', () => {
     const guide = readRepoFile('docs/odoo-import.md');
     const checklist = section(guide, '## Erster Testimport: Checkliste');
-    expect(checklist.match(/^- \[ \]/gm)).toHaveLength(11);
-    for (const item of ['technischen Spaltennamen', 'Rundungszeilen', 'wenige Cent', 'leerer Steuerzelle', 'Revision 2', 'Unterkonten', 'Menü und Schaltflächen', 'Prüfprotokoll', 'Kasse und Geldtransit', 'Speisen zu 7 %', 'Niederlassung']) {
+    expect(checklist.match(/^- \[ \]/gm)).toHaveLength(12);
+    for (const item of ['technischen Spaltennamen', 'Rundungszeilen', 'wenige Cent', 'leerer Steuerzelle', 'Revision 2', 'Unterkonten', 'Menü und Schaltflächen', 'Prüfprotokoll', 'Stornodatum', 'Kasse und Geldtransit', 'Speisen zu 7 %', 'Niederlassung']) {
       expect(checklist, item).toContain(item);
     }
     for (const term of ['Treuhänder', 'MWST', 'Rappen', 'Mandant', 'grösser', 'ausserhalb', '«', '»', 'Abacus']) expect(guide, term).not.toContain(term);
