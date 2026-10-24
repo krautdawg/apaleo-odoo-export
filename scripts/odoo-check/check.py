@@ -236,7 +236,7 @@ def describe_moves(moves, text, per_tax):
             expected.setdefault(entry, {}).setdefault((cells[9], 'credit' if credit > 0 else 'debit'), []).append(debit + credit)
     for move in moves.sorted('date'):
         xmlid = move.get_external_id().get(move.id, '')
-        balancing = move.line_ids.filtered(lambda l: 'Automatic Balancing' in (l.name or '') or (suspense and l.account_id == suspense))
+        balancing = move.line_ids.filtered(lambda l: any(t in (l.name or '') for t in ('Automatic Balancing', 'Ausgleichszeile')) or (suspense and l.account_id == suspense))
         tax_lines = move.line_ids.filtered('tax_line_id')
         actual = {}
         for line in tax_lines:

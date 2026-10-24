@@ -120,7 +120,7 @@ Deshalb schreibt das Tool die Spalte `line_ids/tax_ids/id` in **jeder** Zeile, b
 
 ## Basisanpassung: warum manche Nettobeträge um einen Cent abweichen
 
-Odoo rechnet die Umsatzsteuer eines Buchungssatzes selbst aus dem Nettobetrag jeder Zeile aus, kaufmännisch gerundet (ab 0,5 Cent weg von null). apaleo hat die Steuer dagegen aus dem Bruttobetrag jeder Rechnungszeile gerechnet. Passt Odoos Steuer nicht zum Bruttobetrag, gleicht Odoo den Buchungssatz stillschweigend mit einer „Automatic Balancing Line“ auf dem Zwischenkonto (suspense account) aus. Das verhindert das Tool so:
+Odoo rechnet die Umsatzsteuer eines Buchungssatzes selbst aus dem Nettobetrag jeder Zeile aus, kaufmännisch gerundet (ab 0,5 Cent weg von null). apaleo hat die Steuer dagegen aus dem Bruttobetrag jeder Rechnungszeile gerechnet. Passt Odoos Steuer nicht zum Bruttobetrag, gleicht Odoo den Buchungssatz stillschweigend mit einer „Automatischen Ausgleichszeile“ (Automatic Balancing Line) auf dem Zwischenkonto (suspense account) aus. Das verhindert das Tool so:
 
 - Jeder Bruttobetrag aus apaleo bleibt auf den Gegenkonten (Zahlungen, Forderungen, Anzahlungen) genau erhalten.
 - Für jede Zeile mit Steuer (oder bei Rundung pro Steuer für jede Gruppe aus Steuer und Seite) wählt das Tool den Nettobetrag, der zusammen mit Odoos Steuer genau den Bruttobetrag aus apaleo ergibt, und davon den, der apaleos Nettobetrag am nächsten liegt.
@@ -148,7 +148,7 @@ Die Steuer rundet Odoo nach der Einstellung des Unternehmens unter Einstellungen
 | `per_line` | Round per Line | Round per Line | Odoo 17 und 18 |
 | `per_tax` | Round Globally | Round per Tax | Odoo 19 |
 
-Die deutsche Oberfläche kann die Einträge anders nennen. `odoo.taxRounding` folgt ohne Angabe dem Standard von `odoo.version`. Eine Datenbank, die von einer älteren Version aktualisiert wurde, behält aber ihre alte Einstellung; vergleiche sie deshalb vor dem ersten Import. Mit `per_tax` brauchst du `odoo.roundingAccount`, ein Konto ohne Steuer (auch ohne Standardsteuer) für den Rundungscent. Das Protokoll und `doctor` nennen die erwartete Einstellung.
+In der deutschen Oberfläche heißen die Einträge „Je Zeile runden“ (Round per Line), in Odoo 17 und 18 „Global runden“ (Round Globally) und in Odoo 19 „Rundung pro Steuer“ (Round per Tax). `odoo.taxRounding` folgt ohne Angabe dem Standard von `odoo.version`. Eine Datenbank, die von einer älteren Version aktualisiert wurde, behält aber ihre alte Einstellung; vergleiche sie deshalb vor dem ersten Import. Mit `per_tax` brauchst du `odoo.roundingAccount`, ein Konto ohne Steuer (auch ohne Standardsteuer) für den Rundungscent. Das Protokoll und `doctor` nennen die erwartete Einstellung.
 
 ## Prüfungen vor dem Schreiben
 
@@ -164,15 +164,15 @@ Ursachen und Lösungen aller Codes: [troubleshooting.md](troubleshooting.md#odoo
 
 Kurz, für den ersten Import:
 
-1. Lass im Unternehmensumschalter nur das Zielunternehmen aktiv. Odoo sucht Konten und Journale in allen aktiven Unternehmen, Odoo 19 außerdem über den Anfang der Kontonummer (`8400` findet auch `84001`).
-2. Buchhaltung > Buchungssätze > Zahnrad > Datensätze importieren (Accounting > Journal Entries > gear > Import records), Datei hochladen, „Test“, dann „Import“.
-3. Prüfe danach: Alle Buchungssätze sind Entwürfe mit der Referenz `apaleo <Hotel> <Datum>`, auf dem Zwischenkonto steht keine „Automatic Balancing Line“, Odoos Steuer pro Satz entspricht dem Protokoll. Dann buchen.
+1. Lass im Unternehmensumschalter nur das Zielunternehmen aktiv. Odoo sucht Konten und Journale in allen aktiven Unternehmen; sind zwei Unternehmen mit demselben Kontenrahmen aktiv, warnt Odoo 17 beim Import „Mehrere Übereinstimmungen“ für jedes Konto.
+2. Buchhaltung > Buchhaltung > Journalbuchungen > Zahnrad > Datensätze importieren (Accounting > Accounting > Journal Entries > gear > Import records), Datei hochladen, „Test“, dann „Importieren“ (Import).
+3. Prüfe danach: Alle Buchungssätze sind Entwürfe mit der Referenz `apaleo <Hotel> <Datum>`, auf dem Zwischenkonto steht keine „Automatische Ausgleichszeile“ (Automatic Balancing Line), Odoos Steuer pro Satz entspricht dem Protokoll. Dann buchen.
 
 Das Protokoll neben jeder Datei fasst diese Schritte mit den Werten der Datei zusammen (Revision, Anzahl der Buchungssätze und Zeilen, Unternehmen, Journal, Währung, Rundungsmethode, Steuern mit Satz und Kennzahl, Rundungszeilen).
 
 ## Offene Fragen
 
-Diese Fragen beantwortet erst ein Import in echtes Odoo. Die technischen Fragen 1, 2, 4, 5, 6, 8, 9 und 11 hat der [lokale Testimport](maintainers.md#lokaler-testimport) des Maintainers am 2026-10-24 in Odoo 17, 18 und 19 Community mit SKR03 und SKR04 beantwortet; die Antworten stehen in [maintainers.md](maintainers.md#lokale-testimporte-in-odoo). Kurz: Odoo rechnet genau die Steuer des Modells, ohne Ausgleichsbuchung, die leere Steuerzelle wirkt, und die Revision legt neue Buchungssätze an. Die Fragen 3, 7 und 10 brauchen einen Steuerberater, die deutsche Oberfläche oder apaleo und bleiben offen; alle Fragen prüft der erste Testimport mit einer Kanzlei noch einmal.
+Diese Fragen beantwortet erst ein Import in echtes Odoo. Die technischen Fragen 1, 2, 4, 5, 6, 8, 9 und 11 hat der [lokale Testimport](maintainers.md#lokaler-testimport) des Maintainers am 2026-10-24 in Odoo 17, 18 und 19 Community mit SKR03 und SKR04 beantwortet; die Antworten stehen in [maintainers.md](maintainers.md#lokale-testimporte-in-odoo). Kurz: Odoo rechnet genau die Steuer des Modells, ohne Ausgleichsbuchung, die leere Steuerzelle wirkt, und die Revision legt neue Buchungssätze an. Frage 7 beantworten die deutschen Übersetzungen, die Odoo mitbringt (siehe ebenda). Die Fragen 3 und 10 brauchen einen Steuerberater oder apaleo und bleiben offen; alle Fragen prüft der erste Testimport mit einer Kanzlei noch einmal.
 
 1. Akzeptiert der Import die technischen Spaltennamen (`line_ids/tax_ids/id` und die anderen `line_ids/…`) auch in der deutschen Oberfläche, und besteht „Test“ auf einer frischen Datenbank mit SKR03 und mit SKR04?
 2. Rechnet Odoo genau die erwartete Steuer, ohne „Automatic Balancing Line“, bei Rundung pro Zeile und pro Steuer, auch mit der Cent-Zeile und der Zeile auf dem Rundungskonto?
