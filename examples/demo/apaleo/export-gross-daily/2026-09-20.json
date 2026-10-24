@@ -1,0 +1,153 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-20T07:30:00Z",
+      "date": "2026-09-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1",
+        "number": "BSP-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Kurtaxe (no VAT)",
+        "number": "3501",
+        "parentNumber": "3500",
+        "type": "CityTaxes"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 5,
+      "netAmount": 5,
+      "taxes": [
+        {
+          "type": "Without",
+          "percent": 0,
+          "amount": 0
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-FOXTROT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0020",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-20T07:30:00Z",
+      "date": "2026-09-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1",
+        "number": "BSP-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Übernachtungsteuer (7%)",
+        "number": "3502",
+        "parentNumber": "3500",
+        "type": "CityTaxes"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 10.7,
+      "netAmount": 10,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 0.7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-FOXTROT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0021",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-20T08:10:00Z",
+      "date": "2026-09-20",
+      "debitedAccount": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1 (Offset)",
+        "number": "BSP-FOXTROT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": 25.7,
+      "netAmount": 25.7,
+      "receipt": {
+        "type": "Custom",
+        "number": "PSP-BSP-0020"
+      },
+      "sourceEntryNumber": "BSPE0022",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-20T08:10:00Z",
+      "date": "2026-09-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1",
+        "number": "BSP-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1 (Offset)",
+        "number": "BSP-FOXTROT-1_Receivables/Offset",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "command": "PostPayment",
+      "currency": "EUR",
+      "grossAmount": -25.7,
+      "netAmount": -25.7,
+      "receipt": {
+        "type": "Custom",
+        "number": "PSP-BSP-0020"
+      },
+      "sourceEntryNumber": "BSPE0022",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-20T08:11:00Z",
+      "date": "2026-09-20",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-FOXTROT-1",
+        "number": "BSP-FOXTROT-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-FOXTROT-1 (0%)",
+        "number": "BSP-FOXTROT-1_Liabilities/Null:0.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 10,
+      "netAmount": 10,
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-FOXTROT-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0023",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

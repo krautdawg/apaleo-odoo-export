@@ -4,8 +4,13 @@
 odoo:
   # Das Kürzel des Journals in Odoo, in das die Buchungssätze gehen würden.
   journal: APA
-  # Odoo 18 rundet die Steuer standardmäßig pro Zeile (per_line).
-  version: 18
+  # Eine neue Datenbank in Odoo Online ist Odoo 19 mit SKR03 und rundet die
+  # Steuer pro Steuer (per_tax).
+  version: 19
+  taxRounding: per_tax
+  # SKR03 2700 (Sonstige Erträge), ohne Steuer: für den Cent, den die Rundung
+  # pro Steuer nicht erreicht. Welches Konto, entscheidet deine Kanzlei.
+  roundingAccount: "2700"
 properties:
   - id: BSP
     # Relativ zu diesem Ordner (examples/demo/).

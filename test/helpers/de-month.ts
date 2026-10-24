@@ -25,7 +25,7 @@ const SKR03 = shippedTemplate('skr03-hotel');
 export const DE_TEMPLATE_ROWS: readonly MappingRowValues[] = suggestRows(DE_MONTH.charts[BSP] ?? [], SKR03, { version: 18 });
 
 /** The levy rows as the Kanzlei of Hotel Beispiel Berlin decided them. */
-const KANZLEI_ROWS: Readonly<Record<string, Partial<MappingRowValues>>> = {
+export const KANZLEI_ROWS: Readonly<Record<string, Partial<MappingRowValues>>> = {
   '3501': { odooAccount: '1590', comment: 'Kanzlei: Kurtaxe, die der Gast schuldet, ist ein durchlaufender Posten ohne Steuer (§ 10 Abs. 1 UStG).' },
   '3502': {
     odooAccount: '8300',

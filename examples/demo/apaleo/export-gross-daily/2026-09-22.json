@@ -1,0 +1,31 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-22T09:00:00Z",
+      "date": "2026-09-22",
+      "debitedAccount": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-FOXTROT-1 (0%)",
+        "number": "BSP-FOXTROT-1_Liabilities/Null:0.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "EUR",
+      "grossAmount": -10,
+      "netAmount": -10,
+      "receipt": {
+        "type": "Custom",
+        "number": "PSP-BSP-0028"
+      },
+      "sourceEntryNumber": "BSPE0028",
+      "reference": "BSP-FOXTROT-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

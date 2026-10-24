@@ -4,7 +4,7 @@ Die Importdatei für Odoo ist nur so gut wie die Kontenzuordnung. Sie ist eine C
 
 `init-mapping --template skr03-hotel` schreibt die Datei nach der Vorlage `templates/skr03-hotel.rules.csv`, `--template skr04-hotel` nach `templates/skr04-hotel.rules.csv`. Beide Vorlagen folgen dem deutschen Kontenrahmen von Odoo (l10n_de, Odoo 17, 18 und 19) und den Kontonummern der Hotelvorlagen von apaleo-datev-export. Der Kommentar jeder Zeile sagt, warum sie so vorgeschlagen ist, und nennt die Quelle mit dem Prüfdatum. Odoo Online legt neue Datenbanken mit SKR03 an; welchen Kontenrahmen dein Unternehmen nutzt, siehst du unter Buchhaltung > Konfiguration > Einstellungen.
 
-Ein vollständiges Beispiel liegt in [examples/mapping-BSP.example.csv](examples/mapping-BSP.example.csv): die Zuordnung des erfundenen „Hotel Beispiel Berlin“, genau das, was `init-mapping --template skr03-hotel` für Odoo 18 auf dem Kontenplan der Demo schreibt. Dein Steuerberater kann damit die Ausgabe beurteilen, bevor jemand eine apaleo-App anlegt.
+Ein vollständiges Beispiel liegt in [examples/mapping-BSP.example.csv](examples/mapping-BSP.example.csv): die Zuordnung des erfundenen „Hotel Beispiel Berlin“, genau das, was `init-mapping --template skr03-hotel` für Odoo 19 auf dem Kontenplan der Demo schreibt, mit Kurtaxe (`1590` ohne Steuer) und Übernachtungsteuer (`8300` mit `tax_ust_7_skr03`) so ausgefüllt, wie eine Kanzlei sie entscheiden würde. Dein Steuerberater kann damit die Ausgabe beurteilen, bevor jemand eine apaleo-App anlegt.
 
 ## Ablauf
 
