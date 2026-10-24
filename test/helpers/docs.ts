@@ -451,11 +451,15 @@ export function checkPracticeTerms(file: string, markdown: string): string[] {
 // --- Compatibility claims --------------------------------------------------------
 
 /**
- * The target named in a claim: Odoo, with up to two words between the name
- * and the verb, so "mit Odoo 18 getestet" and "von Odoo Online akzeptiert" are caught.
+ * The target named in a claim: Odoo, then an optional list of versions (digits
+ * joined by `,`, `und`, `and`, `oder`, `or` or `/`), then up to two words before
+ * the verb, so "mit Odoo 18 getestet", "mit Odoo 17, 18 und 19 getestet" and
+ * "von Odoo Online akzeptiert" are caught.
  */
 const TARGET = String.raw`Odoo`;
-const NAMED = String.raw`${TARGET}(?:\s+[\w.]+){0,2}`;
+const VERSION = String.raw`\d{2}(?:\.0)?`;
+const VERSION_LIST = String.raw`[\s-]+${VERSION}(?:\s*(?:,|und|and|oder|or|\/)\s*${VERSION})*`;
+const NAMED = String.raw`${TARGET}(?:${VERSION_LIST})?(?:\s+[\w.]+){0,2}`;
 
 /**
  * What the docs may say only after a recorded test import (b08 design decision

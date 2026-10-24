@@ -475,6 +475,17 @@ describe('the compatibility claim check', () => {
     expect(checkCompatibilityClaims('README.md', 'Die Datei ist mit Odoo 19 getestet.', recorded(LOCAL_18, KANZLEI_19))).toEqual([]);
   });
 
+  it('Recorded import allows the claim: a version list before the verb needs a row for every listed version', () => {
+    expect(checkCompatibilityClaims('README.md', 'Die Datei wurde mit Odoo 18 und 16 getestet.', recorded(LOCAL_18))).toEqual([
+      'README.md: "mit Odoo 18 und 16 getestet" claims a tested import, but docs/maintainers.md records no import with Odoo 16 under ## Testimporte',
+    ]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei wurde mit Odoo 17, 18 und 19 getestet.', recorded(LOCAL_18))).toEqual([
+      'README.md: "mit Odoo 17, 18 und 19 getestet" claims a tested import, but docs/maintainers.md records no import with Odoo 17, 19 under ## Testimporte',
+    ]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei wurde mit Odoo 18/19 getestet.', recorded(LOCAL_18, KANZLEI_19))).toEqual([]);
+    expect(checkCompatibilityClaims('README.md', 'Die Datei ist mit Odoo 18 oder 19 Community kompatibel.', recorded(LOCAL_18))).toHaveLength(1);
+  });
+
   it.each([
     'Die Datei ist mit Odoo 18 getestet.',
     'Die Datei wurde in\nOdoo erfolgreich getestet.',
