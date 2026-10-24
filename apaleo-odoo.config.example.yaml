@@ -1,16 +1,16 @@
-# Konfiguration für apaleo-abacus-export
+# Konfiguration für apaleo-odoo-export
 #
-# Kopiere diese Datei nach apaleo-abacus.config.yaml und bearbeite sie. Das Tool
-# sucht die Datei aus --config, sonst aus APALEO_ABACUS_CONFIG, sonst
-# ./apaleo-abacus.config.yaml. JSON geht auch, wenn der Dateiname auf .json endet.
+# Kopiere diese Datei nach apaleo-odoo.config.yaml und bearbeite sie. Das Tool
+# sucht die Datei aus --config, sonst aus APALEO_ODOO_CONFIG, sonst
+# ./apaleo-odoo.config.yaml. JSON geht auch, wenn der Dateiname auf .json endet.
 #
 # Secrets kommen nie in diese Datei. Setze sie in der Umgebung (zum Beispiel in .env):
 #   APALEO_CLIENT_SECRET   das Client-Secret deiner apaleo Custom App
 #
 # Diese Einstellungen lassen sich auch aus der Umgebung setzen (nur einzelne Werte):
-#   APALEO_ABACUS_OUTPUT_DIR   -> output.dir
+#   APALEO_ODOO_OUTPUT_DIR   -> output.dir
 #   APALEO_CLIENT_ID        -> apaleo.clientId
-#   APALEO_ABACUS_TIMEZONE     -> schedule.timezone
+#   APALEO_ODOO_TIMEZONE     -> schedule.timezone
 
 apaleo:
   # Client-ID der Custom App, die du unter Apps > Connected apps angelegt hast.
@@ -63,9 +63,9 @@ output:
 
 # Die apaleo-Hotels, mit denen das Tool arbeitet, jedes mit seiner Kontenzuordnung
 # (CSV, relativ zum Arbeitsverzeichnis; Standard ./mapping-<id>.csv). Leg die
-# Kontenzuordnung mit "apaleo-abacus init-mapping --property BSP --template kmu-hotel" an
-# und lass sie von deinem Treuhänder prüfen. Die IDs listet "apaleo-abacus properties".
-# "apaleo-abacus export --month 2026-10" exportiert jedes hier eingetragene Hotel.
+# Kontenzuordnung mit "apaleo-odoo init-mapping --property BSP --template kmu-hotel" an
+# und lass sie von deinem Treuhänder prüfen. Die IDs listet "apaleo-odoo properties".
+# "apaleo-odoo export --month 2026-10" exportiert jedes hier eingetragene Hotel.
 # Bucht dein Treuhänder zwei Hotels in einen Mandanten, braucht jedes einen eigenen
 # Geschäftsbereich, sonst können sich die Belegnummern wiederholen (W-MANDANT-SHARED).
 # properties:
@@ -82,12 +82,12 @@ checks:
   # eine zusätzliche Anfrage pro Tag.
   aggregates: false
 
-# "apaleo-abacus schedule --once" exportiert jeden fälligen Zeitraum, der noch nicht
+# "apaleo-odoo schedule --once" exportiert jeden fälligen Zeitraum, der noch nicht
 # im Ausgabeordner liegt, und endet. Starte es per Cron oder mit der Docker-Compose-
 # Schleife (docs/docker.md); stündlich ist unbedenklich.
 schedule:
   # "Heute" ist das Datum in dieser IANA-Zeitzone (Standard Europe/Zurich).
-  # Auch APALEO_ABACUS_TIMEZONE.
+  # Auch APALEO_ODOO_TIMEZONE.
   timezone: Europe/Zurich
   # Ein Rhythmus pro Installation, damit nie tägliche und monatliche Dateien bei
   # Abacus ankommen: "monthly" (eine Importdatei pro Monat für den Treuhänder) oder "daily"

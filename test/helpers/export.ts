@@ -35,7 +35,7 @@ export function stripPlaceholderCodes(out: string): string {
 
 /** The fixture config with property BSP and the given lines appended. */
 export function exportConfig(...extra: string[]): string {
-  return `${FIXTURE_FILES['apaleo-abacus.config.yaml']}properties:\n  - id: BSP\n${extra.map((line) => `${line}\n`).join('')}`;
+  return `${FIXTURE_FILES['apaleo-odoo.config.yaml']}properties:\n  - id: BSP\n${extra.map((line) => `${line}\n`).join('')}`;
 }
 
 export interface ExportSetup {
@@ -62,7 +62,7 @@ export function exportSetup(options: ExportSetupOptions = {}): ExportSetup {
   options.data?.(data);
   const fake = new FakeSource(data);
   const ctx = createTestContext({
-    files: { 'apaleo-abacus.config.yaml': options.config ?? exportConfig(), 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT, ...options.files },
+    files: { 'apaleo-odoo.config.yaml': options.config ?? exportConfig(), 'mapping-BSP.csv': BEISPIEL_MAPPING_TEXT, ...options.files },
     sourceFactory: () => fake,
     ...(options.now ? { now: options.now } : {}),
   });

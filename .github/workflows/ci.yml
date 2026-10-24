@@ -52,16 +52,16 @@ jobs:
                found && /^[[:space:]]*```sh/ { inblock = 1; next }
                inblock && /^[[:space:]]*```/ { exit }
                inblock { sub(/^[[:space:]]+/, ""); print }' README.md \
-            | grep -v -e '^git clone ' -e '^cd apaleo-abacus-export$' > "$RUNNER_TEMP/quickstart.sh"
+            | grep -v -e '^git clone ' -e '^cd apaleo-odoo-export$' > "$RUNNER_TEMP/quickstart.sh"
           cat "$RUNNER_TEMP/quickstart.sh"
           grep -qx 'pnpm install --frozen-lockfile' "$RUNNER_TEMP/quickstart.sh"
           grep -q '^node dist/cli/main.js --help' "$RUNNER_TEMP/quickstart.sh"
       - name: Run the README install commands verbatim
         run: bash -euxo pipefail "$RUNNER_TEMP/quickstart.sh"
-      - name: Help names the apaleo-abacus binary
+      - name: Help names the apaleo-odoo binary
         run: |
           node dist/cli/main.js --help > "$RUNNER_TEMP/help.txt"
-          grep -qxF 'Usage: apaleo-abacus <command> [options]' "$RUNNER_TEMP/help.txt"
+          grep -qxF 'Usage: apaleo-odoo <command> [options]' "$RUNNER_TEMP/help.txt"
       - name: Demo dry run without config, secret or network prints the Swiss Abacus summary in CHF
         run: |
           node dist/cli/main.js export --month 2026-09 --demo --dry-run | tee "$RUNNER_TEMP/demo.txt"
@@ -77,39 +77,39 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - run: docker build -t apaleo-abacus-export:ci .
-      - run: docker run --rm apaleo-abacus-export:ci --help
-      - run: docker run --rm apaleo-abacus-export:ci --version
-      - run: docker run --rm apaleo-abacus-export:ci export --month 2026-09 --demo --dry-run
+      - run: docker build -t apaleo-odoo-export:ci .
+      - run: docker run --rm apaleo-odoo-export:ci --help
+      - run: docker run --rm apaleo-odoo-export:ci --version
+      - run: docker run --rm apaleo-odoo-export:ci export --month 2026-09 --demo --dry-run
       - name: Real demo run with a /data volume, as in docs/docker.md
         run: |
           mkdir -p "$RUNNER_TEMP/demo-data"
           sudo chown 1000:1000 "$RUNNER_TEMP/demo-data"
-          docker run --rm -w /data -v "$RUNNER_TEMP/demo-data:/data" apaleo-abacus-export:ci export --month 2026-09 --demo
+          docker run --rm -w /data -v "$RUNNER_TEMP/demo-data:/data" apaleo-odoo-export:ci export --month 2026-09 --demo
           test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml"
           test -s "$RUNNER_TEMP/demo-data/demo-output/BSP/2026-09/manifest.json"
       - name: Demo without a writable working directory names the fix
         run: |
           set +e
-          out="$(docker run --rm apaleo-abacus-export:ci export --month 2026-09 --demo 2>&1)"
+          out="$(docker run --rm apaleo-odoo-export:ci export --month 2026-09 --demo 2>&1)"
           code=$?
           set -e
           echo "$out"
           test "$code" -eq 1
           grep -q -- '-w /data' <<<"$out"
-      - name: OCI labels name apaleo, Abacus and the MIT licence
+      - name: OCI labels name apaleo, Odoo and the MIT licence
         run: |
-          label() { docker inspect -f "{{ index .Config.Labels \"org.opencontainers.image.$1\" }}" apaleo-abacus-export:ci; }
-          test "$(label title)" = apaleo-abacus-export
+          label() { docker inspect -f "{{ index .Config.Labels \"org.opencontainers.image.$1\" }}" apaleo-odoo-export:ci; }
+          test "$(label title)" = apaleo-odoo-export
           test "$(label licenses)" = MIT
-          test "$(label source)" = https://github.com/krautdawg/apaleo-abacus-export
+          test "$(label source)" = https://github.com/krautdawg/apaleo-odoo-export
           label description | grep -q 'apaleo'
-          label description | grep -q 'Abacus'
-          if label description | grep -q 'BMD'; then exit 1; fi
+          label description | grep -q 'Odoo'
+          if label description | grep -q -e 'Abacus' -e 'BMD'; then exit 1; fi
       - name: Runs as user node
-        run: test "$(docker run --rm --entrypoint id apaleo-abacus-export:ci -un)" = node
+        run: test "$(docker run --rm --entrypoint id apaleo-odoo-export:ci -un)" = node
       - name: schedule without --once exits 2
         run: |
           set +e
-          docker run --rm apaleo-abacus-export:ci schedule
+          docker run --rm apaleo-odoo-export:ci schedule
           test $? -eq 2

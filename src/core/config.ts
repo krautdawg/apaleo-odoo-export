@@ -7,10 +7,10 @@ import { parseClockTime } from './date.js';
 
 export type Env = Readonly<Record<string, string | undefined>>;
 
-export const DEFAULT_CONFIG_FILE = 'apaleo-abacus.config.yaml';
-export const EXAMPLE_CONFIG_FILE = 'apaleo-abacus.config.example.yaml';
-export const CONFIG_PATH_ENV = 'APALEO_ABACUS_CONFIG';
-const ENV_PREFIX = 'APALEO_ABACUS_';
+export const DEFAULT_CONFIG_FILE = 'apaleo-odoo.config.yaml';
+export const EXAMPLE_CONFIG_FILE = 'apaleo-odoo.config.example.yaml';
+export const CONFIG_PATH_ENV = 'APALEO_ODOO_CONFIG';
+const ENV_PREFIX = 'APALEO_ODOO_';
 
 // ---------------------------------------------------------------------------
 // Schema. Each section is exported so later slices can extend it, for example
@@ -294,9 +294,9 @@ export interface EnvOverride {
 }
 
 export const ENV_OVERRIDES: readonly EnvOverride[] = [
-  { variable: 'APALEO_ABACUS_OUTPUT_DIR', path: ['output', 'dir'], type: 'string' },
+  { variable: 'APALEO_ODOO_OUTPUT_DIR', path: ['output', 'dir'], type: 'string' },
   { variable: 'APALEO_CLIENT_ID', path: ['apaleo', 'clientId'], type: 'string' },
-  { variable: 'APALEO_ABACUS_TIMEZONE', path: ['schedule', 'timezone'], type: 'string' },
+  { variable: 'APALEO_ODOO_TIMEZONE', path: ['schedule', 'timezone'], type: 'string' },
 ];
 
 export interface SecretKey {
@@ -334,7 +334,7 @@ export class ConfigNotFoundError extends UserError {
   }
 }
 
-/** `--config`, else `APALEO_ABACUS_CONFIG`, else `./apaleo-abacus.config.yaml`, resolved against `cwd`. */
+/** `--config`, else `APALEO_ODOO_CONFIG`, else `./apaleo-odoo.config.yaml`, resolved against `cwd`. */
 export function resolveConfigPath(flag: string | undefined, env: Env, cwd: string): string {
   return resolve(cwd, flag || env[CONFIG_PATH_ENV] || DEFAULT_CONFIG_FILE);
 }
@@ -562,7 +562,7 @@ function rejectForeignSections(raw: Record<string, unknown>, path: string): void
   const section = FOREIGN_SECTIONS.find((name) => raw[name] !== undefined);
   if (!section) return;
   throw new UserError(
-    `${section} is not a section of apaleo-abacus (${path}): this tool writes Abacus files. ` +
+    `${section} is not a section of apaleo-odoo (${path}): this tool writes Abacus files. ` +
       'Replace the section with an abacus section (abacus.mandant, abacus.leitwaehrung, abacus.mwstCodes); ' +
       `see ${EXAMPLE_CONFIG_FILE} and docs/configuration.md.`,
   );

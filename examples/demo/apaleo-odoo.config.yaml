@@ -1,4 +1,4 @@
-# Konfiguration von "apaleo-abacus export --demo". Die Demo liest nur diese
+# Konfiguration von "apaleo-odoo export --demo". Die Demo liest nur diese
 # Datei, nie deine eigene Konfiguration oder Umgebung. Das Hotel ist erfunden:
 # importiere eine Demo-Datei nie in einen echten Abacus-Mandanten.
 abacus:

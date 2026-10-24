@@ -1,4 +1,4 @@
-# kmu-hotel@1: Vorlage für die Kontenzuordnung eines Schweizer Hotels nach dem Schweizer Kontenrahmen KMU und dem Kontenrahmen für die Hotellerie und Gastronomie, gelesen von apaleo-abacus init-mapping.
+# kmu-hotel@1: Vorlage für die Kontenzuordnung eines Schweizer Hotels nach dem Schweizer Kontenrahmen KMU und dem Kontenrahmen für die Hotellerie und Gastronomie, gelesen von apaleo-odoo init-mapping.
 # Jede Zeile ist ein Vorschlag (ungeprüft), den dein Treuhänder bestätigt. Keine Gewähr, keine Steuerberatung. Die Kontonummern wählt der Treuhänder, viele Mandanten haben einen eigenen Kontenplan.
 # Spalten: apaleo-Kontotyp, name_pattern (regulärer Ausdruck ohne Gross-/Kleinschreibung, geprüft gegen apaleo-Kontonummer, Kontoname und Elternkonten,
 # leer = jeder Name, * = jeder Name und zusätzlich eine Platzhalterzeile), apaleo-MWST-Satz (leer = jeder), Abacus-Konto,

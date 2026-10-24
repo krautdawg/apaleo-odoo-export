@@ -7,11 +7,11 @@ Das Repository ist privat. Beschreibung und Themen sollen Hotels und Treuhänder
 Die OpenSpec-Änderung a08 hat Beschreibung und Themen mit diesem Befehl gesetzt, ohne die Sichtbarkeit zu ändern; `--remove-topic` entfernt Themen aus den Vorgängerprojekten, falls jemand sie gesetzt hat:
 
 ```sh
-gh repo edit krautdawg/apaleo-abacus-export \
+gh repo edit krautdawg/apaleo-odoo-export \
   --description "Kostenloser apaleo Abacus Export (Open Source): XML-Buchungsimport für die Abacus Finanzbuchhaltung aus apaleo, für Hotels in der Schweiz und ihre Treuhänder. Selbst gehostet, MIT, kein Abo." \
   --add-topic apaleo,abacus,abacus-export,abaconnect,abacus-fibu,mwst,kmu-kontenrahmen,hotel,hospitality,accounting,buchhaltung,treuhand,switzerland,schweiz \
   --remove-topic bmd,bmd-ntcs,datev,ekr,austria,oesterreich
-gh repo view krautdawg/apaleo-abacus-export --json description,repositoryTopics,visibility
+gh repo view krautdawg/apaleo-odoo-export --json description,repositoryTopics,visibility
 ```
 
 Keiner der Schritte unter «Vor der Veröffentlichung» ist bisher erledigt. Jeder einzelne ist die Entscheidung des Maintainers.
@@ -35,7 +35,7 @@ In dieser Reihenfolge:
 3. [ ] Lies das README in einem frischen Klon und führe den Schnellstart und `export --month 2026-09 --demo --dry-run` noch einmal aus.
 4. [ ] Starte `pnpm test` (mit dem Docs-Test) und prüfe, dass die CI auf `main` grün ist.
 5. [ ] Durchsuche die Historie nach allem, was nicht öffentlich werden darf: `git log -p | grep -iE 'secret|password|token'` darf nur Code und Dokumentation zeigen, nie einen Wert. Keine echten Gästedaten in den Testdaten.
-6. [ ] Stelle die Sichtbarkeit um: `gh repo edit krautdawg/apaleo-abacus-export --visibility public --accept-visibility-change-consequences`.
+6. [ ] Stelle die Sichtbarkeit um: `gh repo edit krautdawg/apaleo-odoo-export --visibility public --accept-visibility-change-consequences`.
 7. [ ] Lade ein Vorschaubild (Social Preview) hoch (Settings > General > Social preview).
 8. [ ] Entscheide, ob es GitHub Discussions für Fragen geben soll. Schaltest du sie ein, leg eine `config.yml` in `.github/ISSUE_TEMPLATE/` an, die auf die Discussions verweist; bis dahin sind die Vorlagen für Issues der einzige Weg.
 9. [ ] Schalte die private Meldung von Sicherheitslücken ein (Settings > Code security), auf die `SECURITY.md` verweist.

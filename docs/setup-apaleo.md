@@ -11,7 +11,7 @@ Die Bezeichnungen unten folgen den Bildschirmen von apaleo, wie sie beim ersten 
 1. Melde dich bei apaleo an und öffne **Apps > Connected apps**.
 2. Klick auf **Add a new app** und dann auf **Add custom app**. Wähle keinen Connect Client; der ist für Apps im apaleo Store.
 3. Es öffnet sich die Seite **New simple client** (Client Credentials). Trag einen Namen ein, zum Beispiel `Abacus Export`.
-4. Das Feld **Secret description** ist Pflicht: Beschreib, wofür das Secret ist, zum Beispiel `apaleo-abacus-export, Buchungsexport für den Treuhänder`.
+4. Das Feld **Secret description** ist Pflicht: Beschreib, wofür das Secret ist, zum Beispiel `apaleo-odoo-export, Buchungsexport für den Treuhänder`.
 5. Wähle einen **fine-grained** Client (feingranulare Berechtigungen, von apaleo empfohlen) statt Scopes. Damit wählst du die Hotels und jede Berechtigung einzeln.
 
 ## 2. Hotels auswählen
@@ -54,9 +54,9 @@ Behandle das Secret wie ein Passwort: Es liest dein ganzes Buchungsjournal. Lege
 ## 5. Verbindung prüfen
 
 ```sh
-apaleo-abacus doctor        # Konfigurationsdatei, Client-ID und Secret gefunden?
-apaleo-abacus properties    # listet die Hotels, die die App lesen darf
-apaleo-abacus live-smoke --property BSP
+apaleo-odoo doctor        # Konfigurationsdatei, Client-ID und Secret gefunden?
+apaleo-odoo properties    # listet die Hotels, die die App lesen darf
+apaleo-odoo live-smoke --property BSP
 ```
 
 `live-smoke` liest einen Geschäftstag (standardmässig vorgestern), zeigt Anzahlen und Summen und schreibt nichts. Der Befehl endet mit 0, wenn jeder erforderliche Schritt klappt. Fehlt die optionale Berechtigung, steht dort `SKIP`, kein Fehler. Antwortet apaleo mit 403, nennt die Meldung die Berechtigungen von oben.

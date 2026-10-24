@@ -42,7 +42,7 @@ export interface LoadMappingOptions {
 
 const REQUIRED_COLUMNS: readonly MappingColumn[] = ['apaleo_account', 'apaleo_type', 'abacus_account'];
 /** How to make a mapping file, named in every error about a missing or foreign one. */
-export const INIT_MAPPING_HINT = 'apaleo-abacus init-mapping --property <id> --template kmu-hotel';
+export const INIT_MAPPING_HINT = 'apaleo-odoo init-mapping --property <id> --template kmu-hotel';
 /** How to make a mapping file from the account export of a paid connector. */
 export const ACCOUNTS_FROM_HINT = `${INIT_MAPPING_HINT} --accounts-from <file>`;
 
@@ -114,7 +114,7 @@ function foreignLayout(names: readonly string[]): string | undefined {
   const has = (columns: readonly string[]) => names.some((name) => columns.includes(name));
   if (CONNECTOR_EXPORT_COLUMNS.every((column) => names.includes(column.toLowerCase()))) {
     return (
-      'this is the account export of a paid connector, not an apaleo-abacus mapping. ' +
+      'this is the account export of a paid connector, not an apaleo-odoo mapping. ' +
       `Create a mapping from it with "${ACCOUNTS_FROM_HINT}": it carries the Abacus accounts and Kostenstellen over ` +
       'and takes the MWST-Codes from the template (docs/mapping-guide.md)'
     );
@@ -128,7 +128,7 @@ function foreignLayout(names: readonly string[]): string | undefined {
         : undefined;
   if (!found) return undefined;
   return (
-    `this is ${found}, not an Abacus mapping: apaleo-abacus reads the columns ${MAPPING_COLUMNS.join(';')}. ` +
+    `this is ${found}, not an Abacus mapping: apaleo-odoo reads the columns ${MAPPING_COLUMNS.join(';')}. ` +
     `Create an Abacus mapping with "${INIT_MAPPING_HINT}" (docs/mapping-guide.md)`
   );
 }

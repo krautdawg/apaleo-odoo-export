@@ -9,12 +9,12 @@ Ein vollständiges Beispiel liegt in [examples/mapping-BSP.example.csv](examples
 ## Ablauf
 
 ```sh
-apaleo-abacus init-mapping --property BSP --template kmu-hotel      # schreibt mapping-BSP.csv aus dem apaleo-Kontenplan
+apaleo-odoo init-mapping --property BSP --template kmu-hotel      # schreibt mapping-BSP.csv aus dem apaleo-Kontenplan
 # Datei mit dem Treuhänder prüfen, leere Abacus-Konten ausfüllen
-apaleo-abacus mapping check --property BSP                    # prüft die Datei
-apaleo-abacus mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # ist jedes gebuchte Konto zugeordnet?
-apaleo-abacus init-mapping --property BSP --template kmu-hotel --update   # später: neue apaleo-Konten anhängen, bearbeitete Zeilen bleiben
-apaleo-abacus init-mapping --property BSP --template kmu-hotel --accounts-from konten.csv   # Konten aus dem Kontenexport eines kostenpflichtigen Connectors übernehmen
+apaleo-odoo mapping check --property BSP                    # prüft die Datei
+apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # ist jedes gebuchte Konto zugeordnet?
+apaleo-odoo init-mapping --property BSP --template kmu-hotel --update   # später: neue apaleo-Konten anhängen, bearbeitete Zeilen bleiben
+apaleo-odoo init-mapping --property BSP --template kmu-hotel --accounts-from konten.csv   # Konten aus dem Kontenexport eines kostenpflichtigen Connectors übernehmen
 ```
 
 Der Pfad der Datei kann in der Konfiguration stehen (`properties[].mapping`), sonst heisst sie `mapping-<id>.csv` im Arbeitsverzeichnis. `mapping check --from --to` liest das Buchungsjournal des Zeitraums aus apaleo und meldet jedes gebuchte Konto ohne Zuordnung; dein Treuhänder kann die Datei also an einem echten Monat prüfen, bevor ein Export läuft. Die Vorlage schreibt die MWST-Codes aus `abacus.mwstCodes` der Konfiguration (Standard `311`, `312` und `313` wie im KMU-Mustermandanten von Abacus).
@@ -215,8 +215,8 @@ Abacus nimmt eine Kostenstelle nur auf Erfolgskonten an. Das Tool schreibt `kost
 Nutzt dein Hotel heute einen kostenpflichtigen apaleo-Abacus-Connector, hat dein Treuhänder dessen Kontenzuordnung schon geprüft. Exportiere sie dort als CSV (Spalten `Apaleo Kontonummer`, `Kontoname`, `Kontotyp`, `Abacus Kontonummer`, `Kostenstelle`) und übernimm sie:
 
 ```sh
-apaleo-abacus init-mapping --property BSP --template kmu-hotel --accounts-from konten.csv
-apaleo-abacus mapping check --property BSP --from 2026-09-01 --to 2026-09-30
+apaleo-odoo init-mapping --property BSP --template kmu-hotel --accounts-from konten.csv
+apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30
 ```
 
 Das Tool nimmt für jedes apaleo-Konto mit Typ das Abacus-Konto und die Kostenstelle aus dem Export und den MWST-Code und Satz aus der Vorlage, denn der Export hat keine MWST-Spalte. Jede übernommene Zeile ist als «Vorschlag (ungeprüft)» markiert und sagt im Kommentar, dass sie übernommen ist. Konten des Exports, die der apaleo-Kontenplan nicht hat, listet der Befehl auf. Gibt die Vorlage für ein Konto keinen MWST-Code, bleibt er leer, und `mapping check` meldet `E-MWST-CODE-MISSING`, bis du ihn mit deinem Treuhänder einträgst. Als Kontenzuordnung lehnt das Tool den Export ab und nennt `--accounts-from`.
@@ -235,8 +235,8 @@ Bevor die erste Datei in Abacus importiert wird:
 - [ ] Annullationen und No-Shows sind geklärt: ohne MWST auf `3680` (oder dem Konto deines Mandanten), mit MWST nur, wenn apaleos Satz stimmt.
 - [ ] Der Debitorenverlust ist mit dem MWST-Code seines Satzes oder einem Korrektur-Code des Mandanten zugeordnet.
 - [ ] Zahlungen ausser bar gehen auf das Transferkonto, Firmenrechnungen auf die Debitoren apaleo als Sachkonto.
-- [ ] `apaleo-abacus mapping check --property <id> --from <Monatsanfang> --to <Monatsende>` endet ohne Fehler für einen echten Monat.
-- [ ] Ein Probelauf `apaleo-abacus export --month <YYYY-MM> --dry-run` ist ohne `E-` Befund; die Summen pro Konto und MWST-Code stimmen mit den Berichten in apaleo überein.
+- [ ] `apaleo-odoo mapping check --property <id> --from <Monatsanfang> --to <Monatsende>` endet ohne Fehler für einen echten Monat.
+- [ ] Ein Probelauf `apaleo-odoo export --month <YYYY-MM> --dry-run` ist ohne `E-` Befund; die Summen pro Konto und MWST-Code stimmen mit den Berichten in apaleo überein.
 - [ ] Der erste Import läuft in einen Testmandanten, und das Importprotokoll wurde geprüft ([abacus-import.md](abacus-import.md)).
 
 Datum, Name des Treuhänders und die geprüfte Version der Datei (SHA-256 aus dem Protokoll) kannst du in die Spalte `comment` oder in eure Unterlagen schreiben.

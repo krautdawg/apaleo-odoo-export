@@ -1,8 +1,8 @@
-# apaleo-abacus-export container image. Built locally only: there is no
+# apaleo-odoo-export container image. Built locally only: there is no
 # registry image. See docs/docker.md.
 #
-#   docker build -t apaleo-abacus-export:local .
-#   docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-abacus-export:local
+#   docker build -t apaleo-odoo-export:local .
+#   docker run --rm --env-file .env -v "$PWD/config:/config:ro" -v "$PWD/data:/data" apaleo-odoo-export:local
 
 # --- build: compile TypeScript, then keep only the runtime dependencies ------
 FROM node:24-bookworm-slim AS build
@@ -16,13 +16,13 @@ RUN pnpm build && pnpm prune --prod
 
 # --- runtime ------------------------------------------------------------------
 FROM node:24-bookworm-slim
-LABEL org.opencontainers.image.title="apaleo-abacus-export" \
-      org.opencontainers.image.description="apaleo -> Abacus Finanzbuchhaltung export (AbaConnect XML Buchungen)" \
-      org.opencontainers.image.source="https://github.com/krautdawg/apaleo-abacus-export" \
+LABEL org.opencontainers.image.title="apaleo-odoo-export" \
+      org.opencontainers.image.description="apaleo -> Odoo Accounting export (journal entries import file)" \
+      org.opencontainers.image.source="https://github.com/krautdawg/apaleo-odoo-export" \
       org.opencontainers.image.licenses="MIT"
 ENV NODE_ENV=production \
-    APALEO_ABACUS_CONFIG=/config/apaleo-abacus.config.yaml \
-    APALEO_ABACUS_OUTPUT_DIR=/data
+    APALEO_ODOO_CONFIG=/config/apaleo-odoo.config.yaml \
+    APALEO_ODOO_OUTPUT_DIR=/data
 WORKDIR /app
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules

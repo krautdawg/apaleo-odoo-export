@@ -9,7 +9,7 @@ import { ledgerLine, tax } from '../helpers/ledger.js';
 import { ACCOUNTS, charge, swissTax } from '../helpers/posting.js';
 import { SWISS_CHART } from '../helpers/swiss-chart.js';
 
-const CONFIG = FIXTURE_FILES['apaleo-abacus.config.yaml'];
+const CONFIG = FIXTURE_FILES['apaleo-odoo.config.yaml'];
 const HEADER = 'apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment';
 const csv = (...lines: string[]) => [HEADER, ...lines].map((l) => `${l}\r\n`).join('');
 const ACC38 = 'RevenueAccommodation_Special:3.80';
@@ -31,11 +31,11 @@ function context(files: Record<string, string>, ledger?: LedgerLine[], config = 
   data.charts[BSP] = [...SWISS_CHART];
   if (ledger) data.ledger[BSP] = ledger;
   const fake = new FakeSource(data);
-  const ctx = createTestContext({ files: { 'apaleo-abacus.config.yaml': config, ...files }, sourceFactory: () => fake });
+  const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': config, ...files }, sourceFactory: () => fake });
   return { ctx, fake };
 }
 
-describe('apaleo-abacus mapping check (offline)', () => {
+describe('apaleo-odoo mapping check (offline)', () => {
   it('Valid mapping: prints a summary of rows by type and exits 0', async () => {
     const { ctx, fake } = context({ 'mapping-BSP.csv': VALID });
     expect(await runCli(['mapping', 'check', '--property', BSP], ctx)).toBe(0);
@@ -137,7 +137,7 @@ describe('apaleo-abacus mapping check (offline)', () => {
   });
 });
 
-describe('apaleo-abacus mapping check --from --to', () => {
+describe('apaleo-odoo mapping check --from --to', () => {
   it('New revenue account: fails with E-UNMAPPED for 5010, naming type, name, line count and gross total', async () => {
     const credit = { number: '5010', name: 'Spa', type: 'Revenues' };
     const ledger = [
@@ -229,10 +229,10 @@ describe('apaleo-abacus mapping check --from --to', () => {
   });
 });
 
-describe('apaleo-abacus mapping usage', () => {
+describe('apaleo-odoo mapping usage', () => {
   it.each([
-    [['mapping'], 'Usage: apaleo-abacus mapping check'],
-    [['mapping', 'lint'], 'Usage: apaleo-abacus mapping check'],
+    [['mapping'], 'Usage: apaleo-odoo mapping check'],
+    [['mapping', 'lint'], 'Usage: apaleo-odoo mapping check'],
     [['mapping', 'check', '--from', '2026-09-01'], '--from and --to go together'],
     [['mapping', 'check', '--from', '2026-09-31', '--to', '2026-10-01'], '--from must be a date'],
     [['mapping', 'check', '--from', '2026-09-02', '--to', '2026-09-01'], 'lies before'],

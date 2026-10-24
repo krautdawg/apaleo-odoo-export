@@ -9,7 +9,7 @@ import { displayPath } from '../files.js';
 import { createSource, loadCommandConfig } from '../source.js';
 
 export const ONCE_HINT =
-  'schedule has no built-in timer: use "apaleo-abacus schedule --once" from cron or the compose loop (see docs/docker.md).';
+  'schedule has no built-in timer: use "apaleo-odoo schedule --once" from cron or the compose loop (see docs/docker.md).';
 
 export const schedule: Command = {
   name: 'schedule',

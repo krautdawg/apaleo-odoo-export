@@ -27,7 +27,7 @@ const PROTOCOL = 'ABACUS_Buchungen_20260901-20260930_BSP.protokoll.txt';
 const DEMO_MAPPING = 'examples/demo/mapping-BSP.csv';
 const EXAMPLE_MAPPING = 'docs/examples/mapping-BSP.example.csv';
 const MAPPING_HEADER =
-  'apaleo-abacus Kontenzuordnung der Demo Hotel Beispiel (BSP): was init-mapping --template kmu-hotel auf dem Kontenplan der Demo schreibt, ' +
+  'apaleo-odoo Kontenzuordnung der Demo Hotel Beispiel (BSP): was init-mapping --template kmu-hotel auf dem Kontenplan der Demo schreibt, ' +
   'nur die Kurtaxe-Zeile 3501 ist ausgefüllt. Die Konten sind Vorschläge der Vorlage, keine Empfehlung: lass sie von deinem Treuhänder prüfen.';
 const KURTAXE = 'Demo, wie vom Treuhänder ausgefüllt: Kurtaxe als durchlaufender Posten auf 2210 ohne MWST-Code (ESTV MBI 08 Ziff. 7.11).';
 

@@ -204,7 +204,7 @@ export function checkMwstCodeRates(lines: readonly LedgerLine[], result: Posting
         `the MWST-Code ${code} is booked at ${percents.join(' and ')} in this file ` +
         `(${used.length === 1 ? 'line' : 'lines'} ${used.join(', ')} of the mapping file), but an MWST-Code has one rate per date in the MWST-Tabelle, ` +
         'so the accounting program would recompute or refuse the bookings at the other rate. Give each rate its own MWST-Code ' +
-        '(mwst_code and mwst_percent), run "apaleo-abacus mapping check" and export again. No file was written',
+        '(mwst_code and mwst_percent), run "apaleo-odoo mapping check" and export again. No file was written',
       field: 'mwst_code',
       value: code,
     };

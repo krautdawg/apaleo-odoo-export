@@ -23,8 +23,8 @@
       ],
       "mandant": "1234",
       "geschaeftsbereich": 0,
-      "mappingSha256": "96a03d3ece665c808b85746c7322ec23dea6789e8b70ce19adb05178859acdaa",
-      "toolVersion": "0.1.0",
+      "mappingSha256": "0507677e0ca6ea223b3b34646ddc187a8d6b86bfc60f8fa9e4c02a90f7902c1c",
+      "toolVersion": "0.0.0",
       "createdAt": "2026-10-20T08:00:00.000Z"
     }
   ]

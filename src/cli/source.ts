@@ -4,7 +4,7 @@ import { createApaleoSource } from '../sources/apaleo/index.js';
 import { stringOption, type OptionValues } from './command.js';
 import type { CommandContext } from './context.js';
 
-/** Loads the config named by `--config`, `APALEO_ABACUS_CONFIG` or the default file. */
+/** Loads the config named by `--config`, `APALEO_ODOO_CONFIG` or the default file. */
 export async function loadCommandConfig(values: OptionValues, ctx: CommandContext): Promise<LoadedConfig> {
   const path = resolveConfigPath(stringOption(values, 'config'), ctx.env, ctx.cwd);
   return loadConfig({ path, env: ctx.env, readFile: ctx.fs.readFile });

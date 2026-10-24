@@ -1,4 +1,4 @@
-﻿# apaleo-abacus Kontenzuordnung für die aufgezeichneten Sandbox-Daten VIE (österreichische Sätze, Leitwährung EUR), von Hand geschrieben: die Sätze 10, 13 und 20 % mit den Platzhalter-Codes V10, V13 und V20, die Warnungen geben (W-VAT-RATE-UNUSUAL, W-MWST-CODE-UNCHECKED). Nur für die Regressionstests.
+﻿# apaleo-odoo Kontenzuordnung für die aufgezeichneten Sandbox-Daten VIE (österreichische Sätze, Leitwährung EUR), von Hand geschrieben: die Sätze 10, 13 und 20 % mit den Platzhalter-Codes V10, V13 und V20, die Warnungen geben (W-VAT-RATE-UNUSUAL, W-MWST-CODE-UNCHECKED). Nur für die Regressionstests.
 apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment
 RevenueAccommodation_Normal:20.00;Revenues;Revenues Accommodation (20%);20;3500;V20;20;;Testzuordnung: übrige Hotelleistungen mit dem Platzhalter-Code V20.
 RevenueAccommodation_Null:0.00;Revenues;Revenues Accommodation (0%);0;3600;;0;;Testzuordnung: Erlöse ohne MWST.

@@ -13,7 +13,7 @@ const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' } as const;
 
 async function run(setup: ExportSetup, request: Partial<ExportRequest> = {}, post?: typeof buildBookings) {
   const { ctx, fake } = setup;
-  const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-abacus.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
+  const loaded = await loadConfig({ path: join(ctx.cwd, 'apaleo-odoo.config.yaml'), env: ctx.env, readFile: ctx.fs.readFile });
   const full: ExportRequest = { period: SEPTEMBER, propertyIds: [BSP], dryRun: false, overwrite: false, ...request };
   return runExport(full, { loaded, source: fake, ctx, ...(post ? { post } : {}) });
 }
@@ -183,7 +183,7 @@ describe('the period-part runner', () => {
     expect(outcome?.status).toBe('checked');
     expect(outcome?.plan).toBe('write');
     expect(outcome?.summary).toContain('Totals per Abacus account');
-    expect(readdirSync(setup.ctx.cwd).sort()).toEqual(['apaleo-abacus.config.yaml', 'mapping-BSP.csv']);
+    expect(readdirSync(setup.ctx.cwd).sort()).toEqual(['apaleo-odoo.config.yaml', 'mapping-BSP.csv']);
   });
 
   it('warns about the MWST-Codes of the mapping rows the month uses in the dry run and the protocol, without mapping check', async () => {

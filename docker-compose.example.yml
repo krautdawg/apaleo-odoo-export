@@ -1,7 +1,7 @@
-# apaleo-abacus-export mit Docker Compose. Siehe docs/docker.md.
+# apaleo-odoo-export mit Docker Compose. Siehe docs/docker.md.
 #
 #   cp .env.example .env            # dann APALEO_CLIENT_SECRET eintragen
-#   mkdir -p config data            # config/apaleo-abacus.config.yaml und config/mapping-<id>.csv kommen nach ./config
+#   mkdir -p config data            # config/apaleo-odoo.config.yaml und config/mapping-<id>.csv kommen nach ./config
 #   sudo chown 1000:1000 data       # der Container läuft als Benutzer node (uid 1000)
 #   docker compose -f docker-compose.example.yml up -d --build
 #
@@ -13,13 +13,13 @@
 #
 # Mit Argumenten führt der Dienst stattdessen genau diesen einen Befehl aus und
 # endet, zum Beispiel aus Cron auf dem Host oder für einen einmaligen Export:
-#   docker compose -f docker-compose.example.yml run --rm apaleo-abacus schedule --once
-#   docker compose -f docker-compose.example.yml run --rm apaleo-abacus export --month 2026-10
+#   docker compose -f docker-compose.example.yml run --rm apaleo-odoo schedule --once
+#   docker compose -f docker-compose.example.yml run --rm apaleo-odoo export --month 2026-10
 
 services:
-  apaleo-abacus:
+  apaleo-odoo:
     build: .
-    image: apaleo-abacus-export:local
+    image: apaleo-odoo-export:local
     restart: unless-stopped
     # tini als PID 1, damit "docker compose down" das sleep sofort beendet.
     init: true
@@ -27,7 +27,7 @@ services:
     # "Heute" für den Zeitplan ist das Datum in dieser Zeitzone. Europe/Zurich ist
     # der Standard; setz den Wert nur, wenn deine Hotels woanders stehen.
     # environment:
-    #   APALEO_ABACUS_TIMEZONE: Europe/Zurich
+    #   APALEO_ODOO_TIMEZONE: Europe/Zurich
     volumes:
       - ./config:/config:ro
       - ./data:/data
@@ -40,4 +40,4 @@ services:
           node /app/dist/cli/main.js schedule --once
           sleep 3600
         done
-      - apaleo-abacus
+      - apaleo-odoo

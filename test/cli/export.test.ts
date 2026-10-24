@@ -44,7 +44,7 @@ function chargeOn(day: `${number}-${number}-${number}`, entry: string) {
   };
 }
 
-describe('apaleo-abacus export', () => {
+describe('apaleo-odoo export', () => {
   it('Files after a run: writes the golden Abacus file, its protocol with the Abacus import block and the manifest for a month, and exits 0', async () => {
     const setup = exportSetup();
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(0);
@@ -77,7 +77,7 @@ describe('apaleo-abacus export', () => {
     expect(protocol).toContain('Import into Abacus FIBU (compare with the Mandant before importing, see docs/abacus-format.md):');
     expect(protocol).toContain(`  File: ${FILE}`);
     expect(protocol).toContain(`SHA-256: ${sha256(file)}`);
-    expect(protocol).toContain('Tool: apaleo-abacus 0.1.0');
+    expect(protocol).toContain('Tool: apaleo-odoo 0.0.0');
   });
 
   it('Protocol names the Mandant: the import block and the manifest entry name Mandant 1234 and Geschäftsbereich 2', async () => {
@@ -188,7 +188,7 @@ describe('apaleo-abacus export', () => {
     }
     expect(out).toContain(`File: a real run writes exports/BSP/2026-09/${FILE}`);
     expect(out).toContain('Result: dry run, nothing written');
-    expect(readdirSync(setup.ctx.cwd).sort()).toEqual(['apaleo-abacus.config.yaml', 'mapping-BSP.csv']);
+    expect(readdirSync(setup.ctx.cwd).sort()).toEqual(['apaleo-odoo.config.yaml', 'mapping-BSP.csv']);
   });
 
   it('exits 1 in a dry run with an error finding', async () => {
@@ -283,12 +283,12 @@ describe('re-running an export', () => {
   it('writes nothing while another run holds the folder lock', async () => {
     const setup = exportSetup();
     await nodeFs.mkdir(folder(setup), { recursive: true });
-    writeFileSync(join(folder(setup), '.apaleo-abacus.lock'), 'pid 1\n');
+    writeFileSync(join(folder(setup), '.apaleo-odoo.lock'), 'pid 1\n');
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
     const out = setup.ctx.out();
-    expect(out).toContain('E-EXPORT: another apaleo-abacus run is writing into');
+    expect(out).toContain('E-EXPORT: another apaleo-odoo run is writing into');
     expect(out).toContain('Result: 0 written, 0 unchanged, 1 failed.');
-    expect(readdirSync(folder(setup))).toEqual(['.apaleo-abacus.lock']);
+    expect(readdirSync(folder(setup))).toEqual(['.apaleo-odoo.lock']);
   });
 
   it('does not write over a file another run created after this run checked the folder', async () => {
@@ -297,12 +297,12 @@ describe('re-running an export', () => {
       ...nodeFs,
       writeFile: async (path, data, options) => {
         // The other run finishes between this run's check and its write.
-        if (String(path).endsWith('.apaleo-abacus.lock')) writeFileSync(join(folder(setup), FILE), 'written by another run');
+        if (String(path).endsWith('.apaleo-odoo.lock')) writeFileSync(join(folder(setup), FILE), 'written by another run');
         return nodeFs.writeFile(path, data, options);
       },
     };
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP], setup.ctx)).toBe(1);
-    expect(setup.ctx.out()).toContain('changed while this run was checking it, probably by another apaleo-abacus run');
+    expect(setup.ctx.out()).toContain('changed while this run was checking it, probably by another apaleo-odoo run');
     expect(read(setup, FILE).toString('utf8')).toBe('written by another run');
     expect(readdirSync(folder(setup))).toEqual([FILE]);
   });
@@ -318,7 +318,7 @@ describe('re-running an export', () => {
 
   it('Config changed the content: a change of abacus.geschaeftsbereich refuses the re-run with E-FILE-EXISTS, and --overwrite writes the new Division', async () => {
     const setup = await exportedOnce();
-    const configPath = join(setup.ctx.cwd, 'apaleo-abacus.config.yaml');
+    const configPath = join(setup.ctx.cwd, 'apaleo-odoo.config.yaml');
     writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('  mandant: 1234\n', '  mandant: 1234\n  geschaeftsbereich: 5\n'));
     const old = read(setup, FILE);
     expect(values(xmlOf(old), 'Division').every((division) => division === '0')).toBe(true);
@@ -341,7 +341,7 @@ describe('re-running an export', () => {
 
   it('Config changed the interface version: abacus.version 2024.00 refuses the re-run with E-FILE-EXISTS, and --overwrite writes version 2024.00', async () => {
     const setup = await exportedOnce();
-    const configPath = join(setup.ctx.cwd, 'apaleo-abacus.config.yaml');
+    const configPath = join(setup.ctx.cwd, 'apaleo-odoo.config.yaml');
     writeFileSync(configPath, readFileSync(configPath, 'utf8').replace('  mandant: 1234\n', '  mandant: 1234\n  version: "2024.00"\n'));
     const old = read(setup, FILE);
     expect(values(xmlOf(old), 'Version')).toEqual(['2015.00']);
@@ -390,7 +390,7 @@ describe('re-running an export', () => {
     const before = readdirSync(folder(setup)).map((name) => [name, read(setup, name)] as const);
     expect(await runCli(['export', '--month', '2026-09', '--property', BSP, '--overwrite'], setup.ctx)).toBe(1);
     expect(setup.ctx.out()).toContain('E-EXPORT');
-    expect(setup.ctx.out()).toContain('manifest.json is not a manifest written by apaleo-abacus');
+    expect(setup.ctx.out()).toContain('manifest.json is not a manifest written by apaleo-odoo');
     expect(readdirSync(folder(setup)).map((name) => [name, read(setup, name)] as const)).toEqual(before);
   });
 });

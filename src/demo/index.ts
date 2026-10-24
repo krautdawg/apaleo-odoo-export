@@ -25,13 +25,13 @@ export interface DemoRun {
 }
 
 /**
- * The demo config (`examples/demo/apaleo-abacus.config.yaml`, read without the
+ * The demo config (`examples/demo/apaleo-odoo.config.yaml`, read without the
  * environment so nothing redirects it), its mapping paths resolved inside the
  * demo folder, output into `./demo-output/`, and a context with the demo clock
  * and the recorded source.
  */
 export async function demoRun(ctx: CommandContext): Promise<DemoRun> {
-  const loaded = await loadConfig({ path: join(DEMO_DIR, 'apaleo-abacus.config.yaml'), env: {}, readFile: ctx.fs.readFile });
+  const loaded = await loadConfig({ path: join(DEMO_DIR, 'apaleo-odoo.config.yaml'), env: {}, readFile: ctx.fs.readFile });
   const config = {
     ...loaded.config,
     output: { dir: resolve(ctx.cwd, DEMO_OUTPUT_DIR) },

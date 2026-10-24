@@ -47,7 +47,7 @@ export const initMapping: Command = {
   },
   async run(args, ctx) {
     const propertyId = stringOption(args.values, 'property');
-    if (!propertyId) throw new UsageError('init-mapping needs --property <id>. Run "apaleo-abacus properties" to list them.');
+    if (!propertyId) throw new UsageError('init-mapping needs --property <id>. Run "apaleo-odoo properties" to list them.');
     const template = stringOption(args.values, 'template') ?? 'kmu-hotel';
     if (!(TEMPLATES as readonly string[]).includes(template)) {
       throw new UsageError(`Unknown template "${template}". --template must be ${TEMPLATES.join(' or ')} (the Schweizer Kontenrahmen KMU for hotels).`);
@@ -83,7 +83,7 @@ export const initMapping: Command = {
       printCounts(ctx, rows);
       ctx.stdout.write(
         'Every row is a suggestion (Vorschlag, ungeprüft): have your Treuhänder check the file, fill in the empty Abacus accounts, ' +
-          'then run "apaleo-abacus mapping check".\n',
+          'then run "apaleo-odoo mapping check".\n',
       );
       return EXIT_OK;
     }

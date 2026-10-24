@@ -66,12 +66,12 @@ describe('README and docs match the code', () => {
   });
 
   it('reads the command lines of the README, also in indented fences of the quick start', () => {
-    const lines = shellLines(readRepoFile('README.md')).filter((line) => /^(apaleo-abacus|node dist\/cli\/main\.js) /.test(line));
-    expect(lines).toEqual(expect.arrayContaining(['apaleo-abacus export --month 2026-09 --dry-run', 'node dist/cli/main.js export --month 2026-09 --demo --dry-run']));
+    const lines = shellLines(readRepoFile('README.md')).filter((line) => /^(apaleo-odoo|node dist\/cli\/main\.js) /.test(line));
+    expect(lines).toEqual(expect.arrayContaining(['apaleo-odoo export --month 2026-09 --dry-run', 'node dist/cli/main.js export --month 2026-09 --demo --dry-run']));
     expect(lines.length).toBeGreaterThanOrEqual(8);
   });
 
-  it.each(FILES)('%s: every apaleo-abacus command and flag in a shell fence exists', (file) => {
+  it.each(FILES)('%s: every apaleo-odoo command and flag in a shell fence exists', (file) => {
     expect(checkCommandLines(file, readRepoFile(file), COMMANDS)).toEqual([]);
   });
 
@@ -138,47 +138,47 @@ describe('the docs checks', () => {
   const sh = (...lines: string[]) => ['Some text.', '', '```sh', ...lines, '```', ''].join('\n');
 
   it('names a stale flag, its command and the file', () => {
-    const problems = checkCommandLines('docs/abacus-import.md', sh('apaleo-abacus export --month 2026-10 --email'), COMMANDS);
-    expect(problems).toEqual(['docs/abacus-import.md: "apaleo-abacus export --month 2026-10 --email": --email is not an option of "export"']);
+    const problems = checkCommandLines('docs/abacus-import.md', sh('apaleo-odoo export --month 2026-10 --email'), COMMANDS);
+    expect(problems).toEqual(['docs/abacus-import.md: "apaleo-odoo export --month 2026-10 --email": --email is not an option of "export"']);
   });
 
-  it('Old binary in a doc: names apaleo-bmd and the file, and passes once the line reads apaleo-abacus', () => {
+  it('Old binary in a doc: names apaleo-bmd and the file, and passes once the line reads apaleo-odoo', () => {
     expect(checkCommandLines('docs/export.md', sh('apaleo-bmd export --month 2026-10'), COMMANDS)).toEqual([
-      'docs/export.md: "apaleo-bmd export --month 2026-10": apaleo-bmd is the binary of another project; write apaleo-abacus',
+      'docs/export.md: "apaleo-bmd export --month 2026-10": apaleo-bmd is the binary of another project; write apaleo-odoo',
     ]);
-    expect(checkCommandLines('docs/export.md', sh('apaleo-abacus export --month 2026-10'), COMMANDS)).toEqual([]);
+    expect(checkCommandLines('docs/export.md', sh('apaleo-odoo export --month 2026-10'), COMMANDS)).toEqual([]);
     expect(checkCommandLines('docs/x.md', sh('docker compose run --rm apaleo-datev export --month 2026-10'), COMMANDS)).toEqual([expect.stringContaining('apaleo-datev is the binary')]);
-    expect(checkCommandLines('docs/x.md', sh('cd apaleo-abacus-export   # not apaleo-bmd', 'git clone https://github.com/krautdawg/apaleo-bmd-export.git'), COMMANDS)).toEqual([]);
+    expect(checkCommandLines('docs/x.md', sh('cd apaleo-odoo-export   # not apaleo-bmd', 'git clone https://github.com/krautdawg/apaleo-bmd-export.git'), COMMANDS)).toEqual([]);
     expect(checkCommandLines('docs/x.md', '`apaleo-bmd export`\n```text\napaleo-bmd export\n```\n', COMMANDS)).toEqual([]);
   });
 
   it('names a renamed command and the file', () => {
     const renamed: Command[] = COMMANDS.map((command) => (command.name === 'export' ? { ...command, name: 'write' } : command));
-    const problems = checkCommandLines('README.md', sh('apaleo-abacus export --month 2026-10 --dry-run'), renamed);
+    const problems = checkCommandLines('README.md', sh('apaleo-odoo export --month 2026-10 --dry-run'), renamed);
     expect(problems).toHaveLength(1);
-    expect(problems[0]).toMatch(/^README\.md: "apaleo-abacus export --month 2026-10 --dry-run": "export" is not a command/);
+    expect(problems[0]).toMatch(/^README\.md: "apaleo-odoo export --month 2026-10 --dry-run": "export" is not a command/);
   });
 
   it('reads two-word commands, global flags, both program spellings and stops at comments and pipes', () => {
     const text = sh(
-      'apaleo-abacus mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # --nonsense in a comment',
+      'apaleo-odoo mapping check --property BSP --from 2026-09-01 --to 2026-09-30   # --nonsense in a comment',
       'node dist/cli/main.js --help        # or: pnpm link --global',
       'node dist/cli/main.js export --month 2026-09 --demo --dry-run --debug | tee out.txt --x',
-      'apaleo-abacus live-smoke --property BER [--date 2026-10-18]',
-      'APALEO_CLIENT_SECRET=... apaleo-abacus export --unknown',
-      'docker compose run --rm apaleo-abacus export --month 2026-10',
+      'apaleo-odoo live-smoke --property BER [--date 2026-10-18]',
+      'APALEO_CLIENT_SECRET=... apaleo-odoo export --unknown',
+      'docker compose run --rm apaleo-odoo export --month 2026-10',
     );
     expect(checkCommandLines('docs/x.md', text, COMMANDS)).toEqual([]);
-    expect(checkCommandLines('docs/x.md', sh('apaleo-abacus mapping --property BSP'), COMMANDS)).toHaveLength(1);
-    expect(checkCommandLines('docs/x.md', sh('apaleo-abacus live-smoke [--days 3]'), COMMANDS)).toEqual([
-      'docs/x.md: "apaleo-abacus live-smoke [--days 3]": --days is not an option of "live-smoke"',
+    expect(checkCommandLines('docs/x.md', sh('apaleo-odoo mapping --property BSP'), COMMANDS)).toHaveLength(1);
+    expect(checkCommandLines('docs/x.md', sh('apaleo-odoo live-smoke [--days 3]'), COMMANDS)).toEqual([
+      'docs/x.md: "apaleo-odoo live-smoke [--days 3]": --days is not an option of "live-smoke"',
     ]);
   });
 
   it('ignores command lines outside sh and bash fences', () => {
-    const text = ['`apaleo-abacus export --email`', '```text', 'apaleo-abacus export --email', '```', '```yaml', 'apaleo-abacus: --email', '```'].join('\n');
+    const text = ['`apaleo-odoo export --email`', '```text', 'apaleo-odoo export --email', '```', '```yaml', 'apaleo-odoo: --email', '```'].join('\n');
     expect(checkCommandLines('docs/x.md', text, COMMANDS)).toEqual([]);
-    expect(checkCommandLines('docs/x.md', ['```bash', 'apaleo-abacus export --email', '```'].join('\n'), COMMANDS)).toHaveLength(1);
+    expect(checkCommandLines('docs/x.md', ['```bash', 'apaleo-odoo export --email', '```'].join('\n'), COMMANDS)).toHaveLength(1);
   });
 
   it('names a stale config key and the file', () => {
@@ -491,10 +491,10 @@ describe('docs/docker.md (a07)', () => {
   it('documents the compose loop, the host-cron alternative, the default time zone Europe/Zurich and the demo in the image', () => {
     expect(docker).toContain('docker compose -f docker-compose.example.yml up -d --build');
     expect(docker).toContain('## Cron auf dem Host statt der Schleife');
-    expect(docker).toContain('docker compose -f docker-compose.example.yml run --rm apaleo-abacus schedule --once >> schedule.log 2>&1');
+    expect(docker).toContain('docker compose -f docker-compose.example.yml run --rm apaleo-odoo schedule --once >> schedule.log 2>&1');
     expect(docker).toContain('(Standard `Europe/Zurich`)');
     expect(docker).not.toContain('Vienna');
-    expect(docker).toContain('docker run --rm -w /data -v "$PWD/data:/data" apaleo-abacus-export:local export --month 2026-09 --demo');
+    expect(docker).toContain('docker run --rm -w /data -v "$PWD/data:/data" apaleo-odoo-export:local export --month 2026-09 --demo');
     expect(docker).toContain('uid 1000');
     expect(docker).toContain('ABACUS_Buchungen_20260901-20260930_BSP_DEMO.xml');
   });

@@ -17,12 +17,12 @@ const CODE = 'W-ABRECHNUNGSART-VEREINNAHMT';
 const count = (text: string, needle: string) => text.split(needle).length - 1;
 
 function chMonth(config: string) {
-  return createApaleoContext({ chMonth: true }, { files: { 'apaleo-abacus.config.yaml': config, 'mapping-ENG.csv': MAPPING } });
+  return createApaleoContext({ chMonth: true }, { files: { 'apaleo-odoo.config.yaml': config, 'mapping-ENG.csv': MAPPING } });
 }
 
 describe('Vereinnahmte Entgelte', () => {
   it('Doctor with vereinnahmte Entgelte: warns W-ABRECHNUNGSART-VEREINNAHMT naming the Hilfskonto 2202 and docs/mapping-guide.md, and exits 0', async () => {
-    const ctx = createTestContext({ files: { 'apaleo-abacus.config.yaml': 'abacus:\n  mandant: 1234\n  abrechnungsart: vereinnahmt\n' } });
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n  abrechnungsart: vereinnahmt\n' } });
     expect(await runCli(['doctor'], ctx)).toBe(0);
     expect(count(ctx.out(), CODE)).toBe(1);
     expect(ctx.out()).toContain('the Hilfskonto 2202 (abacus.mwstHilfskonto)');
@@ -79,7 +79,7 @@ describe('Vereinnahmte Entgelte', () => {
 describe('mapping check: Swiss special-case warnings', () => {
   const HEADER = 'apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment';
   const check = async (...rows: string[]) => {
-    const ctx = createTestContext({ files: { 'apaleo-abacus.config.yaml': chMonthConfig(), 'mapping-ENG.csv': [HEADER, ...rows].map((l) => `${l}\r\n`).join('') } });
+    const ctx = createTestContext({ files: { 'apaleo-odoo.config.yaml': chMonthConfig(), 'mapping-ENG.csv': [HEADER, ...rows].map((l) => `${l}\r\n`).join('') } });
     return { code: await runCli(['mapping', 'check', '--property', ENG], ctx), out: ctx.out() };
   };
 

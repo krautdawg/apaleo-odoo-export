@@ -22,7 +22,7 @@ Clients, die Scopes statt fine-grained permissions nutzen, brauchen `accounting.
 | `POST https://identity.apaleo.com/connect/token` | Token, `grant_type=client_credentials`, `client_secret_basic`; `apaleo.scopes` wird nur gesendet, wenn es gesetzt ist |
 | `GET /inventory/v1/properties?pageNumber&pageSize=500` | Property-ID, Code, Name, Zeitzone, Währung; endet bei einer kurzen Seite oder 204 |
 | `GET /finance/v1/accounts/schema?propertyId&depth=4&includeArchived=true` | Kontenplan, flach gemacht, mit der Liste der Buchungsjournale (global, guest, external, booking) jedes Kontos |
-| `POST /finance/v1/accounts/export-gross-daily?propertyId&from&to` | ein Geschäftstag pro Anfrage (`to` ist ausgeschlossen), Header `Idempotency-Key: apaleo-abacus-<property>-<from>-<to>-<run id>`; 204 heisst: keine Buchungen |
+| `POST /finance/v1/accounts/export-gross-daily?propertyId&from&to` | ein Geschäftstag pro Anfrage (`to` ist ausgeschlossen), Header `Idempotency-Key: apaleo-odoo-<property>-<from>-<to>-<run id>`; 204 heisst: keine Buchungen |
 | `POST /finance/v1/accounts/aggregate-daily?propertyId&from&to` | die eigenen Tagessummen von apaleo, ein Geschäftstag pro Anfrage: globale Konten auf unterster Ebene (Zahlungsarten, Erlös- und MWST-Unterkonten), von den Gast-, externen und Buchungskonten nur das oberste Elternkonto (`1200`, `3000`, `9999`) |
 
 Bei Anfragelimits (429) wartet das Tool `Retry-After` ab, höchstens 60 s, und versucht es dann noch einmal; Server- und Netzwerkfehler wiederholt es bis zu viermal mit wachsenden Abständen. Anfragen brechen nach 60 s ab. Höchstens zwei Export-Anfragen laufen gleichzeitig; das hält Entwicklungskonten (5 Anfragen pro Sekunde) unter der Grenze.
@@ -42,7 +42,7 @@ Am 2026-10-21 lief das Tool gegen eine apaleo-DEV-Sandbox (Hotels BER und VIE, j
 ## Live-Test
 
 ```sh
-APALEO_CLIENT_SECRET=... apaleo-abacus live-smoke --property BER [--date 2026-10-18]
+APALEO_CLIENT_SECRET=... apaleo-odoo live-smoke --property BER [--date 2026-10-18]
 ```
 
 Der Befehl holt ein Token, das Hotel, den Kontenplan, einen Geschäftstag des Buchungsjournals (standardmässig vorgestern in der Zeitzone des Hotels) und die Tagessummen, zeigt Anzahlen und Summen und schreibt keine Dateien. Er endet nur mit 0, wenn jeder erforderliche Schritt klappt; eine fehlende Berechtigung für die Tagessummen meldet er als `SKIP`, nicht als Fehler. Hat der Tag keine Buchungen, steht beim Buchungsjournal `WARN`, und das Ergebnis sagt, dass über die Buchungen nichts geprüft wurde: Starte ihn dann mit `--date` für einen Tag mit Buchungen.

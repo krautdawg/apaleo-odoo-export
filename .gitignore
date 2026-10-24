@@ -10,10 +10,13 @@ exports/
 *.tsbuildinfo
 .DS_Store
 # a real config may hold customer numbers; only the example is committed
+/apaleo-odoo.config.yaml
+/apaleo-odoo.config.yml
+/apaleo-odoo.config.json
+# legacy names from the apaleo-abacus-export, apaleo-bmd-export and apaleo-datev-export copies, so an old local config stays out of git
 /apaleo-abacus.config.yaml
 /apaleo-abacus.config.yml
 /apaleo-abacus.config.json
-# legacy names from the apaleo-bmd-export and apaleo-datev-export copies, so an old local config stays out of git
 /apaleo-bmd.config.yaml
 /apaleo-bmd.config.yml
 /apaleo-bmd.config.json

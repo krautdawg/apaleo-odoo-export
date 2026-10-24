@@ -40,7 +40,7 @@ export function sourceFiles(): string[] {
 
 // --- Commands --------------------------------------------------------------
 
-const PROGRAMS = ['apaleo-abacus ', 'node dist/cli/main.js '];
+const PROGRAMS = ['apaleo-odoo ', 'node dist/cli/main.js '];
 /** The binaries of the projects this tool was copied from: a doc that still shows one is stale (a01). */
 const OLD_PROGRAM = /(?:^|\s)(apaleo-bmd|apaleo-datev)(?=\s|$)/;
 /** Flags the CLI accepts before or instead of a command, and on every command. */
@@ -77,16 +77,16 @@ export function commandPhrases(commands: readonly Command[]): Map<string, Comman
   return phrases;
 }
 
-/** Problems with the `apaleo-abacus` command lines in the shell fences of one file. */
+/** Problems with the `apaleo-odoo` command lines in the shell fences of one file. */
 export function checkCommandLines(file: string, markdown: string, commands: readonly Command[]): string[] {
   const phrases = commandPhrases(commands);
   const problems: string[] = [];
   for (const raw of shellLines(markdown)) {
     const old = OLD_PROGRAM.exec(raw.split(/\s#/)[0] ?? '')?.[1];
-    if (old) problems.push(`${file}: "${raw}": ${old} is the binary of another project; write apaleo-abacus`);
+    if (old) problems.push(`${file}: "${raw}": ${old} is the binary of another project; write apaleo-odoo`);
     const program = PROGRAMS.find((p) => raw.startsWith(p));
     if (!program) continue;
-    // A shell comment, pipe, redirection or second command ends the apaleo-abacus part.
+    // A shell comment, pipe, redirection or second command ends the apaleo-odoo part.
     const line = raw.slice(program.length).split(/\s(?:#|&&|\|\||\||>>?|;)/)[0]?.trim() ?? '';
     const words = line.split(/\s+/).filter(Boolean);
     const flags = [...line.matchAll(/(?:^|[\s[])--([A-Za-z][\w-]*)/g)].map((m) => m[1] ?? '');
