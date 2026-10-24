@@ -4,14 +4,14 @@
 The `export` command that turns one period of a property's apaleo ledger into DATEV Buchungsstapel files: period parsing and the split per month and fiscal year, the date rules that stand in for the night-audit status, the blocking coverage, posting and plausibility checks, the dry run, the output folder with protocol and manifest, and idempotent re-runs.
 ## Requirements
 ### Requirement: Export command
-The CLI SHALL provide `apaleo-abacus export` taking either `--from <date> --to <date>` (inclusive business dates) or `--month <YYYY-MM>`, an optional `--property <id>` (default: every configured property), and the flags `--dry-run` and `--overwrite`. It SHALL exit with code 0 when every property and month succeeded and 1 when any failed.
+The CLI SHALL provide `apaleo-odoo export` taking either `--from <date> --to <date>` (inclusive business dates) or `--month <YYYY-MM>`, an optional `--property <id>` (default: every configured property), and the flags `--dry-run` and `--overwrite`. It SHALL exit with code 0 when every property and month succeeded and 1 when any failed.
 
 #### Scenario: Monthly export
-- **WHEN** the user runs `apaleo-abacus export --month 2026-10 --property BSP` with a complete mapping
+- **WHEN** the user runs `apaleo-odoo export --month 2026-10 --property BSP` with a complete mapping
 - **THEN** one file of the configured target for 2026-10-01 to 2026-10-31 is written for BSP and the exit code is 0
 
 #### Scenario: Missing period
-- **WHEN** the user runs `apaleo-abacus export` without a period
+- **WHEN** the user runs `apaleo-odoo export` without a period
 - **THEN** the CLI exits with code 2 and explains `--month` and `--from/--to`
 
 ### Requirement: Period rules

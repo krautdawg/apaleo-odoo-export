@@ -85,17 +85,17 @@ The adapter SHALL validate responses against schemas that mirror the apaleo Fina
 - **THEN** every apaleo fixture is checked against the committed Swagger excerpt and the suite fails if a required field or enum value does not match
 
 ### Requirement: Properties command
-The CLI SHALL provide `apaleo-abacus properties`, which lists every property the custom app can read with id, code, name, time zone and currency.
+The CLI SHALL provide `apaleo-odoo properties`, which lists every property the custom app can read with id, code, name, time zone and currency.
 
 #### Scenario: List properties
-- **WHEN** the user runs `apaleo-abacus properties` with valid credentials
+- **WHEN** the user runs `apaleo-odoo properties` with valid credentials
 - **THEN** one line per property is printed and the exit code is 0
 
 ### Requirement: Live smoke command
-The CLI SHALL provide `apaleo-abacus live-smoke --property <id> [--date YYYY-MM-DD]` that, against real credentials, fetches a token, the property, the chart of accounts and one business day of ledger and aggregates, prints counts and totals, compares the aggregates with the ledger by balance as the export's aggregate check does, reports whether per-reservation accounts carry `parentNumber` and how many deposit lines were received, released and refunded (each with and without `taxes[]`), writes no files, and exits 0 only if every required step succeeded (a missing optional aggregate permission is reported, not fatal). When the business day has no ledger lines, it SHALL print a warning and a result line saying that nothing about the postings was checked and suggesting `--date` with a day that has bookings, instead of a plain pass. The test suite SHALL NOT call it against the network.
+The CLI SHALL provide `apaleo-odoo live-smoke --property <id> [--date YYYY-MM-DD]` that, against real credentials, fetches a token, the property, the chart of accounts and one business day of ledger and aggregates, prints counts and totals, compares the aggregates with the ledger by balance as the export's aggregate check does, reports whether per-reservation accounts carry `parentNumber` and how many deposit lines were received, released and refunded (each with and without `taxes[]`), writes no files, and exits 0 only if every required step succeeded (a missing optional aggregate permission is reported, not fatal). When the business day has no ledger lines, it SHALL print a warning and a result line saying that nothing about the postings was checked and suggesting `--date` with a day that has bookings, instead of a plain pass. The test suite SHALL NOT call it against the network.
 
 #### Scenario: Smoke run succeeds
-- **WHEN** a developer runs `apaleo-abacus live-smoke --property BSP` with a valid custom app
+- **WHEN** a developer runs `apaleo-odoo live-smoke --property BSP` with a valid custom app
 - **THEN** the output shows account counts by type, the number of ledger lines and debit and credit totals for the day, and the exit code is 0
 
 #### Scenario: Smoke run without secret
