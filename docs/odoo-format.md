@@ -133,7 +133,7 @@ Die Beispiele:
 | Logis 120,00 € zu 7 % (apaleo: netto 112,15 €, Steuer 7,85 €) | `8300` Haben 112,15 €; Odoos Steuer 7,85 €, kein Cent fehlt |
 | Frühstück 95,00 € zu 7 %, Rundung pro Zeile (apaleo: netto 88,79 €, Steuer 6,21 €) | 88,78 € ergibt 94,99 €, 88,79 € ergibt 95,01 €. Deshalb `8300` Haben 88,78 € und eine zweite Zeile `8300` Haben 0,01 € mit derselben Steuer und der Bezeichnung „… (Rundungsausgleich)“; die Steuer des Cents rundet auf 0,00 €, Odoos Steuer ist 6,21 € |
 | Logis 120,00 € und 95,00 € zu 7 % an einem Tag, Rundung pro Steuer | eine Zeile `8300` Haben 200,93 €; Odoos Steuer 14,07 €, apaleos Steuer 14,06 €, Unterschied 0,01 € im Protokoll |
-| Umsatz 100,04 € zu 7 %, Rundung pro Steuer (apaleo: netto 93,50 €, Steuer 6,54 €) | `8300` Haben 93,49 € (Steuer 6,54 €) und eine Zeile ohne Steuer auf `odoo.roundingAccount`, zum Beispiel `2700` Haben 0,01 € „Rundungsausgleich USt 7 %“ |
+| Umsatz 100,04 € zu 7 %, Rundung pro Steuer (apaleo: netto 93,50 €, Steuer 6,54 €) | `8300` Haben 93,49 € (Steuer 6,54 €) und eine Zeile ohne Steuer auf `odoo.roundingAccount`, zum Beispiel SKR03 `2700` (SKR04 `4830`) Haben 0,01 € „Rundungsausgleich USt 7 %“ |
 
 Bei Rundung pro Steuer hilft eine zweite Zeile mit derselben Steuer nicht, weil Odoo die Steuer der ganzen Gruppe nur einmal rundet; deshalb kommt der Cent dort auf ein Konto ohne Steuer. Verteilt sich eine Gruppe auf mehrere Konten, teilt das Tool ihren Nettobetrag nach apaleos Nettobeträgen auf (Verfahren der größten Reste).
 

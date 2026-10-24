@@ -615,7 +615,7 @@ const REQUIRED_HINTS: Readonly<Record<string, string>> = {
   'odoo.version': 'name the Odoo version of the database: 17, 18 or 19; see docs/configuration.md',
   'odoo.roundingAccount':
     'it is required with taxRounding: per_tax (the default for odoo.version 19): name an Odoo account without taxes for the rounding cents, ' +
-    'for example "2700", or set odoo.taxRounding to per_line if the Odoo company rounds per line; see docs/configuration.md',
+    'for example "2700" in SKR03 or "4830" in SKR04, or set odoo.taxRounding to per_line if the Odoo company rounds per line; see docs/configuration.md',
 };
 
 /** Writes env values into the raw object and returns which key paths they set. */

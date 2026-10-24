@@ -44,8 +44,9 @@ odoo:
   # Steuern > Rundungsmethode): per_line oder per_tax. Standard: per_line
   # für Odoo 17 und 18, per_tax für Odoo 19. Muss zu Odoo passen.
   # taxRounding: per_line
-  # Ein Konto ohne Steuer für den Rundungscent bei per_tax, zum Beispiel
-  # "2700". Mit per_tax Pflicht.
+  # Ein Konto ohne Steuer für den Rundungscent bei per_tax, je nach
+  # Kontenrahmen: SKR03 zum Beispiel "2700" (Sonstige Erträge), SKR04 zum
+  # Beispiel "4830" (Sonstige betriebliche Erträge). Mit per_tax Pflicht.
   # roundingAccount: "2700"
 
 posting:
