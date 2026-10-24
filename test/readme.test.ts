@@ -108,7 +108,7 @@ describe('README quick start', () => {
     const quickStart = section(README, '## Schnellstart');
     const numbered = [...quickStart.matchAll(/^(\d)\. \*\*(.+?)\*\*/gm)].map((m) => `${m[1]} ${m[2]}`);
     expect(numbered).toEqual(['1 apaleo Custom App anlegen.', '2 Installieren', '3 Kontenzuordnung anlegen', '4 Probelauf', '5 Export']);
-    for (const command of ['init-mapping --property BSP --template kmu-hotel', 'export --month 2026-09 --dry-run', 'export --month 2026-09\n']) {
+    for (const command of ['init-mapping --property BSP --template skr03-hotel', 'export --month 2026-09 --dry-run', 'export --month 2026-09\n']) {
       expect(quickStart).toContain(command);
     }
   });
@@ -235,7 +235,7 @@ describe('README.en.md', () => {
 
   it('shows the same install commands as the German quick start, without the shell comments', () => {
     expect(firstShellBlock(ENGLISH_README)).toEqual(INSTALL_BLOCK.map(withoutComment));
-    for (const command of ['init-mapping --property BSP --template kmu-hotel', 'export --month 2026-09 --dry-run', 'export --month 2026-09\n']) {
+    for (const command of ['init-mapping --property BSP --template skr03-hotel', 'export --month 2026-09 --dry-run', 'export --month 2026-09\n']) {
       expect(ENGLISH_README).toContain(command);
     }
   });
@@ -301,28 +301,42 @@ describe('docs folder', () => {
     expect(text).toContain('`APALEO_ODOO_CONFIG`');
   });
 
-  it('has the topic sections and, as its last section, the sign-off checklist for the Treuhänder in the mapping guide, and no English summary', () => {
+  it('has the topic sections and, as its last section, the sign-off checklist for the Kanzlei in the mapping guide, and no English summary', () => {
     const guide = readRepoFile('docs/mapping-guide.md');
     expect(guide).not.toContain('English summary');
-    for (const topic of ['## Anzahlungen', '## Zahlungen, Forderungen, Debitoren']) expect(guide).toContain(`${topic}\n`);
+    for (const topic of ['## Anzahlungen', '## Zahlungen: Kasse und Geldtransit', '## Gästeforderungen und Firmenrechnungen', '## Steuer und Steuersatz', '## Die Vorlagen SKR03 und SKR04', '## Befunde und was du tust']) {
+      expect(guide).toContain(`${topic}\n`);
+    }
     expect(guide).toContain('](examples/mapping-BSP.example.csv)');
-    expect(guide).toContain('`templates/kmu-hotel.rules.csv`');
-    expect(guide).not.toContain('`templates/ekr-hotel.rules.csv`');
-    expect(headings(guide, '##').at(-1)).toBe('Checkliste zur Freigabe durch den Treuhänder');
-    expect(guide).not.toContain('## Checkliste zur Freigabe durch die Kanzlei');
-    expect(section(guide, '## Checkliste zur Freigabe durch den Treuhänder').match(/^- \[ \]/gm)?.length).toBeGreaterThanOrEqual(5);
+    for (const template of ['`templates/skr03-hotel.rules.csv`', '`templates/skr04-hotel.rules.csv`']) expect(guide).toContain(template);
+    expect(guide).not.toContain('kmu-hotel');
+    expect(guide).not.toContain('--accounts-from');
+    expect(headings(guide, '##').at(-1)).toBe('Checkliste zur Freigabe durch die Kanzlei');
+    const checklist = section(guide, '## Checkliste zur Freigabe durch die Kanzlei');
+    expect(checklist.match(/^- \[ \]/gm)?.length).toBeGreaterThanOrEqual(5);
+    for (const pair of ['`8300 -> tax_ust_7_skr03 (7 %)`', '`8400 -> tax_ust_19_skr03 (19 %)`', '`1718 -> tax_ust_19_skr03 (19 %)`']) expect(checklist, pair).toContain(pair);
   });
 
-  it('a05: explains the Swiss MWST rates and lists every account of the KMU template in the mapping guide', () => {
+  it('o03: explains the Odoo mapping in German as used in Germany and lists every account and tax of both SKR templates', () => {
     const guide = readRepoFile('docs/mapping-guide.md');
-    for (const rate of ['3,8 %', '8,1 %', '2,6 %', 'Art. 25 Abs. 4']) expect(guide, rate).toContain(rate);
-    expect(guide).not.toContain('## Steuersätze in Österreich');
-    expect(guide).not.toContain('## Die EKR-Vorlage');
-    const rules = readRepoFile('templates/kmu-hotel.rules.csv')
-      .split(/\r?\n/)
-      .filter((line) => line !== '' && !line.startsWith('#') && !line.startsWith('apaleo_type;'));
-    for (const line of rules) expect(line, line).toContain('Vorschlag (ungeprüft)');
-    for (const account of new Set(rules.map((line) => line.split(';')[3]).filter(Boolean))) expect(guide, account).toContain(`\`${account}\``);
+    for (const phrase of ['ß', 'SKR03', 'SKR04', '19 %', '7 %', '16 %', '5 %', '2026-01-01', 'Kennzahl 45', 'Vorschlag (ungeprüft)', '`odoo_account`', '`odoo_tax`', '`tax_percent`']) {
+      expect(guide, phrase).toContain(phrase);
+    }
+    for (const term of ['MWST-Code', 'Treuhänder', '«', '»', 'Personenkonto', '10 %', '13 %', '20 %', 'Rappen']) expect(guide, term).not.toContain(term);
+    expect(guide).not.toMatch(/(?<!apaleo-)\b(DATEV|BMD)\b/);
+    for (const code of ['E-TAX-FORMAT', 'E-TAX-MISSING', 'E-TAX-NOT-ALLOWED', 'W-TAX-UNCHECKED', 'W-TAX-RATE', 'W-TAX-KZ45', 'N-DEFAULT-TAX-ACCOUNT', 'N-GENERATED-ACCOUNT', 'W-VAT-RATE-UNUSUAL', 'E-UNMAPPED']) {
+      expect(section(guide, '## Befunde und was du tust'), code).toContain(`\`${code}\``);
+    }
+    for (const chart of ['skr03', 'skr04']) {
+      const rules = readRepoFile(`templates/${chart}-hotel.rules.csv`)
+        .split(/\r?\n/)
+        .filter((line) => line !== '' && !line.startsWith('#') && !line.startsWith('apaleo_type;'));
+      for (const line of rules) expect(line, line).toContain('Vorschlag (ungeprüft)');
+      const cells = rules.map((line) => line.split(';'));
+      for (const account of new Set(cells.map((cell) => cell[3]).filter((value) => value && !value.startsWith('{')))) expect(guide, account).toContain(`\`${account}\``);
+      for (const tax of new Set(cells.map((cell) => cell[4]).filter(Boolean))) expect(guide, tax).toContain(`\`${tax}\``);
+    }
+    for (const code of ['`1001`', '`1360`', '`13601`', '`1601`', '`1460`', '`14601`']) expect(section(guide, '## Zahlungen: Kasse und Geldtransit'), code).toContain(code);
   });
 
   it('Contributor adds a target: explains the SourceAdapter contract, the TargetWriter boundary with AbacusBooking and where golden files go, announcing no other target', () => {
@@ -392,7 +406,6 @@ describe('docs folder', () => {
       '**`TaxIncluded` bei Satz 0**',
       '**MWST berechnen**',
       '**Rundung der MWST**',
-      'W-VAT-ROUNDING',
       '**Belegnummern**',
       'pro Geschäftsjahr',
       '**Nebenjournal**',

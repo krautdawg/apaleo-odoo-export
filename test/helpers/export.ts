@@ -5,31 +5,30 @@ import { createTestContext, type TestContext } from './context.js';
 import { FakeSource, type FakeSourceData } from './fake-source.js';
 import { BEISPIEL } from './posting.js';
 
-/** The Abacus test mapping of Hotel Beispiel (`test/fixtures/mapping/abacus-beispiel.csv`) as text. */
-export const BEISPIEL_MAPPING_TEXT = readFileSync(new URL('../fixtures/mapping/abacus-beispiel.csv', import.meta.url), 'utf8');
+/** The Odoo test mapping of Hotel Beispiel (`test/fixtures/mapping/odoo-beispiel.csv`) as text. */
+export const BEISPIEL_MAPPING_TEXT = readFileSync(new URL('../fixtures/mapping/odoo-beispiel.csv', import.meta.url), 'utf8');
 
 /**
- * The Hotel Beispiel mapping books the Austrian rates 10 and 20 % with the
- * placeholder codes V10 and V20 (the recorded VIE day also V13), so every export of it warns
- * `W-MWST-CODE-UNCHECKED` for them. Tests about something else drop those
- * warnings with these helpers; the warning itself is tested in
- * `test/export/pipeline.test.ts` and `test/cli/schedule.test.ts`.
+ * The Hotel Beispiel mapping books the Austrian rates 10, 13 and 20 % with the
+ * l10n_at taxes, which the tool does not know, so every export of it warns
+ * `W-TAX-UNCHECKED` for them. Tests about something else drop those warnings with
+ * these helpers; the warning itself is tested in `test/export/pipeline.test.ts`
+ * and `test/cli/schedule.test.ts`.
  */
-const PLACEHOLDER_CODES = new Set(['V10', 'V13', 'V20']);
-const isPlaceholderWarning = (finding: { code: string; value?: string | undefined }) =>
-  finding.code === 'W-MWST-CODE-UNCHECKED' && PLACEHOLDER_CODES.has(finding.value ?? '');
+export const AUSTRIAN_TAXES: ReadonlySet<string> = new Set(['account_tax_template_sales_10_code029', 'account_tax_template_sales_13_code006', 'account_tax_template_sales_20_code022']);
+const isAustrianTaxWarning = (finding: { code: string; value?: string | undefined }) => finding.code === 'W-TAX-UNCHECKED' && AUSTRIAN_TAXES.has(finding.value ?? '');
 
-/** The findings without the `W-MWST-CODE-UNCHECKED` warnings for the placeholder codes V10, V13 and V20. */
-export function withoutPlaceholderCodes<T extends { code: string; value?: string | undefined }>(findings: readonly T[]): T[] {
-  return findings.filter((finding) => !isPlaceholderWarning(finding));
+/** The findings without the `W-TAX-UNCHECKED` warnings for the l10n_at taxes. */
+export function withoutAustrianTaxes<T extends { code: string; value?: string | undefined }>(findings: readonly T[]): T[] {
+  return findings.filter((finding) => !isAustrianTaxWarning(finding));
 }
 
-/** CLI output without the `W-MWST-CODE-UNCHECKED` lines and codes for the placeholder codes V10, V13 and V20. */
-export function stripPlaceholderCodes(out: string): string {
+/** CLI output without the `W-TAX-UNCHECKED` lines and codes for the l10n_at taxes. */
+export function stripAustrianTaxes(out: string): string {
   return out
     .split('\n')
-    .filter((line) => !/^ {2}W-MWST-CODE-UNCHECKED \(mwst_code\): .*the MWST-Code V(10|13|20) /.test(line))
-    .map((line) => line.replace(/ W-MWST-CODE-UNCHECKED(?=\s|$)/, ''))
+    .filter((line) => !/^ {2}W-TAX-UNCHECKED \(odoo_tax\): .*the Odoo tax account_tax_template_sales_\d+_code\d+ /.test(line))
+    .map((line) => line.replace(/ W-TAX-UNCHECKED(?=\s|$)/, ''))
     .join('\n');
 }
 
@@ -53,7 +52,7 @@ export interface ExportSetupOptions {
 }
 
 /**
- * A test context for the export: the fixture config (Abacus Mandant 1234, Leitwährung EUR), the Hotel Beispiel mapping
+ * A test context for the export: the fixture config (Odoo journal APA, version 18, EUR), the Hotel Beispiel mapping
  * as `mapping-BSP.csv`, a `FakeSource` over the fixtures (shared by every call,
  * so a test can change `data` between runs) and the fixed clock 2026-10-20.
  */

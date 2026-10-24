@@ -1,0 +1,140 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-12T08:05:00Z",
+      "date": "2026-09-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ALPHA-1",
+        "number": "BSP-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (7%)",
+        "number": "RevenueAccommodation_Reduced:7.00",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 107,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0007",
+      "reference": "BSP-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-12T08:05:00Z",
+      "date": "2026-09-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ALPHA-1",
+        "number": "BSP-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (7%)",
+        "number": "RevenueAccommodation_Reduced:7.00",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 107,
+      "netAmount": 100,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0008",
+      "reference": "BSP-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-12T08:06:00Z",
+      "date": "2026-09-12",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-ALPHA-1",
+        "number": "BSP-ALPHA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-ALPHA-1 (7%)",
+        "number": "BSP-ALPHA-1_Liabilities/Reduced:7.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": -214,
+      "netAmount": -200,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": -14
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-ALPHA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0009",
+      "reference": "BSP-ALPHA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-12T08:07:00Z",
+      "date": "2026-09-12",
+      "debitedAccount": {
+        "name": "Visa Credit Card Payment",
+        "number": "1102",
+        "parentNumber": "1000",
+        "type": "Payments"
+      },
+      "creditedAccount": {
+        "name": "Liabilities for Reservation BSP-ALPHA-1 (7%)",
+        "number": "BSP-ALPHA-1_Liabilities/Reduced:7.00",
+        "parentNumber": "3000",
+        "type": "Liabilities"
+      },
+      "command": "PostPrepayment",
+      "currency": "EUR",
+      "grossAmount": -107,
+      "netAmount": -100,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": -7
+        }
+      ],
+      "receipt": {
+        "type": "PspReference",
+        "number": "PSP-BSP-0002"
+      },
+      "sourceEntryNumber": "BSPE0010",
+      "reference": "BSP-ALPHA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

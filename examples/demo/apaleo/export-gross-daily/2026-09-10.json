@@ -1,0 +1,140 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-10T21:40:00Z",
+      "date": "2026-09-10",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-BRAVO-1",
+        "number": "BSP-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (7%)",
+        "number": "RevenueAccommodation_Reduced:7.00",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 120,
+      "netAmount": 112.14953271,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 7.85046729
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-BRAVO-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0002",
+      "reference": "BSP-BRAVO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-10T21:40:00Z",
+      "date": "2026-09-10",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-BRAVO-1",
+        "number": "BSP-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (7%)",
+        "number": "RevenueFoodAndBeverages_Reduced:7.00",
+        "parentNumber": "RevenueFoodAndBeverages",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 95,
+      "netAmount": 88.78504673,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 6.21495327
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-BRAVO-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0003",
+      "reference": "BSP-BRAVO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-10T21:41:00Z",
+      "date": "2026-09-10",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-BRAVO-1",
+        "number": "BSP-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (19%)",
+        "number": "RevenueFoodAndBeverages_Normal:19.00",
+        "parentNumber": "RevenueFoodAndBeverages",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 11.9,
+      "netAmount": 10,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 1.9
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-BRAVO-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0004",
+      "reference": "BSP-BRAVO-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-10T21:42:00Z",
+      "date": "2026-09-10",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-BRAVO-1",
+        "number": "BSP-BRAVO-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Other (19%)",
+        "number": "RevenueOther_Normal:19.00",
+        "parentNumber": "RevenueOther",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 23.8,
+      "netAmount": 20,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 3.8
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-BRAVO-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0005",
+      "reference": "BSP-BRAVO-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

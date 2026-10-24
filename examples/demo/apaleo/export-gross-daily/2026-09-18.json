@@ -1,0 +1,126 @@
+{
+  "transactions": [
+    {
+      "timestamp": "2026-09-18T08:10:00Z",
+      "date": "2026-09-18",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-DELTA-1",
+        "number": "BSP-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Accommodation (7%)",
+        "number": "RevenueAccommodation_Reduced:7.00",
+        "parentNumber": "RevenueAccommodation",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 149.8,
+      "netAmount": 140,
+      "taxes": [
+        {
+          "type": "Reduced",
+          "percent": 7,
+          "amount": 9.8
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-DELTA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0015",
+      "reference": "BSP-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-18T08:10:00Z",
+      "date": "2026-09-18",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-DELTA-1",
+        "number": "BSP-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "Revenues Food and beverages (19%)",
+        "number": "RevenueFoodAndBeverages_Normal:19.00",
+        "parentNumber": "RevenueFoodAndBeverages",
+        "type": "Revenues"
+      },
+      "command": "PostCharge",
+      "currency": "EUR",
+      "grossAmount": 35.7,
+      "netAmount": 30,
+      "taxes": [
+        {
+          "type": "Normal",
+          "percent": 19,
+          "amount": 5.7
+        }
+      ],
+      "receipt": {
+        "type": "Reservation",
+        "number": "BSP-DELTA-1-V1"
+      },
+      "sourceEntryNumber": "BSPE0016",
+      "reference": "BSP-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-18T08:15:00Z",
+      "date": "2026-09-18",
+      "debitedAccount": {
+        "name": "Receivables for Reservation BSP-DELTA-1",
+        "number": "BSP-DELTA-1_Receivables",
+        "parentNumber": "1200",
+        "type": "Receivables"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-DELTA-1 (Offset)",
+        "number": "BSP-DELTA-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": -185.5,
+      "netAmount": -185.5,
+      "receipt": {
+        "type": "Invoice",
+        "number": "BSP-2026-0815"
+      },
+      "sourceEntryNumber": "BSPE0017",
+      "reference": "BSP-DELTA-1",
+      "referenceType": "Guest"
+    },
+    {
+      "timestamp": "2026-09-18T08:15:00Z",
+      "date": "2026-09-18",
+      "debitedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-DELTA-1",
+        "number": "BSP-DELTA-1_AccountsReceivable",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "creditedAccount": {
+        "name": "AccountsReceivable for Reservation BSP-DELTA-1 (Offset)",
+        "number": "BSP-DELTA-1_AccountsReceivable/Offset",
+        "parentNumber": "9999",
+        "type": "AccountsReceivable"
+      },
+      "command": "PostToAccountsReceivables",
+      "currency": "EUR",
+      "grossAmount": 185.5,
+      "netAmount": 185.5,
+      "receipt": {
+        "type": "Invoice",
+        "number": "BSP-2026-0815"
+      },
+      "sourceEntryNumber": "BSPE0017",
+      "reference": "BSP-DELTA-1",
+      "referenceType": "Guest"
+    }
+  ]
+}

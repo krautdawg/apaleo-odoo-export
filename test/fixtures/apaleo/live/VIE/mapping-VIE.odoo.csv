@@ -1,0 +1,98 @@
+﻿# apaleo-odoo Kontenzuordnung für die aufgezeichneten Sandbox-Daten VIE (österreichische Sätze, EUR), von Hand geschrieben: die Sätze 10, 13 und 20 % mit den Steuern von l10n_at account_tax_template_sales_10_code029, account_tax_template_sales_13_code006 und account_tax_template_sales_20_code022, die Warnungen geben (W-VAT-RATE-UNUSUAL, W-TAX-UNCHECKED). Nur für die Regressionstests.
+apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;odoo_account;odoo_tax;tax_percent;comment
+RevenueAccommodation_Normal:20.00;Revenues;Revenues Accommodation (20%);20;4000;account_tax_template_sales_20_code022;20;Testzuordnung: übrige Hotelleistungen mit der österreichischen Steuer 20 % (l10n_at).
+RevenueAccommodation_Null:0.00;Revenues;Revenues Accommodation (0%);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueAccommodation_Reduced:13.00;Revenues;Revenues Accommodation (13%);13;4013;account_tax_template_sales_13_code006;13;Testzuordnung: Erlöse 13 % mit der österreichischen Steuer 13 % (l10n_at).
+RevenueAccommodation_Special:4.90;Revenues;Revenues Accommodation (4.9%);4.9;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueAccommodation_Special:5.00;Revenues;Revenues Accommodation (5%);5;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueAccommodation_VeryReduced:10.00;Revenues;Revenues Accommodation (10%);10;4010;account_tax_template_sales_10_code029;10;Testzuordnung: Beherbergung mit der österreichischen Steuer 10 % (l10n_at).
+RevenueAccommodation_Without:0.00;Revenues;Revenues Accommodation (no VAT);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueCancellationFees_Normal:20.00;Revenues;Revenues Cancellation fees (20%);20;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueCancellationFees_Null:0.00;Revenues;Revenues Cancellation fees (0%);0;4095;;0;archiviert. Testzuordnung: Storno- und No-Show-Erlöse ohne Steuer.
+RevenueCancellationFees_Reduced:13.00;Revenues;Revenues Cancellation fees (13%);13;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueCancellationFees_Special:4.90;Revenues;Revenues Cancellation fees (4.9%);4.9;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueCancellationFees_Special:5.00;Revenues;Revenues Cancellation fees (5%);5;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueCancellationFees_VeryReduced:10.00;Revenues;Revenues Cancellation fees (10%);10;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueCancellationFees_Without:0.00;Revenues;Revenues Cancellation fees (no VAT);0;4095;;0;Testzuordnung: Storno- und No-Show-Erlöse ohne Steuer.
+RevenueFoodAndBeverages_Normal:20.00;Revenues;Revenues Food and beverages (20%);20;4030;account_tax_template_sales_20_code022;20;Testzuordnung: Getränke mit der österreichischen Steuer 20 % (l10n_at).
+RevenueFoodAndBeverages_Null:0.00;Revenues;Revenues Food and beverages (0%);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueFoodAndBeverages_Reduced:13.00;Revenues;Revenues Food and beverages (13%);13;4013;account_tax_template_sales_13_code006;13;Testzuordnung: Erlöse 13 % mit der österreichischen Steuer 13 % (l10n_at).
+RevenueFoodAndBeverages_Special:4.90;Revenues;Revenues Food and beverages (4.9%);4.9;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueFoodAndBeverages_Special:5.00;Revenues;Revenues Food and beverages (5%);5;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueFoodAndBeverages_VeryReduced:10.00;Revenues;Revenues Food and beverages (10%);10;4020;account_tax_template_sales_10_code029;10;Testzuordnung: Küche und Speisen mit der österreichischen Steuer 10 % (l10n_at).
+RevenueFoodAndBeverages_Without:0.00;Revenues;Revenues Food and beverages (no VAT);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueNoShow_Normal:20.00;Revenues;Revenues No-show (20%);20;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueNoShow_Null:0.00;Revenues;Revenues No-show (0%);0;4095;;0;archiviert. Testzuordnung: Storno- und No-Show-Erlöse ohne Steuer.
+RevenueNoShow_Reduced:13.00;Revenues;Revenues No-show (13%);13;4013;account_tax_template_sales_13_code006;13;Mit der Kanzlei geklärt: No-Show steuerbar, 13 % wie in apaleo.
+RevenueNoShow_Special:4.90;Revenues;Revenues No-show (4.9%);4.9;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueNoShow_Special:5.00;Revenues;Revenues No-show (5%);5;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueNoShow_VeryReduced:10.00;Revenues;Revenues No-show (10%);10;;;;archiviert. Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueNoShow_Without:0.00;Revenues;Revenues No-show (no VAT);0;4095;;0;archiviert. Testzuordnung: Storno- und No-Show-Erlöse ohne Steuer.
+RevenueOther_Normal:20.00;Revenues;Revenues Other (20%);20;4000;account_tax_template_sales_20_code022;20;Testzuordnung: übrige Hotelleistungen mit der österreichischen Steuer 20 % (l10n_at).
+RevenueOther_Null:0.00;Revenues;Revenues Other (0%);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+RevenueOther_Reduced:13.00;Revenues;Revenues Other (13%);13;4013;account_tax_template_sales_13_code006;13;Testzuordnung: Erlöse 13 % mit der österreichischen Steuer 13 % (l10n_at).
+RevenueOther_Special:4.90;Revenues;Revenues Other (4.9%);4.9;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueOther_Special:5.00;Revenues;Revenues Other (5%);5;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueOther_VeryReduced:10.00;Revenues;Revenues Other (10%);10;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+RevenueOther_Without:0.00;Revenues;Revenues Other (no VAT);0;4090;;0;Testzuordnung: Erlöse ohne Steuer.
+1100;Payments;Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1101;Payments;Amex Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1102;Payments;Visa Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1103;Payments;Visa Debit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1104;Payments;MasterCard Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1105;Payments;MasterCard Debit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1106;Payments;Maestro Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1107;Payments;GiroCard Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1108;Payments;Discover Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1109;Payments;Diners Club Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1110;Payments;Jcb Credit Card Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1111;Payments;V Pay Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1112;Payments;Postcard Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1113;Payments;Reka Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1114;Payments;Twint Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1115;Payments;Lunch-Check Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1116;Payments;Voucher Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1117;Payments;China Union Pay Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1118;Payments;Other Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1119;Payments;Cheque;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1120;Payments;Payment by Booking.com;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1121;Payments;Airbnb;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1122;Payments;Holiday Check;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1123;Payments;Representation;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1140;Payments;PayPal Payment;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1145;Payments;Cash and ATM;;2700;;;Testzuordnung: Kassa.
+1146;Payments;Direct Debit;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1147;Payments;Online banking;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1148;Payments;Open Invoice;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1149;Payments;E-Wallets;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1150;Payments;iDeal;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1400;Payments;Bank Transfer;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+1600;Payments;Cash Payment;;2700;;;Testzuordnung: Kassa.
+*;Payments;;;2890;;;Testzuordnung: Geldtransit für unbare Zahlungen.
+*;Liabilities;;10;3510;account_tax_template_sales_10_code029;10;Testzuordnung: erhaltene Anzahlungen 10 % mit der österreichischen Steuer 10 % (l10n_at).
+*;Liabilities;;13;3513;account_tax_template_sales_13_code006;13;Testzuordnung: erhaltene Anzahlungen 13 % mit der österreichischen Steuer 13 % (l10n_at).
+*;Liabilities;;20;3520;account_tax_template_sales_20_code022;20;Testzuordnung: erhaltene Anzahlungen 20 % mit der österreichischen Steuer 20 % (l10n_at).
+*;Liabilities;;0;3500;;0;Testzuordnung: erhaltene Anzahlungen ohne Steuer.
+*;Liabilities;;5;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+1200;Receivables;Receivables;;2000;;;Testzuordnung: Gästeforderungen.
+*;Receivables;;;2000;;;Testzuordnung: Gästeforderungen.
+Vat_Normal:20.00;Vat;VAT Normal (20%);20;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_Null:0.00;Vat;VAT Null (0%);0;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_Reduced:13.00;Vat;VAT Reduced (13%);13;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_Special:4.90;Vat;VAT Special (4.9%);4.9;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_Special:5.00;Vat;VAT Special (5%);5;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+Vat_VeryReduced:10.00;Vat;VAT Very Reduced (10%);10;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+9000;House;House Account;;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+CollectiveDebitor_AccountsReceivable;AccountsReceivable;AccountsReceivable for Reservations and Folios without company;;2010;;;Testzuordnung: Forderungen Firmenrechnungen.
+*;AccountsReceivable;;;2010;;;Testzuordnung: Forderungen Firmenrechnungen.
+7000;TransitoryItems;Transitory Items;;;;;Testzuordnung: leer gelassen, bitte mit der Kanzlei zuordnen.
+LiabilitiesVat_Normal:20.00;VatOnLiabilities;LiabilitiesVat Normal (20%);20;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Null:0.00;VatOnLiabilities;LiabilitiesVat Null (0%);0;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Reduced:13.00;VatOnLiabilities;LiabilitiesVat Reduced (13%);13;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Special:4.90;VatOnLiabilities;LiabilitiesVat Special (4.9%);4.9;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_Special:5.00;VatOnLiabilities;LiabilitiesVat Special (5%);5;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+LiabilitiesVat_VeryReduced:10.00;VatOnLiabilities;LiabilitiesVat Very Reduced (10%);10;;;;Testzuordnung: keine Zuordnung nötig, USt-Buchungen aus apaleo werden übersprungen.
+*;LossOfAccountsReceivable;;10;7810;account_tax_template_sales_10_code029;10;Testzuordnung: Forderungsverluste 10 % mit der österreichischen Steuer 10 % (l10n_at).
+*;LossOfAccountsReceivable;;13;7813;account_tax_template_sales_13_code006;13;Testzuordnung: Forderungsverluste 13 % mit der österreichischen Steuer 13 % (l10n_at).
+*;LossOfAccountsReceivable;;20;7820;account_tax_template_sales_20_code022;20;Testzuordnung: Forderungsverluste 20 % mit der österreichischen Steuer 20 % (l10n_at).
+*;LossOfAccountsReceivable;;0;7800;;0;Testzuordnung: Forderungsverluste ohne Steuer.

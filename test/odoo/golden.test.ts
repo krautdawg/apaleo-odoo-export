@@ -193,7 +193,9 @@ describe('Odoo golden files', () => {
       'demo',
     ];
     expect(Object.keys(CASES)).toEqual(expect.arrayContaining(required));
-    expect(readdirSync(GOLDEN).sort()).toEqual(Object.keys(CASES).map((name) => `${name}.csv`).sort());
+    // The German fixture month renders its own golden files (test/posting/fixture-month-de.test.ts).
+    const germanMonth = ['de-month.per-line.csv', 'de-month.per-tax.csv'];
+    expect(readdirSync(GOLDEN).sort()).toEqual([...Object.keys(CASES).map((name) => `${name}.csv`), ...germanMonth].sort());
   });
 
   it('the independent check catches a base line one cent off', () => {

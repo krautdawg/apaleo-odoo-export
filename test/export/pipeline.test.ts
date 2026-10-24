@@ -5,9 +5,10 @@ import { loadConfig } from '../../src/core/config.js';
 import { runExport, type ExportRequest } from '../../src/export/index.js';
 import { buildBookings } from '../../src/posting/index.js';
 import { ApaleoPermissionError } from '../../src/sources/apaleo/index.js';
-import { block, transaction, value } from '../helpers/abacus.js';
-import { BSP } from '../helpers/apaleo.js';
-import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, withoutPlaceholderCodes, type ExportSetup } from '../helpers/export.js';
+import { BSP, CLIENT_ID, ODOO_SECTION } from '../helpers/apaleo.js';
+import { DE_MONTH, DE_ROWS, deMonthConfig } from '../helpers/de-month.js';
+import { BEISPIEL_MAPPING_TEXT, addSecondProperty, exportConfig, exportSetup, withoutAustrianTaxes, type ExportSetup } from '../helpers/export.js';
+import { renderMappingFile } from '../../src/mapping/index.js';
 
 const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' } as const;
 
@@ -19,7 +20,9 @@ async function run(setup: ExportSetup, request: Partial<ExportRequest> = {}, pos
 }
 
 const exportsOf = (setup: ExportSetup) => join(setup.ctx.cwd, 'exports');
-const FILE = 'ABACUS_Buchungen_20260901-20260930_BSP.xml';
+const FILE = 'ODOO_Buchungen_20260901-20260930_BSP.csv';
+const PROTOCOL = 'ODOO_Buchungen_20260901-20260930_BSP.protokoll.txt';
+const AT10_ROW = '(10%);10;4010;account_tax_template_sales_10_code029;10;';
 const readMapping = () => BEISPIEL_MAPPING_TEXT;
 
 describe('the period-part runner', () => {
@@ -39,52 +42,62 @@ describe('the period-part runner', () => {
     expect(outcomes[0]?.findings.map((f) => f.code)).toEqual(['N-NO-BOOKINGS']);
   });
 
-  it('renders the bookings through the Abacus writer with the settings of the abacus section', async () => {
+  it('renders the bookings through the Odoo writer with the settings of the odoo section: one entry per business day', async () => {
     const setup = exportSetup();
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('written');
     expect(outcome?.bookings).toBe(24);
     const path = join(exportsOf(setup), BSP, '2026-09', FILE);
     expect(outcome?.path).toBe(path);
-    const xml = readFileSync(path, 'utf8');
-    expect(value(block(xml, 'Parameter'), 'Mandant')).toBe('1234');
-    expect(xml.match(/<Transaction /g)).toHaveLength(24);
-    // The first line of the month: the Visa prepayment 220.00 at 10 % onto the deposit account.
-    const first = transaction(xml, 1);
-    expect([value(block(first, 'CollectiveInformation'), 'Account'), value(block(first, 'SingleInformation'), 'Account')]).toEqual(['1090', '2030']);
-    expect(value(first, 'DebitCredit')).toBe('D');
-    expect(value(first, 'KeyAmount')).toBe('220.00');
-    expect(value(block(first, 'TaxData'), 'KeyAmount')).toBe('-20.00');
-    expect(value(block(first, 'TaxData'), 'TaxCode')).toBe('V10');
-    expect([value(first, 'Text1'), value(first, 'Text2')]).toEqual(['Anzahlung 10 %', 'PSP-8823410001']);
-    expect(xml).not.toContain('Müller');
+    const csv = readFileSync(path, 'utf8');
+    expect(csv.split('\n')[0]).toBe('id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/debit,line_ids/credit,line_ids/tax_ids/id');
+    expect(csv.match(/^apaleo_c1_BSP_2026\d{4},apaleo BSP 2026-09-\d\d,2026-09-\d\d,APA,/gm)).toHaveLength(5);
+    // The first day: the Visa prepayment 220.00 at 10 % onto the deposit account 3510, net 200.00 with the l10n_at tax.
+    expect(csv).toContain(',3510,Anzahlungen 10 %,0.00,200.00,account.1_account_tax_template_sales_10_code029\n');
+    expect(csv).not.toContain('Müller');
+    expect(csv).not.toContain('PSP-8823410001');
   });
 
-  it('writes the Mandant and the Geschäftsbereich of each property', async () => {
-    const setup = exportSetup({
-      config: exportConfig('    mandant: 4321', '    geschaeftsbereich: 3'),
-    });
+  it('Protocol names company and journal: the import block names company 1 and journal APA, the manifest records both with entries, lines and VAT per tax', async () => {
+    const setup = exportSetup();
     await run(setup);
-    const xml = readFileSync(join(exportsOf(setup), BSP, '2026-09', FILE), 'utf8');
-    expect(value(block(xml, 'Parameter'), 'Mandant')).toBe('4321');
-    expect(value(transaction(xml, 1), 'Division')).toBe('3');
-    expect(value(transaction(xml, 1), 'Client')).toBe('4321');
+    const folder = join(exportsOf(setup), BSP, '2026-09');
+    const protocol = readFileSync(join(folder, PROTOCOL), 'utf8');
+    expect(protocol).toContain('  Company: id 1 (odoo.companyId, the company that owns the taxes), journal APA, currency EUR');
+    // Per line of the file, the apaleo entries and their receipts.
+    expect(protocol).toContain('apaleo entries per line of the file (entry number and receipt or reference):');
+    expect(protocol).toMatch(/^ {2}2026-09-14 3510 Anzahlungen 10 % credit 200\.00: BSPE\d+ \(PSP-8823410001\)$/m);
+    const manifest = JSON.parse(readFileSync(join(folder, 'manifest.json'), 'utf8')) as { files: Record<string, unknown>[] };
+    expect(manifest.files[0]).toMatchObject({ file: FILE, bookings: 24, currency: 'EUR', odooCompanyId: 1, odooJournal: 'APA', entries: 5 });
+    expect(manifest.files[0]?.vatByTax).toEqual([
+      expect.objectContaining({ tax: 'account.1_account_tax_template_sales_20_code022', ratePercent: 20 }),
+      expect.objectContaining({ tax: 'account.1_account_tax_template_sales_10_code029', ratePercent: 10 }),
+    ]);
+    expect(manifest.files[0]).not.toHaveProperty('taxByMwstCode');
+    expect(manifest.files[0]).not.toHaveProperty('mandant');
   });
 
-  it('warns W-MANDANT-SHARED in the protocol of each property that shares a Mandant and Geschäftsbereich', async () => {
-    const config = (...lines: string[]) => exportConfig('  - id: BS2', ...lines);
+  it('takes the journal of the property for the file', async () => {
+    const setup = exportSetup({ config: exportConfig('    journal: APB') });
+    await run(setup);
+    const csv = readFileSync(join(exportsOf(setup), BSP, '2026-09', FILE), 'utf8');
+    expect(csv).toContain(',2026-09-14,APB,');
+  });
+
+  it('warns W-MANDANT-SHARED in the protocol of each property that shares an Abacus Mandant, while the abacus section stays', async () => {
+    const config = (...lines: string[]) => `apaleo:\n  clientId: ${CLIENT_ID}\n${ODOO_SECTION}abacus:\n  mandant: 1234\nproperties:\n  - id: BSP\n  - id: BS2\n${lines.map((l) => `${l}\n`).join('')}`;
     const setup = (text: string) => exportSetup({ config: text, files: { 'mapping-BS2.csv': readMapping() }, data: (data) => addSecondProperty(data, 'BS2') });
     const shared = setup(config());
     const both = await run(shared, { propertyIds: [BSP, 'BS2'] });
-    expect(both.map((o) => [o.propertyId, o.status, withoutPlaceholderCodes(o.findings).map((f) => f.code)])).toEqual([
+    expect(both.map((o) => [o.propertyId, o.status, withoutAustrianTaxes(o.findings).map((f) => f.code)])).toEqual([
       [BSP, 'written', ['W-MANDANT-SHARED']],
       ['BS2', 'written', ['W-MANDANT-SHARED']],
     ]);
-    expect(readFileSync(join(exportsOf(shared), 'BS2', '2026-09', 'ABACUS_Buchungen_20260901-20260930_BS2.protokoll.txt'), 'utf8')).toContain(
+    expect(readFileSync(join(exportsOf(shared), 'BS2', '2026-09', 'ODOO_Buchungen_20260901-20260930_BS2.protokoll.txt'), 'utf8')).toContain(
       'the properties BSP, BS2 all book into the Abacus Mandant 1234, Geschäftsbereich 0',
     );
     const own = await run(setup(config('    geschaeftsbereich: 2')), { propertyIds: [BSP, 'BS2'] });
-    expect(own.map((o) => withoutPlaceholderCodes(o.findings).map((f) => f.code))).toEqual([[], []]);
+    expect(own.map((o) => withoutAustrianTaxes(o.findings).map((f) => f.code))).toEqual([[], []]);
   });
 
   it('stops a part on an E- finding of the coverage check or the posting rules, before writing', async () => {
@@ -94,16 +107,16 @@ describe('the period-part runner', () => {
     expect(first?.findings.filter((f) => f.code.startsWith('E-')).map((f) => [f.code, f.value])).toEqual([['E-UNMAPPED', 'RevenueFoodAndBeverages_Normal:20.00']]);
     expect(existsSync(exportsOf(unmapped))).toBe(false);
 
-    const wrongRate = exportSetup({ files: { 'mapping-BSP.csv': readMapping().replace('(10%);10;3400;V10;10;', '(10%);10;3500;V20;20;') } });
+    const wrongRate = exportSetup({ files: { 'mapping-BSP.csv': readMapping().replace(AT10_ROW, '(10%);10;4000;account_tax_template_sales_20_code022;20;') } });
     const [second] = await run(wrongRate);
     expect(second?.status).toBe('failed');
     expect(new Set(second?.findings.filter((f) => f.code.startsWith('E-')).map((f) => f.code))).toEqual(new Set(['E-VAT-RATE']));
     expect(existsSync(exportsOf(wrongRate))).toBe(false);
   });
 
-  it('isolates property-months: an unmapped account blocks only its property', async () => {
+  it('Unmapped account blocks only its property: BSP fails with E-UNMAPPED, BSP2 is written', async () => {
     const setup = exportSetup({
-      config: exportConfig('  - id: BSP2', '    geschaeftsbereich: 2'),
+      config: exportConfig('  - id: BSP2'),
       files: { 'mapping-BSP.csv': readMapping().replace(/^RevenueFoodAndBeverages_Normal:20\.00;.*\r?\n/m, ''), 'mapping-BSP2.csv': readMapping() },
       data: addSecondProperty,
     });
@@ -116,7 +129,7 @@ describe('the period-part runner', () => {
   });
 
   it('reports a property the custom app cannot see and a missing mapping file per property', async () => {
-    const setup = exportSetup({ config: exportConfig('  - id: HBW', '    geschaeftsbereich: 2', '  - id: NOPE', '    geschaeftsbereich: 3') });
+    const setup = exportSetup({ config: exportConfig('  - id: HBW', '  - id: NOPE') });
     const outcomes = await run(setup, { propertyIds: [BSP, 'HBW', 'NOPE'] });
     expect(outcomes.map((o) => [o.propertyId, o.status, o.findings.filter((f) => f.code.startsWith('E-')).map((f) => f.code)])).toEqual([
       [BSP, 'written', []],
@@ -124,28 +137,31 @@ describe('the period-part runner', () => {
       ['NOPE', 'failed', ['E-PROPERTY-UNKNOWN']],
     ]);
     expect(outcomes[1]?.findings[0]?.message).toContain('No mapping file at');
-    expect(outcomes[1]?.findings[0]?.message).toContain('init-mapping --property <id> --template kmu-hotel');
+    expect(outcomes[1]?.findings[0]?.message).toContain('init-mapping --property <id> --template skr03-hotel');
   });
 
-  it('refuses a DATEV mapping file and names init-mapping --template kmu-hotel', async () => {
+  it('refuses a DATEV mapping file and names init-mapping --template skr03-hotel', async () => {
     const datev = 'apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;datev_account;bu_key;datev_vat_percent;kost1;kost2;comment\r\n';
     const setup = exportSetup({ files: { 'mapping-BSP.csv': datev } });
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('failed');
     expect(outcome?.findings.map((f) => f.code)).toEqual(['E-EXPORT']);
     expect(outcome?.findings[0]?.message).toContain('this is a DATEV mapping');
-    expect(outcome?.findings[0]?.message).toContain('--template kmu-hotel');
+    expect(outcome?.findings[0]?.message).toContain('--template skr03-hotel');
   });
 
-  it('refuses a BMD mapping file and names init-mapping --template kmu-hotel', async () => {
+  it('refuses a BMD and an Abacus mapping file and names init-mapping --template skr03-hotel', async () => {
     const bmd = readFileSync(new URL('../fixtures/mapping/ekr-beispiel.csv', import.meta.url), 'utf8');
     const [outcome] = await run(exportSetup({ files: { 'mapping-BSP.csv': bmd } }));
     expect(outcome?.status).toBe('failed');
     expect(outcome?.findings[0]?.message).toContain('this is a BMD mapping');
-    expect(outcome?.findings[0]?.message).toContain('--template kmu-hotel');
+    expect(outcome?.findings[0]?.message).toContain('--template skr03-hotel');
+    const abacus = 'apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;abacus_account;mwst_code;mwst_percent;kost;comment\r\n';
+    const [refused] = await run(exportSetup({ files: { 'mapping-BSP.csv': abacus } }));
+    expect(refused?.findings[0]?.message).toContain('this is an Abacus mapping');
   });
 
-  it('refuses a property that does not keep its books in the Leitwährung of the Mandant (EUR), before reading its ledger', async () => {
+  it('Swiss property in a EUR company: E-CURRENCY names CHF and EUR, says that the Odoo file books in the company currency, and reads no ledger', async () => {
     const setup = exportSetup({
       data: (data) => {
         for (const property of data.properties) property.currency = 'CHF';
@@ -156,13 +172,13 @@ describe('the period-part runner', () => {
     expect(outcome?.findings.map((f) => [f.code, f.value])).toEqual([['E-CURRENCY', 'CHF']]);
     expect(outcome?.findings[0]?.message).toContain('but the export file books in EUR only');
     expect(outcome?.findings[0]?.message).toContain(
-      "An Abacus booking is written in the Mandant's Leitwährung (abacus.leitwaehrung), without foreign-currency data, so every property must book in that currency. This tool does not convert.",
+      'An Odoo company books its journal entries in one currency (odoo.currency), and the tool does not convert, so every property must book in that currency. This tool does not convert.',
     );
     expect(setup.fake.calls.some((call) => call.startsWith('getLedger'))).toBe(false);
     expect(existsSync(exportsOf(setup))).toBe(false);
   });
 
-  it('refuses a month with a ledger line in another currency than EUR', async () => {
+  it('Line in another currency: E-CURRENCY names the number of such lines and both currencies, and no file is written', async () => {
     const setup = exportSetup({
       data: (data) => {
         const [line] = data.ledger[BSP] ?? [];
@@ -173,7 +189,7 @@ describe('the period-part runner', () => {
     expect(outcome?.status).toBe('failed');
     expect(outcome?.findings.map((f) => [f.code, f.value])).toEqual([['E-CURRENCY', 'USD']]);
     expect(outcome?.findings[0]?.message).toContain('1 apaleo line(s) of BSP are in USD');
-    expect(outcome?.findings[0]?.message).toContain('without foreign-currency data');
+    expect(outcome?.findings[0]?.message).toContain('but the export file books in EUR only');
     expect(existsSync(exportsOf(setup))).toBe(false);
   });
 
@@ -182,47 +198,115 @@ describe('the period-part runner', () => {
     const [outcome] = await run(setup, { dryRun: true });
     expect(outcome?.status).toBe('checked');
     expect(outcome?.plan).toBe('write');
-    expect(outcome?.summary).toContain('Totals per Abacus account');
+    expect(outcome?.summary).toContain('Totals per Odoo account');
+    expect(outcome?.summary).toContain('Import into Odoo Accounting');
     expect(readdirSync(setup.ctx.cwd).sort()).toEqual(['apaleo-odoo.config.yaml', 'mapping-BSP.csv']);
   });
 
-  it('warns about the MWST-Codes of the mapping rows the month uses in the dry run and the protocol, without mapping check', async () => {
+  it('warns about the taxes of the mapping rows the month uses in the dry run and the protocol, without mapping check', async () => {
     const [dry] = await run(exportSetup(), { dryRun: true });
     expect(dry?.status).toBe('checked');
     expect(dry?.findings.map((f) => [f.code, f.value])).toEqual([
-      ['W-MWST-CODE-UNCHECKED', 'V10'],
-      ['W-MWST-CODE-UNCHECKED', 'V20'],
+      ['W-TAX-UNCHECKED', 'account_tax_template_sales_10_code029'],
+      ['W-TAX-UNCHECKED', 'account_tax_template_sales_20_code022'],
     ]);
-    // Line 4 (RevenueAccommodation_Normal:20.00, V20) is not booked in September, so it is not named.
+    // Line 4 (RevenueAccommodation_Normal:20.00) is not booked in September, so it is not named.
     expect(dry?.findings.map((f) => f.message.replace(/ of the mapping file:.*/, ''))).toEqual(['lines 3, 6, 15', 'line 7']);
-    expect(dry?.summary).toContain('W-MWST-CODE-UNCHECKED');
-
-    // Swapped code: 311 is the configured Normalsatz code (8.1 %); the posting guard compares rates only and passes it.
-    const swapped = exportSetup({ files: { 'mapping-BSP.csv': readMapping().replace('(10%);10;3400;V10;10;', '(10%);10;3400;311;10;') } });
-    const [outcome] = await run(swapped);
-    expect(outcome?.status).toBe('written');
-    expect(withoutPlaceholderCodes(outcome?.findings ?? []).map((f) => [f.code, f.value])).toEqual([['W-MWST-CODE-RATE', '311']]);
-    const protocol = readFileSync(join(exportsOf(swapped), BSP, '2026-09', 'ABACUS_Buchungen_20260901-20260930_BSP.protokoll.txt'), 'utf8');
-    expect(protocol).toContain('line 3 of the mapping file: the MWST-Code 311 is configured for the Normalsatz at 8.1 % (abacus.mwstCodes.normal), but the row books it at 10 %');
+    expect(dry?.summary).toContain('W-TAX-UNCHECKED');
   });
+
+  it('Swapped tax on a used row: the file is written, and the output and the protocol carry W-TAX-RATE naming the mapping line, the tax and both rates', async () => {
+    const swapped = DE_ROWS.map((row) => (row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00' ? { ...row, odooTax: 'tax_ust_19_skr03' } : row));
+    // Without the 19 % lines of the month, so tax_ust_19_skr03 has one rate in the file.
+    const withoutNineteen = (data: typeof DE_MONTH) => {
+      Object.assign(data, structuredClone(DE_MONTH));
+      data.ledger[BSP] = (data.ledger[BSP] ?? []).filter((line) => !line.taxes.some((tax) => tax.percent === 19));
+    };
+    const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], swapped)) }, data: withoutNineteen });
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('written');
+    expect(outcome?.findings.filter((f) => !f.code.startsWith('N-')).map((f) => [f.code, f.value])).toEqual([['W-TAX-RATE', 'tax_ust_19_skr03']]);
+    const line = swapped.findIndex((row) => row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00') + 2;
+    const protocol = readFileSync(join(exportsOf(setup), BSP, '2026-09', PROTOCOL), 'utf8');
+    expect(protocol).toContain(`line ${line} of the mapping file: the Odoo tax tax_ust_19_skr03 has the rate 19 % in Odoo, but the row books it at 7 %`);
+  });
+
+  it('Tax used at two rates: two rows with tax_ust_19_skr03 at 7 % and 19 % give E-TAX-RATES naming the tax, both rates and both rows, and no file', async () => {
+    const twice = DE_ROWS.map((row) => (row.apaleoAccount === 'RevenueAccommodation_Reduced:7.00' ? { ...row, odooTax: 'tax_ust_19_skr03' } : row));
+    const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], twice)) }, data: (data) => Object.assign(data, structuredClone(DE_MONTH)) });
+    const lines = ['RevenueAccommodation_Reduced:7.00', 'RevenueFoodAndBeverages_Normal:19.00', 'RevenueOther_Normal:19.00'].map((n) => twice.findIndex((row) => row.apaleoAccount === n) + 2).sort((a, b) => a - b);
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('failed');
+    const finding = outcome?.findings.find((f) => f.code === 'E-TAX-RATES');
+    expect(finding?.message).toContain(`the tax tax_ust_19_skr03 is booked at 7 % and 19 % in this file (lines ${lines.join(', ')} of the mapping file)`);
+    expect(existsSync(exportsOf(setup))).toBe(false);
+  });
+
+  it('Odoo is the default target and One rate per tax: the German month with the SKR03 template writes ODOO_Buchungen_20260901-20260930_BSP.csv, no E-TAX-RATES, no Abacus file', async () => {
+    const setup = exportSetup({ config: deMonthConfig(), files: { 'mapping-BSP.csv': new TextDecoder().decode(renderMappingFile([], DE_ROWS)) }, data: (data) => Object.assign(data, structuredClone(DE_MONTH)) });
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('written');
+    expect(outcome?.findings.map((f) => f.code)).toEqual(['N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE', 'N-ODOO-ROUNDING-LINE']);
+    expect(readdirSync(join(exportsOf(setup), BSP, '2026-09')).sort()).toEqual([FILE, PROTOCOL, 'manifest.json'].sort());
+    expect(readFileSync(join(exportsOf(setup), BSP, '2026-09', FILE), 'utf8')).toContain('account.1_tax_ust_7_skr03');
+  });
+
+  it('EUR property in a CHF company: E-CURRENCY names EUR and CHF, says that the Odoo file books in the company currency, and reads no ledger', async () => {
+    const setup = exportSetup({ config: exportConfig().replace('version: 18\n', 'version: 18\n  currency: CHF\n') });
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('failed');
+    expect(outcome?.findings.map((f) => [f.code, f.value])).toEqual([['E-CURRENCY', 'EUR']]);
+    expect(outcome?.findings[0]?.message).toContain('but the export file books in CHF only');
+    expect(outcome?.findings[0]?.message).toContain('An Odoo company books its journal entries in one currency (odoo.currency)');
+    expect(setup.fake.calls.some((call) => call.startsWith('getLedger'))).toBe(false);
+    expect(existsSync(exportsOf(setup))).toBe(false);
+  });
+
+  it('Abacus is the default target no longer, and the protocol names no Mandant: with an abacus section the Odoo file is written and its import block names company and journal only', async () => {
+    const setup = exportSetup({ config: exportConfig().replace('properties:\n', 'abacus:\n  mandant: 1234\nproperties:\n') });
+    const [outcome] = await run(setup);
+    expect(outcome?.status).toBe('written');
+    const folder = join(exportsOf(setup), BSP, '2026-09');
+    expect(readdirSync(folder).filter((name) => name.startsWith('ABACUS_'))).toEqual([]);
+    const protocol = readFileSync(join(folder, PROTOCOL), 'utf8');
+    const importBlock = protocol.slice(protocol.indexOf('Import into Odoo Accounting'), protocol.indexOf('\n\n', protocol.indexOf('Import into Odoo Accounting')));
+    expect(importBlock).toContain('Company: id 1');
+    expect(importBlock).toContain('journal APA');
+    expect(importBlock).not.toMatch(/Mandant|1234/);
+  });
+
+  it('German property: no E-CURRENCY with odoo.currency EUR; Swiss company: a CHF property with odoo.currency CHF is written too', async () => {
+    const chf = exportSetup({
+      config: exportConfig().replace('version: 18\n', 'version: 18\n  currency: CHF\n'),
+      data: (data) => {
+        for (const property of data.properties) property.currency = 'CHF';
+        for (const line of data.ledger[BSP] ?? []) line.currency = 'CHF';
+      },
+    });
+    const [outcome] = await run(chf);
+    expect(outcome?.status).toBe('written');
+    expect(outcome?.findings.map((f) => f.code)).not.toContain('E-CURRENCY');
+    expect(readFileSync(join(exportsOf(chf), BSP, '2026-09', PROTOCOL), 'utf8')).toContain('currency CHF');
+  });
+
 });
 
 describe('plausibility checks in the pipeline', () => {
-  it('Side bug is caught: blocks the file when a defect writes DebitCredit D where the apaleo line credits the Collective account', async () => {
+  it('Side bug is caught: blocks the file when a defect writes a booking with debit and credit account swapped', async () => {
     const setup = exportSetup();
     const sideBug: typeof buildBookings = (...args) => {
       const result = buildBookings(...args);
-      // The 98.00 logis charge: the folio 1101 is debited in apaleo (D); written as C.
+      // The 98.00 logis charge: the folio 2000 is debited in apaleo; written the other way round.
       const booking = result.bookings[1];
-      if (booking?.tax) {
-        booking.debitCredit = booking.debitCredit === 'D' ? 'C' : 'D';
-        booking.tax.taxCents = -booking.tax.taxCents;
+      if (booking?.vat) {
+        [booking.debit, booking.credit] = [booking.credit, booking.debit];
+        booking.vat.side = booking.vat.side === 'credit' ? 'debit' : 'credit';
       }
       return result;
     };
     const [outcome] = await run(setup, {}, sideBug);
     expect(outcome?.status).toBe('failed');
-    const [first] = withoutPlaceholderCodes(outcome?.findings ?? []);
+    const [first] = withoutAustrianTaxes(outcome?.findings ?? []);
     expect(first?.code).toBe('E-ACCOUNT-BALANCE');
     expect(first?.message).toMatch(/^on 2026-09-14 account \d+ moves -?\d+\.\d\d in the bookings, but the apaleo lines mapped to it move .* \(Soll positive, Haben negative\)/);
     expect(existsSync(exportsOf(setup))).toBe(false);
@@ -257,7 +341,7 @@ describe('plausibility checks in the pipeline', () => {
     const [outcome] = await run(setup);
     expect(setup.fake.calls.filter((call) => call.startsWith('getAccountTotals'))).toHaveLength(30);
     expect(outcome?.status).toBe('written');
-    const findings = withoutPlaceholderCodes(outcome?.findings ?? []);
+    const findings = withoutAustrianTaxes(outcome?.findings ?? []);
     expect(findings.map((f) => [f.code, f.value])).toEqual([['W-AGGREGATE-DIFF', 'RevenueAccommodation_VeryReduced:10.00']]);
     expect(findings[0]?.message).toContain("on 2026-09-15 apaleo's daily aggregate for account RevenueAccommodation_VeryReduced:10.00 (Revenues) has the balance -1.00");
   });
@@ -269,7 +353,7 @@ describe('plausibility checks in the pipeline', () => {
     };
     const [outcome] = await run(setup);
     expect(outcome?.status).toBe('failed');
-    const [first] = withoutPlaceholderCodes(outcome?.findings ?? []);
+    const [first] = withoutAustrianTaxes(outcome?.findings ?? []);
     expect(first?.code).toBe('E-AGGREGATE-CHECK');
     expect(first?.message).toContain('core.subledger_aggregate.create, or set checks.aggregates: false');
   });

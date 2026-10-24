@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { ChartIndex } from '../../src/core/chart.js';
 import type { AccountRef, AccountType, SourceAccount } from '../../src/core/source.js';
 import {
-  DEFAULT_MWST_CODES,
   SUGGESTION_MARK,
+  TEMPLATE_NAMES,
   checkCoverage,
   checkMapping,
   loadTemplate,
@@ -19,11 +19,11 @@ import {
   type TemplateSettings,
 } from '../../src/mapping/index.js';
 import { loadLiveData } from '../helpers/apaleo.js';
+import { GERMAN_CHART } from '../helpers/german-chart.js';
 import { ledgerLine } from '../helpers/ledger.js';
 import { mappingOf } from '../helpers/mapping.js';
-import { SWISS_CHART } from '../helpers/swiss-chart.js';
 
-const SETTINGS: TemplateSettings = { mwstCodes: { ...DEFAULT_MWST_CODES } };
+const SETTINGS: TemplateSettings = { version: 18 };
 
 const account = (number: string, name: string, type: AccountType, extra: Partial<SourceAccount> = {}): SourceAccount => ({
   number,
@@ -39,238 +39,246 @@ const rate = (percent: number) => ({ vat: { type: percent === 0 ? 'Without' : 'N
 const find = (rows: MappingRowValues[], number: string, type?: string) =>
   rows.find((r) => r.apaleoAccount === number && (type === undefined || r.apaleoType === type));
 const wildcard = (rows: MappingRowValues[], type: string, percent = '') => rows.find((r) => r.apaleoAccount === '*' && r.apaleoType === type && r.apaleoVatPercent === percent);
-const mapped = (row: MappingRowValues | undefined) => row && [row.abacusAccount, row.mwstCode, row.mwstPercent];
+const mapped = (row: MappingRowValues | undefined) => row && [row.odooAccount, row.odooTax, row.taxPercent];
 
-const template = await loadTemplate();
-const suggest = (accounts: readonly SourceAccount[], settings: TemplateSettings = SETTINGS) => suggestRows(accounts, template, settings);
+const skr03 = await loadTemplate('skr03-hotel');
+const skr04 = await loadTemplate('skr04-hotel');
+const suggest = (accounts: readonly SourceAccount[], template: Template = skr03, settings: TemplateSettings = SETTINGS) => suggestRows(accounts, template, settings);
 
-/** Every rule of the template with an account as a mapping row, so `checkMapping` can check the numbers. */
+/** Every rule of a template with an account as a mapping row, so `checkMapping` can check the codes and taxes. */
 function templateRows(t: Template): MappingRowValues[] {
   const rows = suggestRows([], { ...t, rules: t.rules.map((rule) => ({ ...rule, wildcard: true })) }, SETTINGS);
-  return rows.filter((row) => row.abacusAccount !== '').map((row, i) => ({ ...row, apaleoAccount: `${i}`, comment: '' }));
+  return rows.filter((row) => row.odooAccount !== '').map((row, i) => ({ ...row, apaleoAccount: `${i}`, comment: '' }));
 }
 
-describe('KMU hotel template', () => {
-  it('names its version, marks every rule "Vorschlag (ungeprüft)" and writes Swiss Standard German without "ß"', () => {
-    expect(template.id).toBe('kmu-hotel@1');
+describe.each([
+  ['skr03-hotel', skr03, 'skr03'],
+  ['skr04-hotel', skr04, 'skr04'],
+] as const)('SKR hotel templates for Odoo: %s', (name, template, chart) => {
+  it('names its version, marks every rule "Vorschlag (ungeprüft)" and names the source with the check date', () => {
+    expect(template.id).toBe(`${name}@1`);
+    expect(template.chart).toBe(chart);
     expect(template.rules.length).toBeGreaterThan(25);
     for (const rule of template.rules) {
       expect(rule.comment.startsWith(SUGGESTION_MARK), `line ${rule.line}`).toBe(true);
-      expect(rule.comment, `line ${rule.line}`).not.toContain('ß');
-      expect(rule.abacusAccount).toMatch(/^(\d{4})?$/);
-      expect(['', '{normal}', '{reduziert}', '{beherbergung}']).toContain(rule.mwstCode);
+      expect(rule.comment, `line ${rule.line}`).toContain('geprüft 2026-10-24');
+      expect(rule.odooAccount, `line ${rule.line}`).toMatch(/^(\d{4}|\{cash\}|\{transfer\})?$/);
+      expect(['', `tax_ust_7_${chart}`, `tax_ust_19_${chart}`]).toContain(rule.odooTax);
+      expect(rule.comment, `line ${rule.line}`).not.toMatch(/MWST|Treuhänder|«|»/);
     }
-    expect(readFileSync(new URL('../../templates/kmu-hotel.rules.csv', import.meta.url), 'utf8')).not.toContain('ß');
-    expect(shippedTemplate()).toEqual(template);
+    expect(shippedTemplate(name)).toEqual(template);
   });
 
-  it('passes the mapping check: every rule with an account has a valid account, code and Swiss rate', () => {
-    const findings = checkMapping(mappingOf(templateRows(template)));
-    expect(findings.filter((f) => !['W-UNTAXED-REVENUE'].includes(f.code))).toEqual([]);
+  it('passes the mapping check: every rule with an account has a valid code, a known tax at its own rate and a German rate', () => {
+    const findings = checkMapping(mappingOf(templateRows(template)), { version: 18 });
+    expect(findings.filter((f) => !['N-DEFAULT-TAX-ACCOUNT', 'N-GENERATED-ACCOUNT'].includes(f.code))).toEqual([]);
   });
 
-  it('suggests the KMU accounts for the Swiss chart: revenue by rate, payments, folios, Debitoren, deposits and write-offs by rate', () => {
-    const rows = suggest(SWISS_CHART);
-    expect(mapped(find(rows, 'RevenueAccommodation_Special:3.80'))).toEqual(['3400', '313', '3.8']);
-    expect(mapped(find(rows, 'RevenueFoodAndBeverages_Normal:8.10'))).toEqual(['3200', '311', '8.1']);
-    expect(mapped(find(rows, 'RevenueOther_Normal:8.10'))).toEqual(['3500', '311', '8.1']);
-    expect(mapped(find(rows, 'RevenueFoodAndBeverages_Reduced:2.60'))).toEqual(['3260', '312', '2.6']);
-    expect(mapped(find(rows, 'RevenueAccommodation_Without:0.00'))).toEqual(['3600', '', '0']);
-    expect(find(rows, 'RevenueAccommodation_Without:0.00')?.comment).toContain('Standard-MWST-Code');
-    expect(mapped(find(rows, '1600'))).toEqual(['1000', '', '']);
-    expect(mapped(find(rows, '1102'))).toEqual(['1090', '', '']);
-    expect(mapped(find(rows, '1114'))).toEqual(['1090', '', '']);
+  it('ships a template file that is valid UTF-8 with CRLF and a comment on every rule', () => {
+    const text = readFileSync(new URL(`../../templates/${name}.rules.csv`, import.meta.url), 'utf8');
+    expect(text.split('\n').every((line) => line === '' || line.endsWith('\r'))).toBe(true);
+    expect(text.split('\n')[0]).toContain(`${name}@1`);
+    expect(template.rules.every((rule) => rule.comment !== '')).toBe(true);
+  });
+});
+
+describe('SKR03 hotel template', () => {
+  it('Lodging and drinks: "Logis" at 7 % maps to 8300 with tax_ust_7_skr03 and 7, "Getränke" at 19 % to 8400 with tax_ust_19_skr03 and 19', () => {
+    const rows = suggest([account('5011', 'Logis', 'Revenues', rate(7)), account('5020', 'Getränke', 'Revenues', rate(19))]);
+    expect(mapped(find(rows, '5011'))).toEqual(['8300', 'tax_ust_7_skr03', '7']);
+    expect(mapped(find(rows, '5020'))).toEqual(['8400', 'tax_ust_19_skr03', '19']);
+  });
+
+  it('suggests the SKR03 accounts for the German chart: revenue by rate, Kasse, Geldtransit, guest ledger, company invoices, deposits and bad debt by rate', () => {
+    const rows = suggest(GERMAN_CHART);
+    expect(mapped(find(rows, 'RevenueAccommodation_Reduced:7.00'))).toEqual(['8300', 'tax_ust_7_skr03', '7']);
+    expect(mapped(find(rows, 'RevenueFoodAndBeverages_Reduced:7.00'))).toEqual(['8300', 'tax_ust_7_skr03', '7']);
+    expect(find(rows, 'RevenueFoodAndBeverages_Reduced:7.00')?.comment).toContain('Speisen zu 7 % für Leistungen ab 2026-01-01');
+    expect(mapped(find(rows, 'RevenueNoShow_Reduced:7.00'))).toEqual(['8300', 'tax_ust_7_skr03', '7']);
+    expect(mapped(find(rows, 'RevenueFoodAndBeverages_Normal:19.00'))).toEqual(['8400', 'tax_ust_19_skr03', '19']);
+    expect(mapped(find(rows, 'RevenueOther_Normal:19.00'))).toEqual(['8400', 'tax_ust_19_skr03', '19']);
+    expect(mapped(find(rows, 'RevenueAccommodation_Without:0.00'))).toEqual(['8200', '', '0']);
+    expect(find(rows, 'RevenueAccommodation_Without:0.00')?.comment).toContain('nie tax_not_taxable');
+    expect(mapped(find(rows, '1600'))).toEqual(['1001', '', '']);
+    expect(mapped(find(rows, '1102'))).toEqual(['1360', '', '']);
+    expect(mapped(wildcard(rows, 'Payments'))).toEqual(['1360', '', '']);
     expect(find(rows, '1102')?.comment).toContain('nie das Bankkonto');
-    expect(mapped(find(rows, '1200', 'Receivables'))).toEqual(['1101', '', '']);
-    expect(mapped(find(rows, 'CollectiveDebitor_AccountsReceivable'))).toEqual(['1102', '', '']);
-    expect(find(rows, 'CollectiveDebitor_AccountsReceivable')?.comment).toContain('Nicht 1100: das ist in Abacus meist das Sammelkonto der Debitorenbuchhaltung');
-    expect(mapped(wildcard(rows, 'AccountsReceivable'))).toEqual(['1102', '', '']);
-    expect([3.8, 8.1, 2.6, 0].map((r) => mapped(wildcard(rows, 'Liabilities', String(r))))).toEqual([
-      ['2030', '313', '3.8'],
-      ['2031', '311', '8.1'],
-      ['2032', '312', '2.6'],
-      ['2039', '', '0'],
+    expect(mapped(find(rows, '1200', 'Receivables'))).toEqual(['1410', '', '']);
+    expect(mapped(find(rows, 'CollectiveDebitor_AccountsReceivable'))).toEqual(['1401', '', '']);
+    expect(mapped(wildcard(rows, 'AccountsReceivable'))).toEqual(['1401', '', '']);
+    expect([7, 19, 0].map((r) => mapped(wildcard(rows, 'Liabilities', String(r))))).toEqual([
+      ['1711', 'tax_ust_7_skr03', '7'],
+      ['1718', 'tax_ust_19_skr03', '19'],
+      ['1719', '', '0'],
     ]);
-    expect([3.8, 8.1, 2.6, 0].map((r) => mapped(wildcard(rows, 'LossOfAccountsReceivable', String(r))))).toEqual([
-      ['3805', '313', '3.8'],
-      ['3806', '311', '8.1'],
-      ['3807', '312', '2.6'],
-      ['3808', '', '0'],
+    expect([7, 19, 0].map((r) => mapped(wildcard(rows, 'LossOfAccountsReceivable', String(r))))).toEqual([
+      ['2401', 'tax_ust_7_skr03', '7'],
+      ['2406', 'tax_ust_19_skr03', '19'],
+      ['2400', '', '0'],
     ]);
     for (const row of rows) expect(row.comment.startsWith(SUGGESTION_MARK) || row.comment.startsWith('archiviert. '), row.apaleoAccount).toBe(true);
   });
 
+  it('leaves a 7 % revenue account no name pattern matches empty, with a comment naming 8300 and tax_ust_7_skr03', () => {
+    const row = find(suggest(GERMAN_CHART), 'RevenueOther_Reduced:7.00');
+    expect(row?.odooAccount).toBe('');
+    expect(row?.comment).toContain('7 %: Logis oder Speisen?');
+    expect(row?.comment).toContain('8300 mit tax_ust_7_skr03');
+  });
+
   it('writes no row for the containers 3000, 9999 and 6900, nor for CollectiveDebitor_LossOfAccountsReceivable', () => {
-    const rows = suggest(SWISS_CHART);
+    const rows = suggest(GERMAN_CHART);
     for (const number of ['3000', '9999', '6900', 'CollectiveDebitor_LossOfAccountsReceivable', '5000', 'RevenueAccommodation', '1000']) {
       expect(find(rows, number), number).toBeUndefined();
     }
   });
 
   it('Template does not guess: House and TransitoryItems stay empty with a comment', () => {
-    const rows = suggest(SWISS_CHART);
+    const rows = suggest(GERMAN_CHART);
     for (const number of ['9000', '7000']) {
-      expect(find(rows, number)?.abacusAccount, number).toBe('');
-      expect(find(rows, number)?.comment, number).toContain('Bitte mit dem Treuhänder zuordnen');
+      expect(find(rows, number)?.odooAccount, number).toBe('');
+      expect(find(rows, number)?.comment, number).toContain('Bitte mit der Kanzlei zuordnen');
     }
   });
 
-  it('Kurtaxe is not pre-filled: the CityTaxes row is empty with both options, and the coverage check reports E-UNMAPPED', () => {
-    const rows = suggest(SWISS_CHART);
+  it('Kurtaxe is not pre-filled: the CityTaxes row is empty with both options, and mapping check --from --to reports E-UNMAPPED', () => {
+    const rows = suggest(GERMAN_CHART);
     const row = find(rows, '3501');
-    expect(row?.abacusAccount).toBe('');
-    expect(row?.comment).toContain('durchlaufender Posten ohne MWST-Code');
-    expect(row?.comment).toContain('wie die ESTV empfiehlt');
-    expect(row?.comment).toContain('Teil der Beherbergung zu 3,8 %');
-    expect(row?.comment).toContain('Nie der Code 490 "Subvention Kurtaxen" (Ziffer 900)');
-    expect(row?.comment).toContain('Beherbergungsabgabe, die das Hotel selbst schuldet');
+    expect(row?.odooAccount).toBe('');
+    expect(row?.comment).toContain('durchlaufender Posten: Durchlaufende Posten SKR03 1590 / SKR04 1370 ohne Steuer');
+    expect(row?.comment).toContain('Übernachtung- oder Beherbergungsteuer');
+    expect(row?.comment).toContain('Beherbergung zu 7 %');
     expect(row?.comment).toContain('docs/mapping-guide.md');
 
-    const line = ledgerLine({ credit: { number: '3501', name: 'Kurtaxe', type: 'CityTaxes', parentNumber: '3500' }, currency: 'CHF', grossCents: 350, taxes: [] });
-    const findings = checkCoverage(mappingOf(rows), [line], new ChartIndex(SWISS_CHART), { rateOf: () => 0 });
+    const line = ledgerLine({ credit: { number: '3501', name: 'Kurtaxe', type: 'CityTaxes', parentNumber: '3500' }, grossCents: 350, taxes: [] });
+    const findings = checkCoverage(mappingOf(rows), [line], new ChartIndex(GERMAN_CHART), { rateOf: () => 0 });
     expect(findings.map((f) => [f.code, f.value])).toContainEqual(['E-UNMAPPED', '3501']);
   });
 
-  it('Food and drinks: "Frühstück Restaurant" at 8.1 % maps to 3200 and "Getränke" at 8.1 % to 3100, both with 311 and 8.1', () => {
-    const rows = suggest([account('R1', 'Frühstück Restaurant', 'Revenues', rate(8.1)), account('R2', 'Getränke', 'Revenues', rate(8.1))]);
-    expect(mapped(find(rows, 'R1'))).toEqual(['3200', '311', '8.1']);
-    expect(mapped(find(rows, 'R2'))).toEqual(['3100', '311', '8.1']);
+  it('writes the levy comment on SecondCityTax and GuestLevies too', () => {
+    const rows = suggest([account('S', 'City Tax 2', 'SecondCityTax'), account('G', 'Gästeabgabe', 'GuestLevies')]);
+    for (const number of ['S', 'G']) {
+      expect(find(rows, number)?.odooAccount).toBe('');
+      expect(find(rows, number)?.comment).toContain('Beherbergung zu 7 %');
+    }
   });
 
-  it('Accommodation with breakfast: "Logis" at 3.8 % maps to 3400 with MWST-Code 313 and rate 3.8', () => {
-    const rows = suggest([account('5011', 'Logis', 'Revenues', rate(3.8))]);
-    expect(mapped(find(rows, '5011'))).toEqual(['3400', '313', '3.8']);
-  });
-
-  it('Codes from the config: V81, V26 and V38 replace the KMU sample codes, also in the wildcard rows', () => {
-    const rows = suggest(SWISS_CHART, { mwstCodes: { normal: 'V81', reduziert: 'V26', beherbergung: 'V38' } });
-    expect(find(rows, 'RevenueOther_Normal:8.10')?.mwstCode).toBe('V81');
-    expect(find(rows, 'RevenueFoodAndBeverages_Reduced:2.60')?.mwstCode).toBe('V26');
-    expect(find(rows, 'RevenueAccommodation_Special:3.80')?.mwstCode).toBe('V38');
-    expect(wildcard(rows, 'Liabilities', '3.8')?.mwstCode).toBe('V38');
-    expect(wildcard(rows, 'LossOfAccountsReceivable', '8.1')?.mwstCode).toBe('V81');
-    expect(rows.some((row) => /\{|\}/.test(row.mwstCode))).toBe(false);
-  });
-
-  it.each([
-    [7.7, 'Normalsatz 7,7 % bis 2023-12-31'],
-    [3.7, 'Sondersatz Beherbergung 3,7 % bis 2023-12-31'],
-    [2.5, 'reduzierter Satz 2,5 % bis 2023-12-31'],
-  ])('leaves revenue and deposit accounts at the pre-2024 rate %s %% empty with a comment', (percent, text) => {
-    const rows = suggest([account('R', `Revenues Other (${percent}%)`, 'Revenues', rate(percent)), account('L', `Liabilities (${percent}%)`, 'Liabilities', rate(percent))]);
+  it.each([16, 5])('Historic rates stay empty: revenue and deposit accounts at %s %% get an empty account and the 2020 comment', (percent) => {
+    const rows = suggest([account('R', `Revenues Other (${percent}%)`, 'Revenues', rate(percent)), account('L', `Liabilities (${percent}%)`, 'Liabilities', { ...rate(percent), ledger: 'guest' })]);
     for (const number of ['R', 'L']) {
-      expect(find(rows, number)?.abacusAccount).toBe('');
-      expect(find(rows, number)?.comment).toContain(text);
-      expect(find(rows, number)?.comment).toContain('Exporte für 2023 und früher mit dem Treuhänder klären');
+      expect(find(rows, number)?.odooAccount).toBe('');
+      expect(find(rows, number)?.comment).toContain('historischer Satz vom 2020-07-01 bis 2020-12-31');
     }
   });
 
   it('matches name patterns on parent names too, and keeps the comment of an archived account', () => {
-    const rows = suggest(SWISS_CHART);
-    expect(find(rows, 'RevenueAccommodation_Special:3.70')?.comment).toMatch(/^archiviert\. Vorschlag \(ungeprüft\): leer lassen, Sondersatz Beherbergung 3,7 %/);
-    const food = suggest([account('G', 'Gastronomie', 'Revenues', { ...rate(8.1), parentNumber: 'K' }), account('K', 'Küche', 'Revenues', { hasChildren: true })]);
-    expect(find(food, 'G')?.abacusAccount).toBe('3200');
+    expect(find(suggest(GERMAN_CHART), 'RevenueAccommodation_Reduced:5.00')?.comment).toMatch(/^archiviert\. Vorschlag \(ungeprüft\): leer lassen, historischer Satz/);
+    const food = suggest([account('G', 'Gastronomie', 'Revenues', { ...rate(7), parentNumber: 'K' }), account('K', 'Küche', 'Revenues', { hasChildren: true })]);
+    expect(find(food, 'G')?.odooAccount).toBe('8300');
+  });
+
+  it.each(['Stornogebühr', 'Cancellation fee', 'No-Show', 'Noshow'])('maps "%s" at 7 %% to 8300 with tax_ust_7_skr03, the comment asking the Kanzlei', (name) => {
+    const row = find(suggest([account('A', name, 'Revenues', rate(7))]), 'A');
+    expect(mapped(row)).toEqual(['8300', 'tax_ust_7_skr03', '7']);
+    expect(row?.comment).toContain('entscheidet die Kanzlei');
   });
 
   it('leaves accounts no rule matches unmapped, with the comment', () => {
     const rows = suggest([account('X', 'Unknown', 'Unknown' as AccountType)]);
-    expect(find(rows, 'X')?.abacusAccount).toBe('');
-    expect(find(rows, 'X')?.comment).toBe('Vorschlag (ungeprüft): keine Regel der Vorlage passt, bitte mit dem Treuhänder zuordnen.');
+    expect(find(rows, 'X')?.odooAccount).toBe('');
+    expect(find(rows, 'X')?.comment).toBe('Vorschlag (ungeprüft): keine Regel der Vorlage passt, bitte mit der Kanzlei zuordnen.');
   });
 
-  it('gives the wildcard account and code of a type and rate for fix hints', () => {
-    expect(templateWildcard(template, 'Liabilities', 3.8)).toEqual({ abacusAccount: '2030', mwstCode: '313' });
-    expect(templateWildcard(template, 'Liabilities', 8.1, { mwstCodes: { normal: 'V81', reduziert: 'V26', beherbergung: 'V38' } })).toEqual({ abacusAccount: '2031', mwstCode: 'V81' });
-    expect(templateWildcard(template, 'AccountsReceivable', undefined)).toEqual({ abacusAccount: '1102', mwstCode: '' });
-    expect(templateWildcard(template, 'Liabilities', 19)).toBeUndefined();
+  it('gives the wildcard account and tax of a type and rate for fix hints, with the generated accounts of the version', () => {
+    expect(templateWildcard(skr03, 'Liabilities', 7)).toEqual({ odooAccount: '1711', odooTax: 'tax_ust_7_skr03' });
+    expect(templateWildcard(skr03, 'AccountsReceivable', undefined)).toEqual({ odooAccount: '1401', odooTax: '' });
+    expect(templateWildcard(skr03, 'Payments', undefined, { version: 17 })).toEqual({ odooAccount: '13601', odooTax: '' });
+    expect(templateWildcard(skr03, 'Liabilities', 10)).toBeUndefined();
   });
 
-  it('writes the header comment with the template and the MWST-Codes', () => {
-    expect(mappingHeaderComment(template, SETTINGS)).toBe(
-      'apaleo-odoo Kontenzuordnung, Vorlage kmu-hotel@1, MWST-Codes 311 (8,1 %), 312 (2,6 %), 313 (3,8 %). ' +
-        'Alle Vorschläge mit dem Treuhänder prüfen. Spalten abacus_account und mwst_code in Excel als Text formatieren.',
+  it('writes the header comment with the template, the Odoo version and the generated accounts', () => {
+    expect(mappingHeaderComment(skr03, SETTINGS)).toBe(
+      'apaleo-odoo Kontenzuordnung, Vorlage skr03-hotel@1 für Odoo 18 (Kasse 1001, Geldtransit 1360 wie in einer frischen Datenbank). ' +
+        'Alle Vorschläge mit deinem Steuerberater prüfen. Spalten odoo_account und odoo_tax in Excel als Text formatieren.',
     );
   });
 
   it('rejects a template without version or with the wrong header', () => {
     expect(() => parseTemplate('apaleo_type;name_pattern\n')).toThrow('does not name its version');
-    expect(() => parseTemplate('# kmu-hotel@1\napaleo_type;bmd_account\n')).toThrow('header must be');
-  });
-
-  it('ships a template file that is valid UTF-8 with CRLF and 7 columns per line', () => {
-    const text = readFileSync(new URL('../../templates/kmu-hotel.rules.csv', import.meta.url), 'utf8');
-    expect(text.split('\n').every((line) => line === '' || line.endsWith('\r'))).toBe(true);
-    expect(template.rules.every((rule) => rule.comment !== '')).toBe(true);
+    expect(() => parseTemplate('# skr03-hotel@1\napaleo_type;bmd_account\n')).toThrow('header must be');
+    expect(TEMPLATE_NAMES).toEqual(['skr03-hotel', 'skr04-hotel']);
   });
 });
 
-const BER_ROWS = suggest((await loadLiveData()).charts.BER ?? []);
+describe('SKR04 hotel template', () => {
+  it('maps revenue to 4300, 4400 and 4200 (with the default-tax comment), the guest ledger to 1210 and company invoices to 1200', () => {
+    const rows = suggest(GERMAN_CHART, skr04);
+    expect(mapped(find(rows, 'RevenueAccommodation_Reduced:7.00'))).toEqual(['4300', 'tax_ust_7_skr04', '7']);
+    expect(mapped(find(rows, 'RevenueFoodAndBeverages_Normal:19.00'))).toEqual(['4400', 'tax_ust_19_skr04', '19']);
+    expect(mapped(find(rows, 'RevenueAccommodation_Without:0.00'))).toEqual(['4200', '', '0']);
+    expect(find(rows, 'RevenueAccommodation_Without:0.00')?.comment).toContain('4200 trägt in Odoo die Standardsteuer 19 %');
+    expect(mapped(find(rows, '1200', 'Receivables'))).toEqual(['1210', '', '']);
+    expect([7, 19, 0].map((r) => mapped(wildcard(rows, 'LossOfAccountsReceivable', String(r))))).toEqual([
+      ['6931', 'tax_ust_7_skr04', '7'],
+      ['6936', 'tax_ust_19_skr04', '19'],
+      ['6930', '', '0'],
+    ]);
+  });
+});
 
-describe('KMU hotel template on the recorded BER chart', () => {
-  const rows = BER_ROWS;
+const live = await loadLiveData();
+const BER_CHART = live.charts.BER ?? [];
 
-  it('Real apaleo chart: no row for 3000 or 9999, the four deposit wildcards, the Debitoren wildcard, and empty rows at 16, 19, 7 and 5 %', () => {
+describe('the SKR hotel templates on the recorded BER chart', () => {
+  it('SKR04 deposits: *;Liabilities rows at 7 % (3260, tax_ust_7_skr04), 19 % (3272, tax_ust_19_skr04) and 0 % (3280, no tax), no row for 3000 or 9999, *;AccountsReceivable to 1200', () => {
+    const rows = suggest(BER_CHART, skr04);
+    expect([7, 19, 0].map((r) => mapped(wildcard(rows, 'Liabilities', String(r))))).toEqual([
+      ['3260', 'tax_ust_7_skr04', '7'],
+      ['3272', 'tax_ust_19_skr04', '19'],
+      ['3280', '', '0'],
+    ]);
     expect(find(rows, '3000')).toBeUndefined();
     expect(find(rows, '9999')).toBeUndefined();
-    expect(['3.8', '8.1', '2.6', '0'].map((r) => wildcard(rows, 'Liabilities', r)?.abacusAccount)).toEqual(['2030', '2031', '2032', '2039']);
-    expect(mapped(wildcard(rows, 'AccountsReceivable'))).toEqual(['1102', '', '']);
-    const foreign = rows.filter((row) => row.apaleoType === 'Revenues' && ['16', '19', '7', '5'].includes(row.apaleoVatPercent));
-    expect(foreign.length).toBeGreaterThanOrEqual(20);
-    for (const row of foreign) {
-      expect(row.abacusAccount, row.apaleoAccount).toBe('');
-      expect(row.comment, row.apaleoAccount).toContain('kein Schweizer MWST-Satz');
+    expect(mapped(wildcard(rows, 'AccountsReceivable'))).toEqual(['1200', '', '']);
+  });
+
+  it('Generated accounts by Odoo version: cash to 1001 in both, card payments to 13601 with 17 and 1360 with 19, the comment naming both codes, no placeholder left', () => {
+    const v17 = suggest(BER_CHART, skr03, { version: 17 });
+    const v19 = suggest(BER_CHART, skr03, { version: 19 });
+    expect([find(v17, '1600')?.odooAccount, find(v19, '1600')?.odooAccount]).toEqual(['1001', '1001']);
+    for (const card of ['1101', '1102', '1104', '1107']) expect([find(v17, card)?.odooAccount, find(v19, card)?.odooAccount], card).toEqual(['13601', '1360']);
+    for (const row of [...v17, ...v19].filter((r) => r.apaleoType === 'Payments')) {
+      expect(row.comment).toContain('frische Datenbank: SKR03 Kasse 1001, Geldtransit 1360 (Odoo 17: 13601), SKR04 1601 / 1460 (Odoo 17: 14601)');
+      expect(row.comment).toContain('Kontenplan');
+    }
+    expect([...v17, ...v19].some((row) => /\{cash\}|\{transfer\}/.test(row.odooAccount))).toBe(false);
+    const skr04v17 = suggest(BER_CHART, skr04, { version: 17 });
+    expect([find(skr04v17, '1600')?.odooAccount, find(skr04v17, '1102')?.odooAccount]).toEqual(['1601', '14601']);
+  });
+
+  it('Historic rates stay empty: the 16 % and 5 % revenue accounts of the BER chart have no account and the 2020 comment', () => {
+    const historic = suggest(BER_CHART).filter((row) => row.apaleoType === 'Revenues' && ['16', '5'].includes(row.apaleoVatPercent));
+    expect(historic.length).toBe(10);
+    for (const row of historic) {
+      expect(row.odooAccount, row.apaleoAccount).toBe('');
+      expect(row.comment, row.apaleoAccount).toContain('2020-07-01 bis 2020-12-31');
     }
   });
 
-  it('Recorded chart: RevenueCancellationFees_Without:0.00 maps to 3680 without MWST-Code, no-shows above 0 % stay empty with the Annullation comment', () => {
-    expect(mapped(find(rows, 'RevenueCancellationFees_Without:0.00'))).toEqual(['3680', '', '0']);
-    const noShows = rows.filter((row) => row.apaleoAccount.startsWith('RevenueNoShow_') && Number(row.apaleoVatPercent) > 0);
-    expect(noShows).toHaveLength(4);
-    for (const row of noShows) {
-      expect(row.abacusAccount).toBe('');
-      expect(row.comment).toContain('Annullationen und No-Shows gelten als Schadenersatz ohne MWST (ESTV MBI 08 Ziff. 8.7)');
-    }
+  it('maps every 7 % and 19 % revenue account apaleo books on BER, and leaves RevenueOther_Reduced:7.00 empty', () => {
+    const rows = suggest(BER_CHART);
+    for (const number of ['RevenueAccommodation_Reduced:7.00', 'RevenueFoodAndBeverages_Reduced:7.00', 'RevenueNoShow_Reduced:7.00']) expect(find(rows, number)?.odooAccount, number).toBe('8300');
+    expect(find(rows, 'RevenueFoodAndBeverages_Normal:19.00')?.odooAccount).toBe('8400');
+    expect(find(rows, 'RevenueCancellationFees_Without:0.00')?.odooAccount).toBe('8200');
+    expect(find(rows, 'RevenueOther_Reduced:7.00')?.odooAccount).toBe('');
   });
-});
 
-describe('Template rows for Swiss special cases', () => {
-  it.each([
-    [3.8, '3805', '313'],
-    [8.1, '3806', '311'],
-  ])('Write-off rows: a per-reservation write-off at %s %% resolves through the wildcard to %s with code %s', (percent, account, code) => {
-    const rows = suggest(SWISS_CHART);
-    const mapping = mappingOf(rows);
+  it('resolves per-reservation write-offs through the wildcards by rate, also under CollectiveDebitor_LossOfAccountsReceivable', () => {
+    const mapping = mappingOf(suggest(BER_CHART));
     for (const parentNumber of ['6900', 'CollectiveDebitor_LossOfAccountsReceivable']) {
-      const ref: AccountRef = { number: `BSP-1_LossOfAccountsReceivable/${percent}`, name: 'Loss', type: 'LossOfAccountsReceivable', parentNumber };
-      const row = resolve(mapping, ref, { rate: percent, chart: new ChartIndex(SWISS_CHART) });
-      expect([row?.abacusAccount, row?.mwstCode]).toEqual([account, code]);
-    }
-    expect(find(rows, '6900')).toBeUndefined();
-    expect(find(rows, 'CollectiveDebitor_LossOfAccountsReceivable')).toBeUndefined();
-  });
-
-  it.each(['Annullation', 'Annulation', 'Storno', 'Cancellation fee', 'No-Show', 'Noshow'])('maps "%s" at 0 %% to 3680 without MWST-Code, before the 0 %% revenue rule', (name) => {
-    const rows = suggest([account('A', name, 'Revenues', rate(0))]);
-    expect(mapped(find(rows, 'A'))).toEqual(['3680', '', '0']);
-  });
-
-  it('maps the groups RevenueCancellationFees and RevenueNoShow by their number', () => {
-    const rows = suggest([account('RevenueNoShow', 'X', 'Revenues', { hasChildren: true }), account('N1', 'Gebühr', 'Revenues', { ...rate(0), parentNumber: 'RevenueNoShow' })]);
-    expect(find(rows, 'N1')?.abacusAccount).toBe('3680');
-  });
-
-  it('Taxed no-show is left to the Treuhänder: "No-Show Gebühr" at 3.8 % stays empty although the 3.8 % rule would match', () => {
-    const row = find(suggest([account('N', 'No-Show Gebühr', 'Revenues', rate(3.8))]), 'N');
-    expect(row?.abacusAccount).toBe('');
-    expect(row?.comment).toContain('gelten als Schadenersatz ohne MWST (ESTV MBI 08 Ziff. 8.7), ausser die Leistung wurde schon ohne Korrekturbeleg in Rechnung gestellt');
-  });
-
-  it('writes the levy comment on SecondCityTax and GuestLevies too', () => {
-    const rows = suggest([account('S', 'City Tax 2', 'SecondCityTax'), account('G', 'Gästetaxe', 'GuestLevies')]);
-    for (const number of ['S', 'G']) {
-      expect(find(rows, number)?.abacusAccount).toBe('');
-      expect(find(rows, number)?.comment).toContain('Ziffer 910');
-      expect(find(rows, number)?.comment).toContain('Teil der Beherbergung zu 3,8 %');
+      const ref: AccountRef = { number: 'BER-1_LossOfAccountsReceivable', name: 'Loss', type: 'LossOfAccountsReceivable', parentNumber };
+      const row = resolve(mapping, ref, { rate: 19, chart: new ChartIndex(BER_CHART) });
+      expect([row?.odooAccount, row?.odooTax]).toEqual(['2406', 'tax_ust_19_skr03']);
     }
   });
 });

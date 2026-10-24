@@ -17,13 +17,16 @@ export const EMPTY_DAY: LocalDate = '2026-09-17';
 export const API = 'https://api.apaleo.com';
 export const IDENTITY = 'https://identity.apaleo.com';
 export const TOKEN_URL = `${IDENTITY}/connect/token`;
-export const CLIENT_ID = 'bsp-abacus-export';
+export const CLIENT_ID = 'bsp-odoo-export';
 export const CLIENT_SECRET = 'fixture-secret-9f2c41';
 export const ACCESS_TOKEN = 'fixture-access-token-77a1';
 
+/** The `odoo` section of the test configs: journal APA, Odoo 18, per-line rounding, company 1, EUR. */
+export const ODOO_SECTION = 'odoo:\n  journal: APA\n  version: 18\n';
+
 /** A config file and environment that pass validation and point at the fixtures. */
 export const FIXTURE_FILES = {
-  'apaleo-odoo.config.yaml': `apaleo:\n  clientId: ${CLIENT_ID}\nabacus:\n  mandant: 1234\n  leitwaehrung: EUR\n`,
+  'apaleo-odoo.config.yaml': `apaleo:\n  clientId: ${CLIENT_ID}\n${ODOO_SECTION}`,
 };
 export const FIXTURE_ENV = { APALEO_CLIENT_SECRET: CLIENT_SECRET };
 
@@ -61,16 +64,16 @@ export function readLiveFixture(property: LiveProperty, relative: string): unkno
 }
 
 /**
- * The fabricated Swiss fixture month (`test/fixtures/apaleo/ch-month/`, see its
- * README): property ENG "Hotel Beispiel Engelberg", CHF, Europe/Zurich, August 2026.
+ * The fabricated German fixture month (`test/fixtures/apaleo/de-month/`, see its
+ * README): property BSP "Hotel Beispiel Berlin", EUR, Europe/Berlin, September 2026.
  */
-export const ENG = 'ENG';
+export const DE_MONTH_DAYS: readonly LocalDate[] = ['2026-09-03', '2026-09-10', '2026-09-11', '2026-09-12', '2026-09-14', '2026-09-17', '2026-09-18', '2026-09-28'];
 
 export interface FixtureServerOptions {
   /** Serve the live recordings (properties BER and VIE) instead of Hotel Beispiel. */
   live?: boolean;
-  /** Serve the Swiss fixture month (property ENG) instead of Hotel Beispiel. */
-  chMonth?: boolean;
+  /** Serve the German fixture month (property BSP, Hotel Beispiel Berlin) instead of Hotel Beispiel. */
+  deMonth?: boolean;
   /** Answer a request differently; return undefined to fall through to the fixtures. */
   override?: (request: Request, url: URL) => Response | undefined | Promise<Response | undefined>;
   /** Seconds the issued token is valid. Default 3600. */
@@ -88,11 +91,11 @@ export function apaleoFixtureHandler(options: FixtureServerOptions = {}) {
     }
     if (url.origin !== API) return undefined;
     if (request.headers.get('authorization') !== `Bearer ${ACCESS_TOKEN}`) return new Response(null, { status: 401 });
-    return apiResponse(request.method, url, options.live ? 'live' : options.chMonth ? 'ch-month' : 'beispiel');
+    return apiResponse(request.method, url, options.live ? 'live' : options.deMonth ? 'de-month' : 'beispiel');
   };
 }
 
-type FixtureSet = 'beispiel' | 'live' | 'ch-month';
+type FixtureSet = 'beispiel' | 'live' | 'de-month';
 
 function apiResponse(method: string, url: URL, fixtures: FixtureSet): Response | undefined {
   const query = url.searchParams;
@@ -100,12 +103,12 @@ function apiResponse(method: string, url: URL, fixtures: FixtureSet): Response |
   if (route === 'GET /inventory/v1/properties') {
     if (query.get('pageNumber') !== '1') return noContent();
     if (fixtures === 'live') return Response.json(LIVE_PROPERTY_LIST);
-    return Response.json(readFixture(fixtures === 'ch-month' ? 'ch-month/properties/page-1.json' : 'properties/page-1.json'));
+    return Response.json(readFixture(fixtures === 'de-month' ? 'de-month/properties/page-1.json' : 'properties/page-1.json'));
   }
   const propertyId = query.get('propertyId') ?? '';
-  const known: readonly string[] = fixtures === 'live' ? LIVE_PROPERTIES : fixtures === 'ch-month' ? [ENG] : [BSP];
+  const known: readonly string[] = fixtures === 'live' ? LIVE_PROPERTIES : [BSP];
   if (!known.includes(propertyId)) return new Response('{"messages":["Property not found"]}', { status: 404 });
-  const folder = fixtures === 'live' ? `live/${propertyId}/` : fixtures === 'ch-month' ? 'ch-month/' : '';
+  const folder = fixtures === 'live' ? `live/${propertyId}/` : fixtures === 'de-month' ? 'de-month/' : '';
   if (route === 'GET /finance/v1/accounts/schema') return Response.json(readFixture(`${folder}accounts-schema.json`));
   const daily: Record<string, string> = {
     'POST /finance/v1/accounts/export-gross-daily': 'export-gross-daily',
@@ -190,13 +193,13 @@ export async function loadBeispielData(): Promise<FakeSourceData> {
   };
 }
 
-/** The Swiss fixture month read through the real apaleo adapter, as canonical `FakeSource` data. */
-export async function loadChMonthData(): Promise<FakeSourceData> {
-  const { source } = createFixtureSource({ chMonth: true });
+/** The German fixture month read through the real apaleo adapter, as canonical `FakeSource` data. */
+export async function loadDeMonthData(): Promise<FakeSourceData> {
+  const { source } = createFixtureSource({ deMonth: true });
   return {
     properties: await source.listProperties(),
-    charts: { [ENG]: await source.getChartOfAccounts(ENG) },
-    ledger: { [ENG]: await source.getLedger(ENG, '2026-08-01', '2026-09-01') },
+    charts: { [BSP]: await source.getChartOfAccounts(BSP) },
+    ledger: { [BSP]: await source.getLedger(BSP, '2026-09-01', '2026-10-01') },
   };
 }
 

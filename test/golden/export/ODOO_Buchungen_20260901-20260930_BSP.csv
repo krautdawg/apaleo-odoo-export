@@ -1,0 +1,26 @@
+id,ref,date,journal_id,line_ids/id,line_ids/account_id,line_ids/name,line_ids/debit,line_ids/credit,line_ids/tax_ids/id
+apaleo_c1_BSP_20260914,apaleo BSP 2026-09-14,2026-09-14,APA,apaleo_c1_BSP_20260914_0001,2000,Gästeforderungen,142.00,0.00,
+,,,,apaleo_c1_BSP_20260914_0002,2890,Zahlung Visa,220.00,0.00,
+,,,,apaleo_c1_BSP_20260914_0003,3510,Anzahlungen 10 %,0.00,200.00,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260914_0004,3600,Kurtaxe,0.00,3.20,
+,,,,apaleo_c1_BSP_20260914_0005,4010,Erlöse Beherbergung 10 %,0.00,89.09,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260914_0006,4020,Erlöse Speisen 10 %,0.00,12.00,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260914_0007,4030,Erlöse Getränke 20 %,0.00,23.00,account.1_account_tax_template_sales_20_code022
+apaleo_c1_BSP_20260915,apaleo BSP 2026-09-15,2026-09-15,APA,apaleo_c1_BSP_20260915_0001,2000,Gästeforderungen,168.70,0.00,
+,,,,apaleo_c1_BSP_20260915_0002,2890,Zahlung Mastercard,165.00,0.00,
+,,,,apaleo_c1_BSP_20260915_0003,3510,Anzahlungen 10 %,0.00,150.00,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260915_0004,3600,Kurtaxe,0.00,3.20,
+,,,,apaleo_c1_BSP_20260915_0005,4010,Erlöse Beherbergung 10 %,0.00,79.09,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260915_0006,4020,Erlöse Speisen 10 %,0.00,54.64,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260915_0007,4030,Erlöse Getränke 20 %,0.00,15.33,account.1_account_tax_template_sales_20_code022
+apaleo_c1_BSP_20260916,apaleo BSP 2026-09-16,2026-09-16,APA,apaleo_c1_BSP_20260916_0001,2000,Gästeforderungen,0.00,320.70,
+,,,,apaleo_c1_BSP_20260916_0002,2010,Forderungen Firmenrechnungen,115.00,0.00,
+,,,,apaleo_c1_BSP_20260916_0003,2700,Zahlung bar,24.00,0.00,
+,,,,apaleo_c1_BSP_20260916_0004,2890,Zahlung Mastercard,61.70,0.00,
+,,,,apaleo_c1_BSP_20260916_0005,2890,Zahlung Visa,120.00,0.00,
+apaleo_c1_BSP_20260921,apaleo BSP 2026-09-21,2026-09-21,APA,apaleo_c1_BSP_20260921_0001,3510,Anzahlungen 10 %,200.00,0.00,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260921_0002,4010,Erlöse Beherbergung 10 %,0.00,200.00,account.1_account_tax_template_sales_10_code029
+apaleo_c1_BSP_20260922,apaleo BSP 2026-09-22,2026-09-22,APA,apaleo_c1_BSP_20260922_0001,2000,Gästeforderungen,10.00,0.00,
+,,,,apaleo_c1_BSP_20260922_0002,2890,Zahlung Maestro,0.00,10.00,
+,,,,apaleo_c1_BSP_20260922_0003,3510,Anzahlungen 10 %,150.00,0.00,account.1_account_tax_template_sales_10_code029
+,,,,apaleo_c1_BSP_20260922_0004,4010,Erlöse Beherbergung 10 %,0.00,150.00,account.1_account_tax_template_sales_10_code029

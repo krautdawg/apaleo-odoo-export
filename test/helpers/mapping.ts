@@ -6,10 +6,9 @@ export function mappingRow(values: Partial<MappingRowValues> & Pick<MappingRowVa
   return {
     apaleoName: '',
     apaleoVatPercent: '',
-    abacusAccount: '',
-    mwstCode: '',
-    mwstPercent: '',
-    kost: '',
+    odooAccount: '',
+    odooTax: '',
+    taxPercent: '',
     comment: '',
     ...values,
   };
@@ -30,18 +29,18 @@ export function readMappingFixture(name: string): Uint8Array {
 }
 
 /**
- * The rows written by `renderMappingFile` that `test/fixtures/mapping/excel-ch-saved.csv`
- * holds after an Excel (CH) save: umlauts, an en dash, a separator and quotes inside
- * comments, a Kostenstelle, the rates 3.8, 8.1 and 2.6, MWST-Codes and a rate wildcard.
+ * The rows written by `renderMappingFile` that `test/fixtures/mapping/excel-de-saved.csv`
+ * holds after an Excel (DE) save: umlauts, an en dash, a separator and quotes inside
+ * comments, the rates 7, 19 and 0, Odoo taxes, a generated account and a rate wildcard.
  */
 export const EXCEL_ORIGINAL_ROWS: readonly MappingRowValues[] = [
-  mappingRow({ apaleoAccount: 'RevenueAccommodation_Special:3.80', apaleoType: 'Revenues', apaleoName: 'Revenues Accommodation (3.8%)', apaleoVatPercent: '3.8', abacusAccount: '3400', mwstCode: '313', mwstPercent: '3.8', comment: 'Vorschlag (ungeprüft): Beherbergung 3,8 %' }),
-  mappingRow({ apaleoAccount: 'RevenueFoodAndBeverages_Normal:8.10', apaleoType: 'Revenues', apaleoName: 'Frühstück Speisen (8.1%)', apaleoVatPercent: '8.1', abacusAccount: '3200', mwstCode: '311', mwstPercent: '8.1', comment: 'Speisen; eigenes Konto mit dem Treuhänder klären' }),
-  mappingRow({ apaleoAccount: 'RevenueBeverages_Normal:8.10', apaleoType: 'Revenues', apaleoName: 'Getränke (8.1%)', apaleoVatPercent: '8.1', abacusAccount: '3100', mwstCode: '311', mwstPercent: '8.1', kost: '20' }),
-  mappingRow({ apaleoAccount: 'RevenueOther_Reduced:2.60', apaleoType: 'Revenues', apaleoName: 'Revenues Other (2.6%)', apaleoVatPercent: '2.6', abacusAccount: '3260', mwstCode: '312', mwstPercent: '2.6', comment: 'Take-away 2,6 %' }),
-  mappingRow({ apaleoAccount: '1102', apaleoType: 'Payments', apaleoName: 'Visa Credit Card Payment', abacusAccount: '1090', comment: 'Karte "Visa" über das Transferkonto' }),
+  mappingRow({ apaleoAccount: 'RevenueAccommodation_Reduced:7.00', apaleoType: 'Revenues', apaleoName: 'Revenues Accommodation (7%)', apaleoVatPercent: '7', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7', comment: 'Vorschlag (ungeprüft): Erlöse 7 % USt' }),
+  mappingRow({ apaleoAccount: 'RevenueFoodAndBeverages_Reduced:7.00', apaleoType: 'Revenues', apaleoName: 'Frühstück Speisen (7%)', apaleoVatPercent: '7', odooAccount: '8300', odooTax: 'tax_ust_7_skr03', taxPercent: '7', comment: 'Speisen; eigenes Konto mit der Kanzlei klären' }),
+  mappingRow({ apaleoAccount: 'RevenueFoodAndBeverages_Normal:19.00', apaleoType: 'Revenues', apaleoName: 'Getränke (19%)', apaleoVatPercent: '19', odooAccount: '8400', odooTax: 'tax_ust_19_skr03', taxPercent: '19' }),
+  mappingRow({ apaleoAccount: 'RevenueOther_Without:0.00', apaleoType: 'Revenues', apaleoName: 'Revenues Other (no VAT)', apaleoVatPercent: '0', odooAccount: '8200', taxPercent: '0', comment: 'ohne USt' }),
+  mappingRow({ apaleoAccount: '1102', apaleoType: 'Payments', apaleoName: 'Visa Credit Card Payment', odooAccount: '1360', comment: 'Karte "Visa" über das Geldtransitkonto' }),
   mappingRow({ apaleoAccount: '9000', apaleoType: 'House', apaleoName: 'House Account', comment: 'Testwert – Hauskonto noch offen' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '3.8', abacusAccount: '2030', mwstCode: '313', mwstPercent: '3.8', comment: 'Anzahlungen 3,8 %' }),
-  mappingRow({ apaleoAccount: '*', apaleoType: 'AccountsReceivable', abacusAccount: '1102', comment: 'Debitoren apaleo' }),
-  mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoName: 'City Tax (no VAT)', apaleoVatPercent: '0', comment: 'Gast schuldet: Gemeinde 2210 ohne MWST-Code – mit dem Treuhänder entscheiden.' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Liabilities', apaleoVatPercent: '7', odooAccount: '1711', odooTax: 'tax_ust_7_skr03', taxPercent: '7', comment: 'Anzahlungen 7 %' }),
+  mappingRow({ apaleoAccount: '*', apaleoType: 'Receivables', odooAccount: '1410', comment: 'Gästeforderungen' }),
+  mappingRow({ apaleoAccount: '3501', apaleoType: 'CityTaxes', apaleoName: 'City Tax (no VAT)', apaleoVatPercent: '0', comment: 'Gast schuldet: Durchlaufende Posten 1590 ohne Steuer – mit der Kanzlei entscheiden.' }),
 ];

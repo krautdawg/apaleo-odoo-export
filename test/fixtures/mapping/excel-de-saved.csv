@@ -1,0 +1,11 @@
+# Hand-built to the rules of Excel (DE) 'CSV (Trennzeichen-getrennt)': the written original (test/helpers/mapping.ts EXCEL_ORIGINAL_ROWS) opened with the rate columns formatted as numbers with one decimal and saved again: Windows-1252 without BOM, semicolons, CRLF, the rates 7 and 19 written with a decimal comma (7,0 and 19,0), the account codes as plain numbers, quotes only around cells with a separator or a quote. Not produced in a real Excel installation.
+apaleo_account;apaleo_type;apaleo_name;apaleo_vat_percent;odoo_account;odoo_tax;tax_percent;comment
+RevenueAccommodation_Reduced:7.00;Revenues;Revenues Accommodation (7%);7,0;8300;tax_ust_7_skr03;7,0;Vorschlag (ungeprüft): Erlöse 7 % USt
+RevenueFoodAndBeverages_Reduced:7.00;Revenues;Frühstück Speisen (7%);7,0;8300;tax_ust_7_skr03;7,0;"Speisen; eigenes Konto mit der Kanzlei klären"
+RevenueFoodAndBeverages_Normal:19.00;Revenues;Getränke (19%);19,0;8400;tax_ust_19_skr03;19,0;
+RevenueOther_Without:0.00;Revenues;Revenues Other (no VAT);0;8200;;0;ohne USt
+1102;Payments;Visa Credit Card Payment;;1360;;;"Karte ""Visa"" über das Geldtransitkonto"
+9000;House;House Account;;;;;Testwert – Hauskonto noch offen
+*;Liabilities;;7,0;1711;tax_ust_7_skr03;7,0;Anzahlungen 7 %
+*;Receivables;;;1410;;;Gästeforderungen
+3501;CityTaxes;City Tax (no VAT);0;;;;Gast schuldet: Durchlaufende Posten 1590 ohne Steuer – mit der Kanzlei entscheiden.

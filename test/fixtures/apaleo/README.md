@@ -18,11 +18,11 @@ Business days (September 2026, so the demo month 2026-09 is always closed):
 - **2026-09-21**: logis 220.00 at 10 % for `BSP-GHIJKL-1` and the release of its deposit as a negative charge (−220.00, tax −20.00) on the deposit account.
 - **2026-09-22**: logis 165.00 and the release of the `BSP-MNOPQR-1` deposit (−165.00, tax −15.00); an overpayment of 10.00 parked on `BSP-MNOPQR-1_Liabilities/Null:0.00` and refunded to the Maestro card as a negative prepayment.
 
-The amounts are chosen so that Abacus' check of every booking (the MWST contained in the gross amount) equals apaleo's tax rounded to the cent: the fixture month has no `W-VAT-ROUNDING`.
+The amounts are chosen so that the tax contained in every gross amount equals apaleo's tax rounded to the cent.
 
-The demo (`examples/demo/apaleo/`) no longer copies these files: it is the Swiss "Hotel Beispiel" in CHF, fabricated in the shape of the Swiss fixture month (`ch-month/`) and kept apart from both, see `examples/demo/README.md`.
+The demo (`examples/demo/apaleo/`) does not copy these files: it is a copy of the German fixture month (`de-month/`), kept apart from it so tests and docs can change separately, see `examples/demo/README.md`.
 
 
-The Swiss fixture month (property `ENG`, CHF, August 2026, with Kurtaxe, a deposit received, released and refunded, an Annullation, an invoice on accounts receivable and a write-off) is in [`ch-month/`](ch-month/README.md).
+The German fixture month (property `BSP` "Hotel Beispiel Berlin", EUR, `Europe/Berlin`, September 2026, posted with the SKR03 template mapping into the Odoo golden files) is in [`de-month/`](de-month/README.md).
 
 Recorded real responses of an apaleo DEV sandbox (properties `BER` and `VIE`, with eight-decimal net and tax amounts) are in [`live/`](live/README.md); the regression tests run the whole pipeline on them. More real responses are welcome: if you run `apaleo-odoo live-smoke` against a real account and the shapes differ, please run the privacy scan (`node test/helpers/fixture-scan.ts <folder>`), anonymise names, reservation ids and amounts, and add them as a new fixture day.

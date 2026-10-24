@@ -59,7 +59,7 @@ describe('apaleo-odoo properties', () => {
   it('exits 1 without any network call when the client id is missing', async () => {
     const ctx = createApaleoContext(
       {},
-      { files: { 'apaleo-odoo.config.yaml': 'abacus:\n  mandant: 1234\n' } },
+      { files: { 'apaleo-odoo.config.yaml': 'odoo:\n  journal: APA\n  version: 18\n' } },
     );
     expect(await runCli(['properties'], ctx)).toBe(1);
     expect(ctx.err()).toContain('apaleo.clientId is not set');
